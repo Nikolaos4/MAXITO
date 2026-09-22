@@ -2,6 +2,7 @@ import z from "zod";
 
 const envSchema = z.object({
     BOT_TOKEN: z.string(),
+    API_BASE_URL: z.string().default("http://localhost:8080"),
 });
 
 type Env = z.infer<typeof envSchema>;
