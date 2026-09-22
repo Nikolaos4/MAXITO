@@ -8,6 +8,11 @@ import { initFlows } from "@/flows";
 
 const bot = new Bot<AppContext>(env.BOT_TOKEN);
 
+bot.use(async (ctx, next) => {
+    console.log(`Received update type ${ctx.updateType} from user ${JSON.stringify(ctx.user)}`);
+    return next();
+});
+
 initCommands(bot);
 initFlows(bot);
 
