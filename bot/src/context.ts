@@ -1,11 +1,12 @@
 import { Context } from "@maxhub/max-bot-api";
 import type { User } from "@maxhub/max-bot-api/types";
+import type { ApiRole } from "@/api";
 
-type FlowName = "registration";
+type FlowName = "authorization";
 
-type Step = "registration/phone";
+type Step = "authorization/phone";
 
-type Role = "admin" | "manager" | "user";
+export type Role = ApiRole;
 
 type AppUser = User & {
     role: Role | null | undefined;
@@ -26,10 +27,40 @@ interface Session {
     step: Step | null;
     data: Record<string, unknown>;
     role: Role | undefined | null;
+    token: string;
 }
 
 const sessions = new Map<number, Session>();
 
 export function getSession(userId: number): Session {
-    return sessions.get(userId) ?? { flow: null, step: null, data: {}, role: undefined };
+    return sessions.get(userId) ?? { flow: null, step: null, data: {}, role: undefined, token: "" };
+}
+
+export function setSession(userId: number, s: Session) {
+    sessions.set(userId, s);
+}
+
+export function setStep(userId: number, step: Step) {
+    const s = getSession(userId);
+    sessions.set(userId, { ...s, step });
+}
+
+export function setFlow(userId: number, flow: FlowName) {
+    const s = getSession(userId);
+    sessions.set(userId, { ...s, flow });
+}
+
+export function setRole(userId: number, role: Role) {
+    const s = getSession(userId);
+    sessions.set(userId, { ...s, role });
+}
+
+export function setToken(userId: number, token: string) {
+    const s = getSession(userId);
+    sessions.set(userId, { ...s, token });
+}
+
+export function clearFlow(userId: number) {
+    const s = getSession(userId);
+    sessions.set(userId, { ...s, flow: null, step: null });
 }
