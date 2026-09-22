@@ -2,9 +2,9 @@ import { Context } from "@maxhub/max-bot-api";
 import type { User } from "@maxhub/max-bot-api/types";
 import type { ApiRole } from "@/api";
 
-type FlowName = "authorization";
+type FlowName = "authorization" | "house";
 
-type Step = "authorization/phone";
+type Step = "authorization/phone" | "house/address" | "house/number";
 
 export type Role = ApiRole;
 
@@ -62,5 +62,10 @@ export function setToken(userId: number, token: string) {
 
 export function clearFlow(userId: number) {
     const s = getSession(userId);
-    sessions.set(userId, { ...s, flow: null, step: null });
+    sessions.set(userId, { ...s, flow: null, step: null, data: {} });
+}
+
+export function setData(userId: number, data: Record<string, unknown>) {
+    const s = getSession(userId);
+    sessions.set(userId, { ...s, data: { ...s.data, ...data } });
 }

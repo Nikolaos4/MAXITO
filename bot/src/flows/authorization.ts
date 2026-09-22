@@ -2,6 +2,7 @@ import { Keyboard } from "@maxhub/max-bot-api";
 import { FetchError } from "ofetch";
 import { api, type Auth } from "@/api";
 import { clearFlow, getSession, setFlow, setRole, setStep, type AppContext } from "@/context";
+import { MENU_TEXT, mainMenuKeyboard } from "@/menu";
 
 async function askForPhone(ctx: AppContext) {
     if (!ctx.user) return;
@@ -24,6 +25,7 @@ async function tryBind(ctx: AppContext, phone: string) {
         setRole(ctx.user.user_id, "representative");
         clearFlow(ctx.user.user_id);
         await ctx.reply("Готово! Вы авторизованы как представитель управляющей компании.");
+        await ctx.reply(MENU_TEXT, { attachments: [mainMenuKeyboard] });
         return;
     } catch (err) {
         const status = err instanceof FetchError ? err.statusCode : undefined;
