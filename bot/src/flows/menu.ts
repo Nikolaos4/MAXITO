@@ -6,7 +6,8 @@ export const menuFlow = {
         if (!ctx.user || !ctx.callback) return false;
 
         const payload = ctx.callback.payload;
-        if (payload !== "menu:add_house" && payload !== "menu:import_houses" && payload !== "menu:show") return false;
+        const known = ["menu:add_house", "menu:import_houses", "menu:add_dispatcher", "menu:show"];
+        if (!payload || !known.includes(payload)) return false;
 
         const session = getSession(ctx.user.user_id);
         if (session.role !== "representative") {
@@ -30,6 +31,13 @@ export const menuFlow = {
                     text: 'Пришлите CSV-файл с домами. Обязательная колонка — "address", необязательная — "number".',
                 },
             });
+            return true;
+        }
+
+        if (payload === "menu:add_dispatcher") {
+            setFlow(ctx.user.user_id, "dispatcher");
+            setStep(ctx.user.user_id, "dispatcher/full_name");
+            await ctx.answerOnCallback({ message: { text: "Введите ФИО диспетчера." } });
             return true;
         }
 
