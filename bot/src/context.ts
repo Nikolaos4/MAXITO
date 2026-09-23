@@ -4,7 +4,7 @@ import type { ApiRole } from "@/api";
 
 type FlowName = "authorization" | "house";
 
-type Step = "authorization/phone" | "house/address" | "house/number";
+type Step = "authorization/phone" | "house/address" | "house/number" | "house/import_csv";
 
 export type Role = ApiRole;
 
