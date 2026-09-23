@@ -1,7 +1,7 @@
-import { ofetch, FetchError } from "ofetch";
-import type { FileAttachment } from "@maxhub/max-bot-api/types";
+import { FetchError } from "ofetch";
 import { api, type Auth } from "@/api";
 import { clearFlow, getSession, setData, setStep, type AppContext } from "@/context";
+import { downloadFile, findCsvAttachment, formatImportReport } from "@/csv-import";
 import { backToMenuKeyboard } from "@/menu";
 
 function authFor(ctx: AppContext): Auth {
@@ -42,29 +42,21 @@ async function handleNumber(ctx: AppContext, text: string) {
 async function handleImportCsv(ctx: AppContext) {
     if (!ctx.user) return;
 
-    const file = ctx.message?.body.attachments?.find((a): a is FileAttachment => a.type === "file");
+    const file = findCsvAttachment(ctx);
     if (!file) {
         await ctx.reply("Нужен файл в формате CSV, прикрепите его к сообщению.");
         return;
     }
 
     try {
-        const data = Buffer.from(await ofetch(file.payload.url, { responseType: "arrayBuffer" }));
+        const data = await downloadFile(file.payload.url);
         const report = await api.houses.importCsv(authFor(ctx), { data, filename: file.filename });
         clearFlow(ctx.user.user_id);
-
-        const lines = [`Обработано строк: ${report.total_rows}. Создано: ${report.created}, пропущено: ${report.skipped}, ошибок: ${report.failed}.`];
-        const errors = report.rows.filter((r) => r.status === "error");
-        if (errors.length > 0) {
-            lines.push(...errors.slice(0, 10).map((r) => `— строка ${r.row}: ${r.message}`));
-            if (errors.length > 10) lines.push(`...и ещё ${errors.length - 10} ошибок.`);
-        }
-
-        await ctx.reply(lines.join("\n"), { attachments: [backToMenuKeyboard] });
+        await ctx.reply(formatImportReport(report), { attachments: [backToMenuKeyboard] });
     } catch (err) {
         const status = err instanceof FetchError ? err.statusCode : undefined;
         if (status === 400) {
-            await ctx.reply("Не удалось разобрать файл: проверьте формат и колонку \"address\".");
+            await ctx.reply('Не удалось разобрать файл: проверьте формат и колонку "address".');
         } else {
             await ctx.reply("Не удалось загрузить дома, попробуйте позже.");
         }

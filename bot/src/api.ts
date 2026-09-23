@@ -46,14 +46,14 @@ type ApiDispatcherHouse = {
     house?: ApiHouse;
 };
 
-type ImportRowResult = {
+export type ImportRowResult = {
     row: number;
     status: "created" | "skipped" | "error";
     message?: string;
     id?: number;
 };
 
-type ImportReport = {
+export type ImportReport = {
     total_rows: number;
     created: number;
     skipped: number;

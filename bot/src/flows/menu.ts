@@ -6,7 +6,13 @@ export const menuFlow = {
         if (!ctx.user || !ctx.callback) return false;
 
         const payload = ctx.callback.payload;
-        const known = ["menu:add_house", "menu:import_houses", "menu:add_dispatcher", "menu:show"];
+        const known = [
+            "menu:add_house",
+            "menu:import_houses",
+            "menu:add_dispatcher",
+            "menu:import_dispatchers",
+            "menu:show",
+        ];
         if (!payload || !known.includes(payload)) return false;
 
         const session = getSession(ctx.user.user_id);
@@ -38,6 +44,17 @@ export const menuFlow = {
             setFlow(ctx.user.user_id, "dispatcher");
             setStep(ctx.user.user_id, "dispatcher/full_name");
             await ctx.answerOnCallback({ message: { text: "Введите ФИО диспетчера." } });
+            return true;
+        }
+
+        if (payload === "menu:import_dispatchers") {
+            setFlow(ctx.user.user_id, "dispatcher");
+            setStep(ctx.user.user_id, "dispatcher/import_csv");
+            await ctx.answerOnCallback({
+                message: {
+                    text: 'Пришлите CSV-файл с диспетчерами. Обязательные колонки — "full_name", "phone".',
+                },
+            });
             return true;
         }
 

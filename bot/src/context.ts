@@ -10,7 +10,8 @@ type Step =
     | "house/number"
     | "house/import_csv"
     | "dispatcher/full_name"
-    | "dispatcher/phone";
+    | "dispatcher/phone"
+    | "dispatcher/import_csv";
 
 export type Role = ApiRole;
 
