@@ -40,7 +40,7 @@ type User struct {
 	Phone     string         `gorm:"uniqueIndex;size:20;not null" json:"phone"`
 	FullName  string         `gorm:"size:255;not null" json:"full_name"`
 	Role      Role           `gorm:"size:20;not null;index" json:"role"`
-	MaxUserID *string        `gorm:"size:100" json:"max_user_id,omitempty"`
+	MaxUserID *string        `gorm:"size:100;uniqueIndex" json:"max_user_id,omitempty"`
 	IsActive  bool           `gorm:"default:true" json:"is_active"`
 	CreatedAt time.Time      `json:"created_at"`
 	UpdatedAt time.Time      `json:"updated_at"`
@@ -77,7 +77,7 @@ type DispatcherHouse struct {
 	AssignedAt   time.Time `json:"assigned_at"`
 
 	Dispatcher User  `gorm:"foreignKey:DispatcherID" json:"dispatcher,omitempty"`
-	House      House `gorm:"foreignKey:HouseID" json:"house,omitempty"`
+	House      *House `gorm:"foreignKey:HouseID" json:"house,omitempty"`
 	Assigner   User  `gorm:"foreignKey:AssignedBy" json:"assigner,omitempty"`
 }
 
@@ -93,7 +93,7 @@ type Resident struct {
 	DeletedAt      gorm.DeletedAt `gorm:"index" json:"-"`
 
 	User  User  `gorm:"foreignKey:UserID" json:"user,omitempty"`
-	House House `gorm:"foreignKey:HouseID" json:"house,omitempty"`
+	House *House `gorm:"foreignKey:HouseID" json:"house,omitempty"`
 }
 
 // ProblemType
@@ -120,7 +120,7 @@ type Appeal struct {
 	UpdatedAt          time.Time      `json:"updated_at"`
 	DeletedAt          gorm.DeletedAt `gorm:"index" json:"-"`
 
-	House         House                `gorm:"foreignKey:HouseID" json:"house,omitempty"`
+	House         *House                `gorm:"foreignKey:HouseID" json:"house,omitempty"`
 	Author        User                 `gorm:"foreignKey:AuthorID" json:"author,omitempty"`
 	ProblemType   ProblemType          `gorm:"foreignKey:ProblemTypeID" json:"problem_type,omitempty"`
 	Subscriptions []AppealSubscription `gorm:"foreignKey:AppealID" json:"subscriptions,omitempty"`
@@ -149,7 +149,7 @@ type Notification struct {
 	EndsAt        time.Time `json:"ends_at"`
 	CreatedAt     time.Time `json:"created_at"`
 
-	House       House        `gorm:"foreignKey:HouseID" json:"house,omitempty"`
+	House       *House        `gorm:"foreignKey:HouseID" json:"house,omitempty"`
 	Author      User         `gorm:"foreignKey:AuthorID" json:"author,omitempty"`
 	ProblemType *ProblemType `gorm:"foreignKey:ProblemTypeID" json:"problem_type,omitempty"`
 }
