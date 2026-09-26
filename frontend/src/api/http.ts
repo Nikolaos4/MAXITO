@@ -25,6 +25,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 // под который бэкенд нужно доработать (или поправить здесь).
 export const httpApi: Api = {
   getMe: () => request("/resident/me"),
+  getHouseInfo: () => request("/resident/house"),
   listAppeals: (feed) => request(`/resident/appeals?feed=${feed}`),
   createAppeal: ({ files, ...fields }) => {
     const form = new FormData();
@@ -33,10 +34,4 @@ export const httpApi: Api = {
     return request("/resident/appeals", { method: "POST", body: form });
   },
   toggleLike: (id) => request(`/resident/appeals/${id}/like`, { method: "POST" }),
-  addComment: (id, text) =>
-    request(`/resident/appeals/${id}/comments`, { method: "POST", body: JSON.stringify({ text }) }),
-  editComment: (id, commentId, text) =>
-    request(`/resident/appeals/${id}/comments/${commentId}`, { method: "PUT", body: JSON.stringify({ text }) }),
-  deleteComment: (id, commentId) =>
-    request(`/resident/appeals/${id}/comments/${commentId}`, { method: "DELETE" }),
 };

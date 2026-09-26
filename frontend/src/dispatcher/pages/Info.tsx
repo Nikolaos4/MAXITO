@@ -1,25 +1,34 @@
 import { useEffect, useState } from "react";
 import { api } from "../api";
-import { Accordion, KeyValueRow } from "../components/Accordion";
-import { StatBuildingIcon, StatDoorIcon } from "../components/Icons";
-import { PageHead } from "../components/PageHead";
-import type { HouseInfo, Me } from "../types";
+import { Accordion, KeyValueRow } from "../../components/Accordion";
+import { StatBuildingIcon, StatDoorIcon, UserIcon } from "../../components/Icons";
+import { PageHead } from "../../components/PageHead";
+import { Select } from "../../components/Select";
+import type { HouseInfo } from "../../types";
 
-/** Раздел «Информация и контакты»: дом, УК, тарифы, аварийные службы — раскрываются по нажатию. */
-export function Info({ me }: { me: Me }) {
-  const [info, setInfo] = useState<HouseInfo | null>(null);
+/** Информация о доме диспетчера: выбор дома + число зарегистрированных жильцов. */
+export function Info() {
+  const [houses, setHouses] = useState<HouseInfo[] | null>(null);
+  const [houseNumber, setHouseNumber] = useState("");
   const [failed, setFailed] = useState(false);
 
   useEffect(() => {
-    api.getHouseInfo().then(setInfo).catch(() => setFailed(true));
+    api.getHouses().then((list) => { setHouses(list); if (list[0]) setHouseNumber(list[0].number); }).catch(() => setFailed(true));
   }, []);
+
+  const info = houses?.find((h) => h.number === houseNumber);
 
   return (
     <>
       <PageHead title="Информация" />
 
-      {failed && <p className="empty">Не удалось загрузить информацию о доме</p>}
-      {!failed && !info && <p className="empty">Загрузка…</p>}
+      {failed && <p className="empty">Не удалось загрузить информацию о домах</p>}
+      {!failed && !houses && <p className="empty">Загрузка…</p>}
+
+      {houses && (
+        <Select className="house-select" value={houseNumber} placeholder="Дом" onChange={setHouseNumber}
+          options={houses.map((h) => ({ value: h.number, label: `Дом №${h.number}` }))} />
+      )}
 
       {info && (
         <>
@@ -38,6 +47,10 @@ export function Info({ me }: { me: Me }) {
               <div>
                 <span className="info__stat-label">Построен</span>
                 <span className="info__stat-value">{info.builtYear}</span>
+              </div>
+              <div>
+                <span className="info__stat-label">Жильцы</span>
+                <span className="info__stat-value"><UserIcon width={22} height={22} />{info.residentsCount}</span>
               </div>
             </div>
           </Accordion>

@@ -14,13 +14,15 @@ interface Props {
   onChange: (v: string) => void;
   /** Последний доступный день, YYYY-MM-DD */
   max: string;
+  /** Первый доступный день, YYYY-MM-DD (необязательно) */
+  min?: string;
   placeholder: string;
   error?: boolean;
   className?: string;
 }
 
-function Calendar({ value, max, onPick }: { value: string; max: string; onPick: (v: string) => void }) {
-  const base = value ? new Date(value) : new Date();
+function Calendar({ value, max, min, onPick }: { value: string; max: string; min?: string; onPick: (v: string) => void }) {
+  const base = value ? new Date(value) : min ? new Date(min) : new Date();
   const [year, setYear] = useState(base.getFullYear());
   const [month, setMonth] = useState(base.getMonth());
 
@@ -28,6 +30,8 @@ function Calendar({ value, max, onPick }: { value: string; max: string; onPick: 
   const days = new Date(year, month + 1, 0).getDate();
   const [maxY, maxM] = max.split("-").map(Number);
   const canNext = year < maxY || (year === maxY && month + 1 < maxM);
+  const [minY, minM] = min ? min.split("-").map(Number) : [-Infinity, -Infinity];
+  const canPrev = !min || year > minY || (year === minY && month > minM - 1);
 
   const shift = (delta: number) => {
     const d = new Date(year, month + delta, 1);
@@ -38,7 +42,7 @@ function Calendar({ value, max, onPick }: { value: string; max: string; onPick: 
   return (
     <div className="calendar">
       <div className="calendar__head">
-        <button type="button" aria-label="Предыдущий месяц" onClick={() => shift(-1)}>‹</button>
+        <button type="button" aria-label="Предыдущий месяц" disabled={!canPrev} onClick={() => shift(-1)}>‹</button>
         <span>{MONTHS[month]} {year}</span>
         <button type="button" aria-label="Следующий месяц" disabled={!canNext} onClick={() => shift(1)}>›</button>
       </div>
@@ -48,7 +52,8 @@ function Calendar({ value, max, onPick }: { value: string; max: string; onPick: 
         {Array.from({ length: days }, (_, i) => {
           const v = iso(year, month, i + 1);
           return (
-            <button key={v} type="button" disabled={v > max} className={v === value ? "is-selected" : v === max ? "is-today" : ""}
+            <button key={v} type="button" disabled={v > max || (!!min && v < min)}
+              className={v === value ? "is-selected" : v === max ? "is-today" : ""}
               onClick={() => onPick(v)}>{i + 1}</button>
           );
         })}
@@ -57,12 +62,12 @@ function Calendar({ value, max, onPick }: { value: string; max: string; onPick: 
   );
 }
 
-export function DateField({ value, onChange, max, placeholder, error, className }: Props) {
+export function DateField({ value, onChange, max, min, placeholder, error, className }: Props) {
   const [y, m, d] = value.split("-");
   return (
     <Dropdown label={value ? `${d}.${m}.${y}` : placeholder} filled={!!value} error={error} className={className}
       icon={<CalendarIcon className="field__icon" width={16} height={16} />}>
-      {(close) => <Calendar value={value} max={max} onPick={(v) => { onChange(v); close(); }} />}
+      {(close) => <Calendar value={value} max={max} min={min} onPick={(v) => { onChange(v); close(); }} />}
     </Dropdown>
   );
 }

@@ -6,7 +6,7 @@ import { UserIcon } from "../components/Icons";
 import { PageHead } from "../components/PageHead";
 import { TimeField } from "../components/TimeField";
 import { Select } from "../components/Select";
-import { CATEGORIES, OTHER_REASON } from "../data/categories";
+import { CATEGORIES } from "../data/categories";
 import { getStartParam } from "../max";
 import { checkFiles, MEDIA_HINT } from "../media";
 import type { Category, Me } from "../types";
@@ -39,7 +39,7 @@ function AppealForm({ category, me, onBack, onDone }: {
   const [files, setFiles] = useState<File[]>([]);
   const [warnings, setWarnings] = useState<string[]>([]);
 
-  const reasonOptions = [...category.reasons, OTHER_REASON];
+  const reasonOptions = category.reasons;
   const errors = { entrance: !entrance, date: !date, time: !time, reason: category.freeText ? !customReason.trim() : !reason };
   const invalid = Object.values(errors).some(Boolean);
   const show = (k: keyof typeof errors) => tried && errors[k];

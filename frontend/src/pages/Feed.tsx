@@ -56,11 +56,8 @@ export function Feed({ me, initialFeed = "house" }: { me: Me; initialFeed?: Feed
       {visible?.length === 0 && <p className="empty">{archive ? "В архиве пока пусто" : "Обращений пока нет"}</p>}
 
       {visible?.map((a) => (
-        <AppealCard key={a.id} appeal={a} meId={me.id} readOnly={archive}
-          onLike={() => api.toggleLike(a.id).then(replace)}
-          onComment={(text) => api.addComment(a.id, text).then(replace)}
-          onEditComment={(cid, text) => api.editComment(a.id, cid, text).then(replace)}
-          onDeleteComment={(cid) => api.deleteComment(a.id, cid).then(replace)} />
+        <AppealCard key={a.id} appeal={a} readOnly={archive}
+          onLike={() => api.toggleLike(a.id).then(replace)} />
       ))}
     </>
   );
