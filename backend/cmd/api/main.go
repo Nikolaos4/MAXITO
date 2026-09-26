@@ -135,6 +135,7 @@ func main() {
 			// Обращения (только по своим домам)
 			disp.GET("/appeals", appealHandler.ListAppeals)
 			disp.GET("/appeals/top", appealHandler.TopAppeals)
+			disp.GET("/appeals/stats", appealHandler.UnprocessedStats)
 			disp.GET("/appeals/:id", appealHandler.GetAppeal)
 			disp.POST("/appeals/:id/status", appealHandler.ChangeStatus)
 

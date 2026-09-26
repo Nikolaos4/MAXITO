@@ -127,6 +127,35 @@ func (r *AppealRepository) List(filter AppealFilter) ([]models.Appeal, int64, er
 	return appeals, total, nil
 }
 
+// HouseStatusCount — сырая строка агрегата "дом + статус + количество",
+// вход для подсчёта статистики по необработанным обращениям.
+type HouseStatusCount struct {
+	HouseID uint
+	Status  models.AppealStatus
+	Count   int64
+}
+
+// CountUnprocessedByHouse считает обращения в "неразобранных" статусах
+// (accepted, in_progress, need_info) по каждому из указанных домов,
+// сгруппированные по статусу. Дома без единого обращения в выборке
+// просто не попадут в результат — их нулями достраивает вызывающий код.
+func (r *AppealRepository) CountUnprocessedByHouse(houseIDs []uint) ([]HouseStatusCount, error) {
+	if len(houseIDs) == 0 {
+		return nil, nil
+	}
+
+	var rows []HouseStatusCount
+	err := r.db.Model(&models.Appeal{}).
+		Select("house_id, status, COUNT(*) as count").
+		Where("house_id IN ?", houseIDs).
+		Where("status IN ?", []models.AppealStatus{
+			models.StatusAccepted, models.StatusInProgress, models.StatusNeedInfo,
+		}).
+		Group("house_id, status").
+		Scan(&rows).Error
+	return rows, err
+}
+
 func applyAppealFilters(q *gorm.DB, f AppealFilter) *gorm.DB {
 	if len(f.HouseIDs) > 0 {
 		q = q.Where("appeals.house_id IN ?", f.HouseIDs)

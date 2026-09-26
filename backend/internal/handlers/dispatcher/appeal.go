@@ -90,6 +90,25 @@ func (h *AppealHandler) TopAppeals(c *gin.Context) {
 	c.JSON(http.StatusOK, appeals)
 }
 
+// UnprocessedStats — статистика по необработанным обращениям (accepted,
+// in_progress, need_info) по каждому дому диспетчера, отсортировано по
+// убыванию общего числа.
+func (h *AppealHandler) UnprocessedStats(c *gin.Context) {
+	currentUser := middleware.GetCurrentUser(c)
+	if currentUser == nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+
+	stats, err := h.svc.UnprocessedStats(currentUser.ID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, stats)
+}
+
 // GetAppeal — карточка обращения с числом лайков и историей смены статусов.
 func (h *AppealHandler) GetAppeal(c *gin.Context) {
 	currentUser := middleware.GetCurrentUser(c)

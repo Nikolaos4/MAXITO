@@ -3,6 +3,7 @@ package services
 import (
 	"errors"
 	"fmt"
+	"sort"
 	"time"
 
 	"maxito/internal/models"
@@ -239,6 +240,74 @@ func (s *DispatcherService) ChangeStatus(dispatcherID, appealID uint, in ChangeS
 	}
 
 	return change, nil
+}
+
+// HouseAppealStats — статистика по необработанным обращениям одного дома.
+// "Необработанные" = accepted + in_progress + need_info (completed и
+// rejected — уже закрытые, в статистику не попадают).
+type HouseAppealStats struct {
+	HouseID    uint   `json:"house_id"`
+	Address    string `json:"address"`
+	Accepted   int64  `json:"accepted"`
+	InProgress int64  `json:"in_progress"`
+	NeedInfo   int64  `json:"need_info"`
+	Total      int64  `json:"total"`
+}
+
+// UnprocessedStats — статистика по каждому дому диспетчера, отсортированная
+// по убыванию total (самый "горящий" дом — первым). Дома без единого
+// необработанного обращения тоже включены, с нулями — чтобы диспетчер видел
+// полную картину по всем своим домам, а не только по проблемным.
+func (s *DispatcherService) UnprocessedStats(dispatcherID uint) ([]HouseAppealStats, error) {
+	houses, err := s.dispHouseRepo.ListHousesByDispatcher(dispatcherID)
+	if err != nil {
+		return nil, err
+	}
+	if len(houses) == 0 {
+		return []HouseAppealStats{}, nil
+	}
+
+	houseIDs := make([]uint, len(houses))
+	statsByHouse := make(map[uint]*HouseAppealStats, len(houses))
+	for i, h := range houses {
+		houseIDs[i] = h.ID
+		statsByHouse[h.ID] = &HouseAppealStats{HouseID: h.ID, Address: h.Address}
+	}
+
+	rows, err := s.appealRepo.CountUnprocessedByHouse(houseIDs)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, row := range rows {
+		stat, ok := statsByHouse[row.HouseID]
+		if !ok {
+			continue
+		}
+		switch row.Status {
+		case models.StatusAccepted:
+			stat.Accepted = row.Count
+		case models.StatusInProgress:
+			stat.InProgress = row.Count
+		case models.StatusNeedInfo:
+			stat.NeedInfo = row.Count
+		}
+		stat.Total += row.Count
+	}
+
+	result := make([]HouseAppealStats, 0, len(houses))
+	for _, h := range houses {
+		result = append(result, *statsByHouse[h.ID])
+	}
+
+	sort.Slice(result, func(i, j int) bool {
+		if result[i].Total != result[j].Total {
+			return result[i].Total > result[j].Total
+		}
+		return result[i].Address < result[j].Address // стабильный tie-break
+	})
+
+	return result, nil
 }
 
 // ---------- Уведомления ----------
