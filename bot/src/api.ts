@@ -81,7 +81,20 @@ function csvFormData(file: { data: Buffer; filename: string }) {
     return form;
 }
 
+type ApiProblemType = {
+    id: number;
+    code: string;
+    title: string;
+    is_critical: boolean;
+    created_at: string;
+};
+
 export const api = {
+    dispatcherReference: {
+        // ponytail: используется и как дешёвый пинг для определения роли при авторизации
+        problemTypes: (auth: Auth) => request<ApiProblemType[]>("/dispatcher/problem-types", auth),
+    },
+
     houses: {
         create: (auth: Auth, body: { address: string; number?: string }) =>
             request<ApiHouse>("/representative/houses", auth, { method: "POST", body }),

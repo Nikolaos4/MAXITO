@@ -30,17 +30,38 @@ async function tryBind(ctx: AppContext, phone: string) {
     } catch (err) {
         const status = err instanceof FetchError ? err.statusCode : undefined;
 
-        // ponytail: роли dispatcher/resident на бэке пока не реализованы,
-        // поэтому 403 после успешного бинда трактуем как "рано, подождите".
         if (status === 403) {
-            clearFlow(ctx.user.user_id);
-            await ctx.reply("Номер найден, но для вашей роли функционал бота пока в разработке.");
+            await tryBindAsDispatcher(ctx);
         } else if (status === 401) {
             await ctx.reply(
                 "Такой номер телефона не найден в системе. Обратитесь к представителю вашей УК, чтобы вас добавили.",
             );
         } else if (status === 409) {
             await ctx.reply("Этот номер уже привязан к другому аккаунту MAX. Обратитесь в поддержку.");
+        } else {
+            await ctx.reply("Не удалось выполнить авторизацию, попробуйте ещё раз позже.");
+        }
+    }
+}
+
+async function tryBindAsDispatcher(ctx: AppContext) {
+    if (!ctx.user) return;
+
+    const auth: Auth = { maxUserId: String(ctx.user.user_id) };
+
+    try {
+        await api.dispatcherReference.problemTypes(auth);
+        setRole(ctx.user.user_id, "dispatcher");
+        clearFlow(ctx.user.user_id);
+        await ctx.reply("Готово! Вы авторизованы как диспетчер.");
+    } catch (err) {
+        const status = err instanceof FetchError ? err.statusCode : undefined;
+
+        // ponytail: роль resident на бэке пока не реализована, поэтому 403 здесь
+        // трактуем как "рано, подождите".
+        if (status === 403) {
+            clearFlow(ctx.user.user_id);
+            await ctx.reply("Номер найден, но для вашей роли функционал бота пока в разработке.");
         } else {
             await ctx.reply("Не удалось выполнить авторизацию, попробуйте ещё раз позже.");
         }
