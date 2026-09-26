@@ -50,7 +50,7 @@ async function tryBindAsDispatcher(ctx: AppContext) {
     const auth: Auth = { maxUserId: String(ctx.user.user_id) };
 
     try {
-        await api.dispatcherReference.problemTypes(auth);
+        await api.reference.problemTypes(auth);
         setRole(ctx.user.user_id, "dispatcher");
         clearFlow(ctx.user.user_id);
         await ctx.reply("Готово! Вы авторизованы как диспетчер.");

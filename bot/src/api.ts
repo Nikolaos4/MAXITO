@@ -89,10 +89,131 @@ type ApiProblemType = {
     created_at: string;
 };
 
+type ApiReason = {
+    id: number;
+    problem_type_id: number;
+    code: string;
+    title: string;
+    is_other: boolean;
+};
+
+export type ApiAppealStatus = "accepted" | "in_progress" | "need_info" | "completed" | "rejected";
+
+type ApiAppealStatusChange = {
+    id: number;
+    appeal_id: number;
+    from_status: ApiAppealStatus;
+    to_status: ApiAppealStatus;
+    comment: string;
+    photo_url: string | null;
+    changed_by: number;
+    changed_by_user?: { id: number; full_name: string } | null;
+    created_at: string;
+};
+
+type ApiAppeal = {
+    id: number;
+    house_id: number;
+    author_id: number;
+    problem_type_id: number;
+    reason_id: number;
+    entrance_number: number;
+    description: string;
+    importance: string;
+    status: ApiAppealStatus;
+    wants_recalculation: boolean;
+    created_at: string;
+    updated_at: string;
+    house?: ApiHouse | null;
+    author?: ApiUser | null;
+    problem_type?: ApiProblemType | null;
+    reason?: ApiReason | null;
+    likes_count: number;
+    history?: ApiAppealStatusChange[];
+};
+
+type ApiPaginated<T> = {
+    total: number;
+    page: number;
+    page_size: number;
+    items: T[];
+};
+
+type ApiAppealListQuery = {
+    house_id?: number[];
+    status?: string[];
+    entrance_number?: number[];
+    problem_type_id?: number[];
+    page?: number;
+    page_size?: number;
+};
+
+type ApiNotificationScope = "house" | "entrance";
+type ApiNotificationStatus = "active" | "expired" | "revoked";
+
+type ApiNotification = {
+    id: number;
+    house_id: number;
+    scope: ApiNotificationScope;
+    entrance_number: number | null;
+    problem_type_id: number;
+    reason_id: number | null;
+    title: string;
+    body: string;
+    starts_at: string;
+    ends_at: string;
+    revoked_at?: string | null;
+    created_by?: number;
+    created_at: string;
+    updated_at: string;
+};
+
 export const api = {
-    dispatcherReference: {
+    reference: {
         // ponytail: используется и как дешёвый пинг для определения роли при авторизации
         problemTypes: (auth: Auth) => request<ApiProblemType[]>("/dispatcher/problem-types", auth),
+
+        reasons: (auth: Auth, problemTypeId: number) =>
+            request<ApiReason[]>(`/dispatcher/problem-types/${problemTypeId}/reasons`, auth),
+    },
+
+    appeals: {
+        list: (auth: Auth, query: ApiAppealListQuery = {}) =>
+            request<ApiPaginated<ApiAppeal>>("/dispatcher/appeals", auth, { query }),
+
+        top: (auth: Auth, limit?: number) =>
+            request<ApiAppeal[]>("/dispatcher/appeals/top", auth, { query: { limit } }),
+
+        get: (auth: Auth, id: number) => request<ApiAppeal>(`/dispatcher/appeals/${id}`, auth),
+
+        setStatus: (
+            auth: Auth,
+            id: number,
+            body: { status: ApiAppealStatus; comment: string; photo_url?: string },
+        ) => request<ApiAppealStatusChange>(`/dispatcher/appeals/${id}/status`, auth, { method: "POST", body }),
+    },
+
+    notifications: {
+        list: (auth: Auth, query: { house_id?: number[]; status?: ApiNotificationStatus } = {}) =>
+            request<ApiNotification[]>("/dispatcher/notifications", auth, { query }),
+
+        create: (
+            auth: Auth,
+            body: {
+                house_id: number;
+                scope: ApiNotificationScope;
+                entrance_number?: number;
+                problem_type_id: number;
+                reason_id?: number;
+                title?: string;
+                body: string;
+                starts_at: string;
+                ends_at: string;
+            },
+        ) => request<ApiNotification>("/dispatcher/notifications", auth, { method: "POST", body }),
+
+        revoke: (auth: Auth, id: number) =>
+            request<void>(`/dispatcher/notifications/${id}/revoke`, auth, { method: "POST" }),
     },
 
     houses: {
