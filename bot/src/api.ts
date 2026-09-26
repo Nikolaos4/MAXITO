@@ -127,7 +127,7 @@ type ApiAppeal = {
     author_id: number;
     problem_type_id: number;
     reason_id: number;
-    entrance_number: number;
+    entrance_number?: number | null;
     description: string;
     importance: string;
     status: ApiAppealStatus;
@@ -138,7 +138,9 @@ type ApiAppeal = {
     author?: ApiUser | null;
     problem_type?: ApiProblemType | null;
     reason?: ApiReason | null;
-    likes_count: number;
+    // ponytail: только GET /dispatcher/appeals/:id возвращает эти поля,
+    // list/top сортируют по лайкам внутри, но не отдают ни счётчик, ни историю.
+    likes_count?: number;
     history?: ApiAppealStatusChange[];
 };
 

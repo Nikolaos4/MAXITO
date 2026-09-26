@@ -2,6 +2,7 @@ import type { AppContext } from "@/context";
 import type { Bot } from "@maxhub/max-bot-api";
 import { authorizationFlow } from "./authorization";
 import { dispatcherFlow } from "./dispatcher";
+import { dispatcherMenuFlow } from "./dispatcher-menu";
 import { houseFlow } from "./house";
 import { menuFlow } from "./menu";
 
@@ -11,7 +12,7 @@ type FlowRouter = {
     onMessageCallback?: (ctx: AppContext) => boolean | Promise<boolean>;
 };
 
-const flows: FlowRouter[] = [authorizationFlow, menuFlow, houseFlow, dispatcherFlow];
+const flows: FlowRouter[] = [authorizationFlow, menuFlow, houseFlow, dispatcherFlow, dispatcherMenuFlow];
 
 export function initFlows(bot: Bot<AppContext>) {
     bot.on("bot_started", async (ctx: AppContext) => {
