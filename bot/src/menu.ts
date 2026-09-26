@@ -20,6 +20,7 @@ export const DISPATCHER_MENU_TEXT = "Меню диспетчера. Выбери
 export const dispatcherMenuKeyboard = Keyboard.inlineKeyboard([
     [Keyboard.button.link("Обращения", DISPATCHER_APPEALS_URL)],
     [Keyboard.button.callback("Горячие обращения", "dispatcher_menu:top_appeals")],
+    [Keyboard.button.callback("Статистика по домам", "dispatcher_menu:stats")],
     [Keyboard.button.link("Уведомления", DISPATCHER_NOTIFICATIONS_URL)],
 ]);
 

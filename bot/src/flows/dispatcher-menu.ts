@@ -49,12 +49,38 @@ async function showTopAppeals(ctx: AppContext) {
     }
 }
 
+function formatStatsList(stats: Awaited<ReturnType<typeof api.appeals.stats>>): string {
+    if (stats.length === 0) return "За вами пока не закреплено ни одного дома.";
+
+    return stats
+        .map((s) => `${s.address} — всего: ${s.total} (принято: ${s.accepted}, в работе: ${s.in_progress}, нужна инфо: ${s.need_info})`)
+        .join("\n");
+}
+
+async function showStats(ctx: AppContext) {
+    if (!ctx.user) return;
+
+    try {
+        const stats = await api.appeals.stats(authFor(ctx));
+        await ctx.answerOnCallback({
+            message: { text: formatStatsList(stats), attachments: [backToDispatcherMenuKeyboard] },
+        });
+    } catch {
+        await ctx.answerOnCallback({
+            message: {
+                text: "Не удалось загрузить статистику, попробуйте позже.",
+                attachments: [backToDispatcherMenuKeyboard],
+            },
+        });
+    }
+}
+
 export const dispatcherMenuFlow = {
     onMessageCallback: async (ctx: AppContext) => {
         if (!ctx.user || !ctx.callback) return false;
 
         const payload = ctx.callback.payload;
-        const known = ["dispatcher_menu:top_appeals", "dispatcher_menu:show"];
+        const known = ["dispatcher_menu:top_appeals", "dispatcher_menu:stats", "dispatcher_menu:show"];
         if (!payload || !known.includes(payload)) return false;
 
         const session = getSession(ctx.user.user_id);
@@ -67,6 +93,11 @@ export const dispatcherMenuFlow = {
             await ctx.answerOnCallback({
                 message: { text: DISPATCHER_MENU_TEXT, attachments: [dispatcherMenuKeyboard] },
             });
+            return true;
+        }
+
+        if (payload === "dispatcher_menu:stats") {
+            await showStats(ctx);
             return true;
         }
 

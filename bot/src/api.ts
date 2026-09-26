@@ -144,6 +144,15 @@ type ApiAppeal = {
     history?: ApiAppealStatusChange[];
 };
 
+type ApiHouseAppealStats = {
+    house_id: number;
+    address: string;
+    accepted: number;
+    in_progress: number;
+    need_info: number;
+    total: number;
+};
+
 type ApiPaginated<T> = {
     total: number;
     page: number;
@@ -196,6 +205,8 @@ export const api = {
 
         top: (auth: Auth, limit?: number) =>
             request<ApiAppeal[]>("/dispatcher/appeals/top", auth, { query: { limit } }),
+
+        stats: (auth: Auth) => request<ApiHouseAppealStats[]>("/dispatcher/appeals/stats", auth),
 
         get: (auth: Auth, id: number) => request<ApiAppeal>(`/dispatcher/appeals/${id}`, auth),
 
