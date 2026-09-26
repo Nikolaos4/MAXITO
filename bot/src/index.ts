@@ -5,7 +5,7 @@ import "dotenv/config.js";
 import { env } from "@/env";
 import { getSession, type AppContext } from "@/context";
 import { initFlows } from "@/flows";
-import { askForPhone } from "@/flows/authorization";
+import { askForPhone, tryRestoreRole } from "@/flows/authorization";
 
 const bot = new Bot<AppContext>(env.BOT_TOKEN);
 
@@ -19,6 +19,7 @@ bot.use(async (ctx: AppContext, next) => {
 
     const session = getSession(ctx.user.user_id);
     if (session.role === undefined && session.step !== "authorization/phone") {
+        if (await tryRestoreRole(ctx)) return next();
         return askForPhone(ctx);
     }
 

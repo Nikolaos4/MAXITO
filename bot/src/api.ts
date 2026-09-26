@@ -81,6 +81,16 @@ function csvFormData(file: { data: Buffer; filename: string }) {
     return form;
 }
 
+export type ApiMe = {
+    id: number;
+    phone: string;
+    full_name: string;
+    role: ApiRole;
+    is_active: boolean;
+    resident?: { house_id: number; apartment: string; entrance_number?: number | null };
+    dispatcher?: { houses_count: number };
+};
+
 type ApiProblemType = {
     id: number;
     code: string;
@@ -169,8 +179,9 @@ type ApiNotification = {
 };
 
 export const api = {
+    me: (auth: Auth) => request<ApiMe>("/me", auth),
+
     reference: {
-        // ponytail: используется и как дешёвый пинг для определения роли при авторизации
         problemTypes: (auth: Auth) => request<ApiProblemType[]>("/dispatcher/problem-types", auth),
 
         reasons: (auth: Auth, problemTypeId: number) =>
