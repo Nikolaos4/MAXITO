@@ -6,6 +6,7 @@ import (
 
 	"maxito/internal/config"
 	"maxito/internal/database"
+	"maxito/internal/handlers/common"
 	"maxito/internal/handlers/dispatcher"
 	"maxito/internal/handlers/representative"
 	"maxito/internal/handlers/resident"
@@ -82,6 +83,9 @@ func main() {
 	// Handlers — Житель
 	residentAppealHandler := resident.NewAppealHandler(residentSvc)
 
+	// Handlers — общий
+	meHandler := common.NewMeHandler(residentRepo, dispHouseRepo)
+
 	gin.SetMode(cfg.GinMode)
 	r := gin.Default()
 
@@ -93,6 +97,10 @@ func main() {
 	// API v1
 	api := r.Group("/api/v1")
 	{
+		// Кто я — доступно любой роли, без RequireRole, ровно потому,
+		// что клиент ещё не знает роль на момент вызова.
+		api.GET("/me", middleware.AuthByMaxUserID(db), meHandler.Me)
+
 		rep := api.Group("/representative")
 		rep.Use(middleware.AuthByMaxUserID(db))
 		rep.Use(middleware.RequireRole(models.RoleRepresentative))
