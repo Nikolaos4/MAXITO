@@ -9,6 +9,8 @@ type Step =
     | "house/address"
     | "house/number"
     | "house/import_csv"
+    | "house/import_residents_select"
+    | "house/import_residents_csv"
     | "dispatcher/full_name"
     | "dispatcher/phone"
     | "dispatcher/import_csv";

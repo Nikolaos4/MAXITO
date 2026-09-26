@@ -1,5 +1,11 @@
-import { clearFlow, getSession, setFlow, setStep, type AppContext } from "@/context";
+import { api, type Auth } from "@/api";
+import { clearFlow, getSession, setData, setFlow, setStep, type AppContext } from "@/context";
+import { buildHouseSelectKeyboard, houseSelectText, HOUSES_PAGE_SIZE } from "@/flows/house";
 import { MENU_TEXT, mainMenuKeyboard } from "@/menu";
+
+function authFor(ctx: AppContext): Auth {
+    return { maxUserId: String(ctx.user!.user_id) };
+}
 
 export const menuFlow = {
     onMessageCallback: async (ctx: AppContext) => {
@@ -11,6 +17,7 @@ export const menuFlow = {
             "menu:import_houses",
             "menu:add_dispatcher",
             "menu:import_dispatchers",
+            "menu:import_residents",
             "menu:show",
         ];
         if (!payload || !known.includes(payload)) return false;
@@ -53,6 +60,27 @@ export const menuFlow = {
             await ctx.answerOnCallback({
                 message: {
                     text: 'Пришлите CSV-файл с диспетчерами. Обязательные колонки — "full_name", "phone".',
+                },
+            });
+            return true;
+        }
+
+        if (payload === "menu:import_residents") {
+            const houses = await api.houses.list(authFor(ctx));
+            if (houses.length === 0) {
+                await ctx.answerOnCallback({ message: { text: "Сначала добавьте хотя бы один дом." } });
+                return true;
+            }
+
+            setFlow(ctx.user.user_id, "house");
+            setStep(ctx.user.user_id, "house/import_residents_select");
+            setData(ctx.user.user_id, { residentsHouses: houses });
+
+            const totalPages = Math.max(1, Math.ceil(houses.length / HOUSES_PAGE_SIZE));
+            await ctx.answerOnCallback({
+                message: {
+                    text: houseSelectText(0, totalPages),
+                    attachments: [buildHouseSelectKeyboard(houses, 0)],
                 },
             });
             return true;
