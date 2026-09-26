@@ -4,7 +4,7 @@ import { api, type Auth } from "@/api";
 import { clearFlow, getSession, setFlow, setRole, setStep, type AppContext } from "@/context";
 import { MENU_TEXT, mainMenuKeyboard } from "@/menu";
 
-async function askForPhone(ctx: AppContext) {
+export async function askForPhone(ctx: AppContext) {
     if (!ctx.user) return;
 
     setFlow(ctx.user.user_id, "authorization");
