@@ -304,6 +304,13 @@ export const api = {
     },
 
     resident: {
+        reference: {
+            problemTypes: (auth: Auth) => request<ApiProblemType[]>("/resident/problem-types", auth),
+
+            reasons: (auth: Auth, problemTypeId: number) =>
+                request<ApiReason[]>(`/resident/problem-types/${problemTypeId}/reasons`, auth),
+        },
+
         appeals: {
             create: (
                 auth: Auth,
