@@ -196,7 +196,7 @@ export const api = {
 
     representative: {
         houses: {
-            create: (auth: Auth, body: { address: string; number?: string }) =>
+            create: (auth: Auth, body: { address: string; number?: string; entrances_count: number }) =>
                 request<ApiHouse>("/representative/houses", auth, { method: "POST", body }),
 
             list: (auth: Auth) => request<ApiHouse[]>("/representative/houses", auth),

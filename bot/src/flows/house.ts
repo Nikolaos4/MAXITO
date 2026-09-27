@@ -52,12 +52,28 @@ async function handleAddress(ctx: AppContext, text: string) {
 async function handleNumber(ctx: AppContext, text: string) {
     if (!ctx.user) return;
 
-    const session = getSession(ctx.user.user_id);
-    const address = session.data.address as string;
     const number = text === "-" ? "" : text;
 
+    setData(ctx.user.user_id, { number });
+    setStep(ctx.user.user_id, "house/entrances_count");
+    await ctx.reply("Сколько подъездов в доме?", { attachments: [cancelKeyboard] });
+}
+
+async function handleEntrancesCount(ctx: AppContext, text: string) {
+    if (!ctx.user) return;
+
+    const entrancesCount = Number(text);
+    if (!Number.isInteger(entrancesCount) || entrancesCount < 1) {
+        await ctx.reply("Введите целое число подъездов (не меньше 1).");
+        return;
+    }
+
+    const session = getSession(ctx.user.user_id);
+    const address = session.data.address as string;
+    const number = session.data.number as string;
+
     try {
-        const house = await api.representative.houses.create(authFor(ctx), { address, number });
+        const house = await api.representative.houses.create(authFor(ctx), { address, number, entrances_count: entrancesCount });
         clearFlow(ctx.user.user_id);
         await ctx.reply(`Дом добавлен: ${house.address}${house.number ? ", " + house.number : ""} (id ${house.id}).`, {
             attachments: [backToMenuKeyboard],
@@ -65,7 +81,7 @@ async function handleNumber(ctx: AppContext, text: string) {
     } catch (err) {
         const status = err instanceof FetchError ? err.statusCode : undefined;
         if (status === 400) {
-            await ctx.reply("Не удалось добавить дом: проверьте корректность адреса.");
+            await ctx.reply("Не удалось добавить дом: проверьте корректность адреса и числа подъездов.");
         } else {
             await ctx.reply("Не удалось добавить дом, попробуйте позже.");
         }
@@ -89,7 +105,7 @@ async function handleImportCsv(ctx: AppContext) {
     } catch (err) {
         const status = err instanceof FetchError ? err.statusCode : undefined;
         if (status === 400) {
-            await ctx.reply('Не удалось разобрать файл: проверьте формат и колонку "address".');
+            await ctx.reply('Не удалось разобрать файл: проверьте формат и колонки "address", "entrances_count".');
         } else {
             await ctx.reply("Не удалось загрузить дома, попробуйте позже.");
         }
@@ -181,6 +197,10 @@ export const houseFlow = {
         }
         if (session.step === "house/number") {
             await handleNumber(ctx, text);
+            return true;
+        }
+        if (session.step === "house/entrances_count") {
+            await handleEntrancesCount(ctx, text);
             return true;
         }
         return false;

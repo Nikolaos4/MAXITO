@@ -3,7 +3,7 @@ export type CsvTemplate = { fileName: string; content: string };
 export const csvTemplates = {
     houses: {
         fileName: "houses_template.csv",
-        content: "address;number\nул. Ленина, 25;1\n",
+        content: "address;number;entrances_count\nул. Ленина, 25;к2;4\n",
     },
     dispatchers: {
         fileName: "dispatchers_template.csv",

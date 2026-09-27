@@ -65,7 +65,7 @@ export const menuFlow = {
             setStep(ctx.user.user_id, "house/import_csv");
             await ctx.answerOnCallback({
                 message: {
-                    text: 'Пришлите CSV-файл с домами. Обязательная колонка — "address", необязательная — "number".',
+                    text: 'Пришлите CSV-файл с домами. Обязательные колонки — "address", "entrances_count", необязательная — "number".',
                     attachments: [cancelKeyboard],
                 },
             });
