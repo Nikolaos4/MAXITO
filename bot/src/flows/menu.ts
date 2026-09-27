@@ -6,8 +6,8 @@ import { buildHouseSelectKeyboard, houseSelectText, HOUSES_PAGE_SIZE } from "@/f
 import {
     DISPATCHER_MENU_TEXT,
     MENU_TEXT,
+    buildDispatcherMenuKeyboard,
     cancelKeyboard,
-    dispatcherMenuKeyboard,
     mainMenuKeyboard,
 } from "@/menu";
 
@@ -28,7 +28,7 @@ export const menuFlow = {
                 await ctx.answerOnCallback({ message: { text: MENU_TEXT, attachments: [mainMenuKeyboard] } });
             } else if (session.role === "dispatcher") {
                 await ctx.answerOnCallback({
-                    message: { text: DISPATCHER_MENU_TEXT, attachments: [dispatcherMenuKeyboard] },
+                    message: { text: DISPATCHER_MENU_TEXT, attachments: [await buildDispatcherMenuKeyboard(ctx)] },
                 });
             } else {
                 await ctx.answerOnCallback({ message: { text: "Отменено." } });

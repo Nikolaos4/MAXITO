@@ -1,4 +1,6 @@
 import { Keyboard } from "@maxhub/max-bot-api";
+import type { AppContext } from "@/context";
+import { miniAppLink } from "@/miniapp";
 
 export const MENU_TEXT = "Главное меню представителя. Выберите действие:";
 
@@ -14,18 +16,21 @@ export const backToMenuKeyboard = Keyboard.inlineKeyboard([[Keyboard.button.call
 
 export const cancelKeyboard = Keyboard.inlineKeyboard([[Keyboard.button.callback("Отмена", "flow:cancel")]]);
 
-// ponytail: веб-приложений ещё нет, ссылки-заглушки — заменить на реальные, когда появятся.
-const DISPATCHER_APPEALS_URL = "https://example.com/dispatcher/appeals";
-const DISPATCHER_NOTIFICATIONS_URL = "https://example.com/dispatcher/notifications";
-
 export const DISPATCHER_MENU_TEXT = "Меню диспетчера. Выберите действие:";
 
-export const dispatcherMenuKeyboard = Keyboard.inlineKeyboard([
-    [Keyboard.button.link("Обращения", DISPATCHER_APPEALS_URL)],
-    [Keyboard.button.callback("Горячие обращения", "dispatcher_menu:top_appeals")],
-    [Keyboard.button.callback("Статистика по домам", "dispatcher_menu:stats")],
-    [Keyboard.button.link("Уведомления", DISPATCHER_NOTIFICATIONS_URL)],
-]);
+export async function buildDispatcherMenuKeyboard(ctx: AppContext) {
+    const [appealsUrl, notificationsUrl] = await Promise.all([
+        miniAppLink(ctx, "dispatcher", "feed"),
+        miniAppLink(ctx, "dispatcher", "notifications"),
+    ]);
+
+    return Keyboard.inlineKeyboard([
+        [Keyboard.button.link("Обращения", appealsUrl)],
+        [Keyboard.button.callback("Горячие обращения", "dispatcher_menu:top_appeals")],
+        [Keyboard.button.callback("Статистика по домам", "dispatcher_menu:stats")],
+        [Keyboard.button.link("Уведомления", notificationsUrl)],
+    ]);
+}
 
 export const backToDispatcherMenuKeyboard = Keyboard.inlineKeyboard([
     [Keyboard.button.callback("В меню", "dispatcher_menu:show")],
@@ -33,18 +38,17 @@ export const backToDispatcherMenuKeyboard = Keyboard.inlineKeyboard([
 
 export const RESIDENT_MENU_TEXT = "Главное меню жителя. Выберите действие:";
 
-// ponytail: мини-приложения ещё не готовы — ссылки-заглушки, заменить на
-// реальные, когда появятся.
-const RESIDENT_APPEAL_FORM_URL = "https://example.com/resident/appeal";
-const RESIDENT_APPEALS_URL = "https://example.com/resident/appeals";
-const RESIDENT_NOTIFICATIONS_URL = "https://example.com/resident/notifications";
+export async function buildResidentMenuKeyboard(ctx: AppContext, chatInviteLink?: string | null) {
+    const [appealsUrl, notificationsUrl] = await Promise.all([
+        miniAppLink(ctx, "resident", "feed"),
+        miniAppLink(ctx, "resident", "notifications"),
+    ]);
 
-export function buildResidentMenuKeyboard(chatInviteLink?: string | null) {
     return Keyboard.inlineKeyboard([
         [Keyboard.button.callback("Сообщить о проблеме", "resident_menu:report")],
-        [Keyboard.button.link("Все обращения", RESIDENT_APPEALS_URL)],
+        [Keyboard.button.link("Все обращения", appealsUrl)],
         ...(chatInviteLink ? [[Keyboard.button.link("Перейти в чат дома", chatInviteLink)]] : []),
-        [Keyboard.button.link("Объявления", RESIDENT_NOTIFICATIONS_URL)],
+        [Keyboard.button.link("Объявления", notificationsUrl)],
     ]);
 }
 
@@ -54,9 +58,12 @@ export const backToResidentMenuKeyboard = Keyboard.inlineKeyboard([
 
 export const RESIDENT_PROBLEM_TYPE_TEXT = "Выберите тип проблемы:";
 
-export function buildResidentProblemTypeKeyboard(problemTypes: { code: string; title: string }[]) {
-    return Keyboard.inlineKeyboard([
-        ...problemTypes.map((pt) => [Keyboard.button.link(pt.title, `${RESIDENT_APPEAL_FORM_URL}?type=${pt.code}`)]),
-        [Keyboard.button.callback("В меню", "resident_menu:show")],
-    ]);
+export async function buildResidentProblemTypeKeyboard(ctx: AppContext, problemTypes: { code: string; title: string }[]) {
+    const rows = await Promise.all(
+        problemTypes.map(async (pt) => [
+            Keyboard.button.link(pt.title, await miniAppLink(ctx, "resident", "create", pt.code)),
+        ]),
+    );
+
+    return Keyboard.inlineKeyboard([...rows, [Keyboard.button.callback("В меню", "resident_menu:show")]]);
 }

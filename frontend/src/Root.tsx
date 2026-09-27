@@ -10,7 +10,7 @@ import { parseStartPayload, type StartRole } from "./page";
 const isMock = import.meta.env.VITE_USE_MOCK !== "false";
 
 export function Root() {
-  const { role: startRole, tab } = parseStartPayload();
+  const { role: startRole, tab, extra } = parseStartPayload();
   const [role, setRole] = useState<StartRole | null>(startRole ?? null);
   const [failed, setFailed] = useState(false);
 
@@ -38,5 +38,9 @@ export function Root() {
   }
   if (!role) return <main className="screen"><p className="empty">Загрузка…</p></main>;
 
-  return role === "dispatcher" ? <DispatcherApp initialTab={tab} /> : <ResidentApp initialTab={tab} />;
+  return role === "dispatcher" ? (
+    <DispatcherApp initialTab={tab} />
+  ) : (
+    <ResidentApp initialTab={tab} initialCategory={extra} />
+  );
 }

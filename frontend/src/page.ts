@@ -3,18 +3,29 @@ import { getStartParam } from "./max";
 export type StartRole = "resident" | "dispatcher";
 
 /**
- * Бот кодирует в start_param диплинка и роль, и вкладку одной строкой —
- * "resident:feed" / "dispatcher:create" — так фронт может выбрать нужное
- * приложение сразу, без похода в бэк за ролью (см. Root.tsx).
+ * Бот кодирует в start_param диплинка роль, вкладку и опционально доп. данные
+ * одной строкой — "resident:feed" / "resident:create:elevator" — так фронт
+ * может выбрать нужное приложение сразу, без похода в бэк за ролью (см.
+ * Root.tsx). Третий сегмент режем целиком через indexOf, а не split(":"),
+ * чтобы сам код темы (или что угодно ещё) мог включать двоеточие.
  */
-export function parseStartPayload(): { role?: StartRole; tab?: string } {
+export function parseStartPayload(): { role?: StartRole; tab?: string; extra?: string } {
   const raw = getStartParam();
   if (!raw) return {};
 
-  const [role, tab] = raw.split(":");
+  const roleSep = raw.indexOf(":");
+  if (roleSep === -1) return {};
+  const role = raw.slice(0, roleSep);
+  const rest = raw.slice(roleSep + 1);
+
+  const extraSep = rest.indexOf(":");
+  const tab = extraSep === -1 ? rest : rest.slice(0, extraSep);
+  const extra = extraSep === -1 ? undefined : rest.slice(extraSep + 1);
+
   return {
     role: role === "resident" || role === "dispatcher" ? role : undefined,
     tab,
+    extra,
   };
 }
 

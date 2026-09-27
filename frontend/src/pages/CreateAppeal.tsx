@@ -6,7 +6,6 @@ import { AlertIcon, UserIcon } from "../components/Icons";
 import { PageHead } from "../components/PageHead";
 import { TimeField } from "../components/TimeField";
 import { Select } from "../components/Select";
-import { getStartParam } from "../max";
 import { checkFiles, MEDIA_HINT } from "../media";
 import { plural } from "../format";
 import type { Appeal, Category, Me } from "../types";
@@ -43,9 +42,13 @@ const todayIso = () => {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 };
 
-/** Если бот уже передал код темы (?category=lift или start_param), выбор темы пропускаем. */
-export function resolveCategoryCode(): string | null {
-  return new URLSearchParams(window.location.search).get("category") ?? getStartParam() ?? null;
+/**
+ * Если бот уже передал код темы, выбор темы пропускаем. ?category=lift — при
+ * переходе по обычной ссылке; startTab — третий сегмент start_param диплинка
+ * ("resident:create:lift"), см. parseStartPayload() в page.ts.
+ */
+export function resolveCategoryCode(startTab?: string): string | null {
+  return new URLSearchParams(window.location.search).get("category") ?? startTab ?? null;
 }
 
 function AppealForm({ category, me, onBack, onDone, onViewExisting }: {

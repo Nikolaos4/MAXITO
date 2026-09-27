@@ -15,9 +15,9 @@ function authFor(ctx: AppContext): Auth {
 export async function residentMenuKeyboard(ctx: AppContext) {
     try {
         const { chat_invite_link } = await api.resident.house.chatLink(authFor(ctx));
-        return buildResidentMenuKeyboard(chat_invite_link);
+        return await buildResidentMenuKeyboard(ctx, chat_invite_link);
     } catch {
-        return buildResidentMenuKeyboard(null);
+        return await buildResidentMenuKeyboard(ctx, null);
     }
 }
 
@@ -27,7 +27,7 @@ async function showProblemTypes(ctx: AppContext) {
         await ctx.answerOnCallback({
             message: {
                 text: RESIDENT_PROBLEM_TYPE_TEXT,
-                attachments: [buildResidentProblemTypeKeyboard(problemTypes)],
+                attachments: [await buildResidentProblemTypeKeyboard(ctx, problemTypes)],
             },
         });
     } catch {

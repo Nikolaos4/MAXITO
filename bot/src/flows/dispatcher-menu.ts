@@ -1,6 +1,6 @@
 import { api, type Auth, type ApiAppealStatus } from "@/api";
 import { getSession, type AppContext } from "@/context";
-import { DISPATCHER_MENU_TEXT, backToDispatcherMenuKeyboard, dispatcherMenuKeyboard } from "@/menu";
+import { DISPATCHER_MENU_TEXT, backToDispatcherMenuKeyboard, buildDispatcherMenuKeyboard } from "@/menu";
 
 const STATUS_LABELS: Record<ApiAppealStatus, string> = {
     accepted: "Принято",
@@ -91,7 +91,7 @@ export const dispatcherMenuFlow = {
 
         if (payload === "dispatcher_menu:show") {
             await ctx.answerOnCallback({
-                message: { text: DISPATCHER_MENU_TEXT, attachments: [dispatcherMenuKeyboard] },
+                message: { text: DISPATCHER_MENU_TEXT, attachments: [await buildDispatcherMenuKeyboard(ctx)] },
             });
             return true;
         }
@@ -111,7 +111,7 @@ export const dispatcherMenuFlow = {
         const session = getSession(ctx.user.user_id);
         if (session.flow || session.role !== "dispatcher") return false;
 
-        await ctx.reply(DISPATCHER_MENU_TEXT, { attachments: [dispatcherMenuKeyboard] });
+        await ctx.reply(DISPATCHER_MENU_TEXT, { attachments: [await buildDispatcherMenuKeyboard(ctx)] });
         return true;
     },
 };

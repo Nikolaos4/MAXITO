@@ -3,7 +3,7 @@ import { FetchError } from "ofetch";
 import { api, type Auth } from "@/api";
 import { clearFlow, getSession, setFlow, setRole, setStep, type AppContext } from "@/context";
 import { residentMenuKeyboard } from "@/flows/resident-menu";
-import { DISPATCHER_MENU_TEXT, MENU_TEXT, RESIDENT_MENU_TEXT, dispatcherMenuKeyboard, mainMenuKeyboard } from "@/menu";
+import { DISPATCHER_MENU_TEXT, MENU_TEXT, RESIDENT_MENU_TEXT, buildDispatcherMenuKeyboard, mainMenuKeyboard } from "@/menu";
 
 export async function askForPhone(ctx: AppContext) {
     if (!ctx.user) return;
@@ -43,7 +43,7 @@ async function tryBind(ctx: AppContext, phone: string) {
             await ctx.reply(MENU_TEXT, { attachments: [mainMenuKeyboard] });
         } else if (me.role === "dispatcher") {
             await ctx.reply("Готово! Вы авторизованы как диспетчер.");
-            await ctx.reply(DISPATCHER_MENU_TEXT, { attachments: [dispatcherMenuKeyboard] });
+            await ctx.reply(DISPATCHER_MENU_TEXT, { attachments: [await buildDispatcherMenuKeyboard(ctx)] });
         } else {
             await ctx.reply("Готово! Вы авторизованы как житель.");
             await ctx.reply(RESIDENT_MENU_TEXT, { attachments: [await residentMenuKeyboard(ctx)] });
