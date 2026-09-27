@@ -172,6 +172,11 @@ func main() {
 
 			// Дом
 			res.GET("/house/chat-link", residentHouseHandler.ChatLink)
+
+			// Справочники (те же темы/причины, что у диспетчера — нужны
+			// для формы создания обращения)
+			res.GET("/problem-types", referenceHandler.ListProblemTypes)
+			res.GET("/problem-types/:id/reasons", referenceHandler.ListReasons)
 		}
 	}
 
