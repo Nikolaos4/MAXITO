@@ -64,6 +64,7 @@ type DispatcherService struct {
 	appealRepo       *repository.AppealRepository
 	statusChangeRepo *repository.AppealStatusChangeRepository
 	notificationRepo *repository.NotificationRepository
+	houseRepo        *repository.HouseRepository
 	problemTypeRepo  *repository.ProblemTypeRepository
 	reasonRepo       *repository.ReasonRepository
 }
@@ -74,6 +75,7 @@ func NewDispatcherService(
 	appealRepo *repository.AppealRepository,
 	statusChangeRepo *repository.AppealStatusChangeRepository,
 	notificationRepo *repository.NotificationRepository,
+	houseRepo *repository.HouseRepository,
 	problemTypeRepo *repository.ProblemTypeRepository,
 	reasonRepo *repository.ReasonRepository,
 ) *DispatcherService {
@@ -83,9 +85,27 @@ func NewDispatcherService(
 		appealRepo:       appealRepo,
 		statusChangeRepo: statusChangeRepo,
 		notificationRepo: notificationRepo,
+		houseRepo:        houseRepo,
 		problemTypeRepo:  problemTypeRepo,
 		reasonRepo:       reasonRepo,
 	}
+}
+
+// ListEntrances — список номеров подъездов дома (1..EntrancesCount), для
+// формы создания уведомления. Доступно только на свои дома.
+func (s *DispatcherService) ListEntrances(dispatcherID, houseID uint) ([]int, error) {
+	if err := s.ensureOwnsHouse(dispatcherID, houseID); err != nil {
+		return nil, err
+	}
+	house, err := s.houseRepo.GetByID(houseID)
+	if err != nil {
+		return nil, err
+	}
+	entrances := make([]int, house.EntrancesCount)
+	for i := range entrances {
+		entrances[i] = i + 1
+	}
+	return entrances, nil
 }
 
 // ---------- Дома диспетчера (для scoping всего остального) ----------
@@ -328,6 +348,15 @@ func (s *DispatcherService) CreateNotification(dispatcherID uint, in CreateNotif
 	if in.Scope == models.ScopeHouse {
 		in.EntranceNumber = nil
 	}
+
+	house, err := s.houseRepo.GetByID(in.HouseID)
+	if err != nil {
+		return nil, fmt.Errorf("house %d not found", in.HouseID)
+	}
+	if err := validateEntranceNumber(house, in.EntranceNumber); err != nil {
+		return nil, err
+	}
+
 	if !in.EndsAt.After(in.StartsAt) {
 		return nil, errors.New("ends_at must be after starts_at")
 	}

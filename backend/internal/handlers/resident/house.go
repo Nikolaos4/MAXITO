@@ -33,3 +33,19 @@ func (h *HouseHandler) ChatLink(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, gin.H{"chat_invite_link": link})
 }
+
+// ListEntrances — номера подъездов дома жителя (1..entrances_count), для формы создания обращения.
+func (h *HouseHandler) ListEntrances(c *gin.Context) {
+	currentUser := middleware.GetCurrentUser(c)
+	if currentUser == nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+
+	entrances, err := h.svc.ListEntrances(currentUser.ID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, entrances)
+}

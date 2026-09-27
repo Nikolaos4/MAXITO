@@ -127,11 +127,12 @@ func (s *RepresentativeService) ImportDispatchersCSV(file multipart.File) (*Impo
 
 // ==================== Дома ====================
 
-// ImportHousesCSV построчно создаёт дома из CSV. Обязательная колонка: address,
-// необязательная: number. Повторяющаяся пара address+number пропускается —
-// это делает повторную загрузку того же файла безопасной (догрузка новых строк).
+// ImportHousesCSV построчно создаёт дома из CSV. Обязательные колонки:
+// address, entrances_count; необязательная: number. Повторяющаяся пара
+// address+number пропускается — это делает повторную загрузку того же
+// файла безопасной (догрузка новых строк).
 func (s *RepresentativeService) ImportHousesCSV(file multipart.File) (*ImportReport, error) {
-	parsed, err := util.ParseCSV(file, []string{"address"})
+	parsed, err := util.ParseCSV(file, []string{"address", "entrances_count"})
 	if err != nil {
 		return nil, err
 	}
@@ -141,14 +142,21 @@ func (s *RepresentativeService) ImportHousesCSV(file multipart.File) (*ImportRep
 		rowNum := i + 2
 		address := parsed.Get(record, "address")
 		number := parsed.Get(record, "number")
+		entrancesRaw := parsed.Get(record, "entrances_count")
 
 		if address == "" {
 			report.add(rowNum, "error", "address is required", nil)
 			continue
 		}
 
+		entrancesCount, err := strconv.Atoi(entrancesRaw)
+		if err != nil || entrancesCount < 1 {
+			report.add(rowNum, "error", fmt.Sprintf("invalid entrances_count %q", entrancesRaw), nil)
+			continue
+		}
+
 		var existing models.House
-		err := s.db.Where("address = ? AND number = ?", address, number).First(&existing).Error
+		err = s.db.Where("address = ? AND number = ?", address, number).First(&existing).Error
 		if err == nil {
 			report.add(rowNum, "skipped", "house already exists", &existing.ID)
 			continue
@@ -158,7 +166,7 @@ func (s *RepresentativeService) ImportHousesCSV(file multipart.File) (*ImportRep
 			continue
 		}
 
-		house := &models.House{Address: address, Number: number}
+		house := &models.House{Address: address, Number: number, EntrancesCount: entrancesCount}
 		if err := s.houseRepo.Create(house); err != nil {
 			report.add(rowNum, "error", err.Error(), nil)
 			continue
@@ -179,7 +187,8 @@ func (s *RepresentativeService) ImportHousesCSV(file multipart.File) (*ImportRep
 // Если телефон занят под другой ролью или уже является жителем другого
 // дома — строка считается ошибкой.
 func (s *RepresentativeService) ImportResidentsCSV(houseID uint, file multipart.File) (*ImportReport, error) {
-	if _, err := s.houseRepo.GetByID(houseID); err != nil {
+	house, err := s.houseRepo.GetByID(houseID)
+	if err != nil {
 		return nil, fmt.Errorf("house %d not found", houseID)
 	}
 
@@ -217,6 +226,11 @@ func (s *RepresentativeService) ImportResidentsCSV(houseID uint, file multipart.
 				continue
 			}
 			entranceNumber = &n
+		}
+
+		if err := validateEntranceNumber(house, entranceNumber); err != nil {
+			report.add(rowNum, "error", err.Error(), nil)
+			continue
 		}
 
 		id, status, message, err := s.upsertResident(houseID, fullName, phone, apartment, entranceNumber)

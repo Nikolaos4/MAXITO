@@ -66,8 +66,9 @@ type User struct {
 // House
 type House struct {
 	ID             uint           `gorm:"primaryKey" json:"id"`
-	Address        string         `gorm:"size:500;not null" json:"address"`
-	Number         string         `gorm:"size:50" json:"number"`
+	Address        string         `gorm:"size:500;not null;uniqueIndex:idx_house_address_number" json:"address"`
+	Number         string         `gorm:"size:50;uniqueIndex:idx_house_address_number" json:"number"`
+	EntrancesCount int            `gorm:"not null" json:"entrances_count"`
 	ChatInviteLink *string        `gorm:"size:500" json:"chat_invite_link,omitempty"`
 	CreatedAt      time.Time      `json:"created_at"`
 	UpdatedAt      time.Time      `json:"updated_at"`

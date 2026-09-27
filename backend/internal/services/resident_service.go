@@ -99,6 +99,14 @@ func (s *ResidentService) CreateAppeal(userID uint, in CreateAppealInput) (*mode
 		return nil, errors.New("resident profile not found for this user")
 	}
 
+	house, err := s.houseRepo.GetByID(resident.HouseID)
+	if err != nil {
+		return nil, err
+	}
+	if err := validateEntranceNumber(house, in.EntranceNumber); err != nil {
+		return nil, err
+	}
+
 	problemType, reason, err := resolveReason(s.problemTypeRepo, s.reasonRepo, in.ProblemTypeID, in.ReasonID)
 	if err != nil {
 		return nil, err
@@ -291,4 +299,24 @@ func (s *ResidentService) GetChatInviteLink(userID uint) (*string, error) {
 		return nil, err
 	}
 	return house.ChatInviteLink, nil
+}
+
+// ListEntrances — список номеров подъездов дома жителя (1..EntrancesCount),
+// для формы создания обращения.
+func (s *ResidentService) ListEntrances(userID uint) ([]int, error) {
+	resident, err := s.residentRepo.GetByUserID(userID)
+	if err != nil {
+		return nil, errors.New("resident profile not found for this user")
+	}
+
+	house, err := s.houseRepo.GetByID(resident.HouseID)
+	if err != nil {
+		return nil, err
+	}
+
+	entrances := make([]int, house.EntrancesCount)
+	for i := range entrances {
+		entrances[i] = i + 1
+	}
+	return entrances, nil
 }

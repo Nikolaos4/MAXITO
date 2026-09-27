@@ -21,11 +21,12 @@ func NewHouseHandler(houseRepo *repository.HouseRepository, repSvc *services.Rep
 }
 
 type CreateHouseRequest struct {
-	Address string `json:"address" binding:"required"`
-	Number  string `json:"number"`
+	Address        string `json:"address" binding:"required"`
+	Number         string `json:"number"`
+	EntrancesCount int    `json:"entrances_count" binding:"required,min=1"`
 }
 
-// CreateHouse — создать дом (единичное добавление, оставлено без изменений).
+// CreateHouse — создать дом (единичное добавление).
 func (h *HouseHandler) CreateHouse(c *gin.Context) {
 	var req CreateHouseRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -33,9 +34,20 @@ func (h *HouseHandler) CreateHouse(c *gin.Context) {
 		return
 	}
 
+	exists, err := h.houseRepo.ExistsByAddressNumber(req.Address, req.Number)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to check existing houses"})
+		return
+	}
+	if exists {
+		c.JSON(http.StatusConflict, gin.H{"error": "a house with this address and number already exists"})
+		return
+	}
+
 	house := models.House{
-		Address: req.Address,
-		Number:  req.Number,
+		Address:        req.Address,
+		Number:         req.Number,
+		EntrancesCount: req.EntrancesCount,
 	}
 
 	if err := h.houseRepo.Create(&house); err != nil {

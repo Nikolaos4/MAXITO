@@ -66,7 +66,7 @@ func main() {
 	// Services
 	repSvc := services.NewRepresentativeService(db, userRepo, houseRepo, residentRepo, dispHouseRepo)
 	dispatcherSvc := services.NewDispatcherService(
-		db, dispHouseRepo, appealRepo, statusChangeRepo, notificationRepo, problemTypeRepo, reasonRepo,
+		db, dispHouseRepo, appealRepo, statusChangeRepo, notificationRepo, houseRepo, problemTypeRepo, reasonRepo,
 	)
 	residentSvc := services.NewResidentService(
 		residentRepo, appealRepo, statusChangeRepo, subscriptionRepo, notificationRepo, houseRepo, problemTypeRepo, reasonRepo,
@@ -82,6 +82,7 @@ func main() {
 	appealHandler := dispatcher.NewAppealHandler(dispatcherSvc)
 	notificationHandler := dispatcher.NewNotificationHandler(dispatcherSvc)
 	referenceHandler := dispatcher.NewReferenceHandler(problemTypeRepo, reasonRepo)
+	dispatcherHouseHandler := dispatcher.NewHouseHandler(dispatcherSvc)
 
 	// Handlers — Житель
 	residentAppealHandler := resident.NewAppealHandler(residentSvc)
@@ -153,6 +154,9 @@ func main() {
 			// Справочники (темы/причины — нужны для формы создания уведомления)
 			disp.GET("/problem-types", referenceHandler.ListProblemTypes)
 			disp.GET("/problem-types/:id/reasons", referenceHandler.ListReasons)
+
+			// Подъезды дома (для формы создания уведомления)
+			disp.GET("/houses/:house_id/entrances", dispatcherHouseHandler.ListEntrances)
 		}
 
 		res := api.Group("/resident")
@@ -172,6 +176,7 @@ func main() {
 
 			// Дом
 			res.GET("/house/chat-link", residentHouseHandler.ChatLink)
+			res.GET("/house/entrances", residentHouseHandler.ListEntrances)
 
 			// Справочники (те же темы/причины, что у диспетчера — нужны
 			// для формы создания обращения)
