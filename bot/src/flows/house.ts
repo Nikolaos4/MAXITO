@@ -57,7 +57,7 @@ async function handleNumber(ctx: AppContext, text: string) {
     const number = text === "-" ? "" : text;
 
     try {
-        const house = await api.houses.create(authFor(ctx), { address, number });
+        const house = await api.representative.houses.create(authFor(ctx), { address, number });
         clearFlow(ctx.user.user_id);
         await ctx.reply(`Дом добавлен: ${house.address}${house.number ? ", " + house.number : ""} (id ${house.id}).`, {
             attachments: [backToMenuKeyboard],
@@ -83,7 +83,7 @@ async function handleImportCsv(ctx: AppContext) {
 
     try {
         const data = await downloadFile(file.payload.url);
-        const report = await api.houses.importCsv(authFor(ctx), { data, filename: file.filename });
+        const report = await api.representative.houses.importCsv(authFor(ctx), { data, filename: file.filename });
         clearFlow(ctx.user.user_id);
         await ctx.reply(formatImportReport(report), { attachments: [backToMenuKeyboard] });
     } catch (err) {
@@ -110,7 +110,7 @@ async function handleImportResidentsCsv(ctx: AppContext) {
 
     try {
         const data = await downloadFile(file.payload.url);
-        const report = await api.residents.importCsv(authFor(ctx), houseId, { data, filename: file.filename });
+        const report = await api.representative.residents.importCsv(authFor(ctx), houseId, { data, filename: file.filename });
         clearFlow(ctx.user.user_id);
         await ctx.reply(formatImportReport(report), { attachments: [backToMenuKeyboard] });
     } catch (err) {

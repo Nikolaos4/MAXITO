@@ -138,8 +138,9 @@ type ApiAppeal = {
     author?: ApiUser | null;
     problem_type?: ApiProblemType | null;
     reason?: ApiReason | null;
-    // ponytail: только GET /dispatcher/appeals/:id возвращает эти поля,
-    // list/top сортируют по лайкам внутри, но не отдают ни счётчик, ни историю.
+    // likes_count есть у list/top (обе роли) и у одиночной карточки, но
+    // отсутствует в ответе на создание обращения (бэк отдаёт голую модель);
+    // history есть только у одиночной карточки (GET .../appeals/:id).
     likes_count?: number;
     history?: ApiAppealStatusChange[];
 };
@@ -175,122 +176,176 @@ type ApiNotificationStatus = "active" | "expired" | "revoked";
 type ApiNotification = {
     id: number;
     house_id: number;
-    scope: ApiNotificationScope;
-    entrance_number: number | null;
-    problem_type_id: number;
-    reason_id: number | null;
+    author_id: number;
+    reason_id: number;
+    scope_type: ApiNotificationScope;
+    entrance_number?: number | null;
     title: string;
     body: string;
     starts_at: string;
     ends_at: string;
     revoked_at?: string | null;
-    created_by?: number;
     created_at: string;
-    updated_at: string;
+    house?: ApiHouse | null;
+    author?: ApiUser | null;
+    reason?: ApiReason | null;
 };
 
 export const api = {
     me: (auth: Auth) => request<ApiMe>("/me", auth),
 
-    reference: {
-        problemTypes: (auth: Auth) => request<ApiProblemType[]>("/dispatcher/problem-types", auth),
+    representative: {
+        houses: {
+            create: (auth: Auth, body: { address: string; number?: string }) =>
+                request<ApiHouse>("/representative/houses", auth, { method: "POST", body }),
 
-        reasons: (auth: Auth, problemTypeId: number) =>
-            request<ApiReason[]>(`/dispatcher/problem-types/${problemTypeId}/reasons`, auth),
+            list: (auth: Auth) => request<ApiHouse[]>("/representative/houses", auth),
+
+            listUnassigned: (auth: Auth) => request<ApiHouse[]>("/representative/houses/unassigned", auth),
+
+            importCsv: (auth: Auth, file: { data: Buffer; filename: string }) =>
+                request<ImportReport>("/representative/houses/csv", auth, {
+                    method: "POST",
+                    body: csvFormData(file),
+                }),
+        },
+
+        residents: {
+            listByHouse: (auth: Auth, houseId: number) =>
+                request<ApiResident[]>(`/representative/houses/${houseId}/residents`, auth),
+
+            importCsv: (auth: Auth, houseId: number, file: { data: Buffer; filename: string }) =>
+                request<ImportReport>(`/representative/houses/${houseId}/residents/csv`, auth, {
+                    method: "POST",
+                    body: csvFormData(file),
+                }),
+        },
+
+        dispatchers: {
+            create: (auth: Auth, body: { full_name: string; phone: string }) =>
+                request<ApiUser>("/representative/dispatchers", auth, { method: "POST", body }),
+
+            list: (auth: Auth) => request<ApiUser[]>("/representative/dispatchers", auth),
+
+            importCsv: (auth: Auth, file: { data: Buffer; filename: string }) =>
+                request<ImportReport>("/representative/dispatchers/csv", auth, {
+                    method: "POST",
+                    body: csvFormData(file),
+                }),
+        },
+
+        assignments: {
+            listAll: (auth: Auth) => request<ApiDispatcherHouse[]>("/representative/assignments", auth),
+
+            listByDispatcher: (auth: Auth, dispatcherId: number) =>
+                request<ApiHouse[]>(`/representative/dispatchers/${dispatcherId}/houses`, auth),
+
+            assignHouses: (auth: Auth, dispatcherId: number, houseIds: number[]) =>
+                request<ImportReport>(`/representative/dispatchers/${dispatcherId}/houses`, auth, {
+                    method: "POST",
+                    body: { house_ids: houseIds },
+                }),
+
+            unassignHouse: (auth: Auth, dispatcherId: number, houseId: number) =>
+                request<void>(`/representative/dispatchers/${dispatcherId}/houses/${houseId}`, auth, {
+                    method: "DELETE",
+                }),
+        },
     },
 
-    appeals: {
-        list: (auth: Auth, query: ApiAppealListQuery = {}) =>
-            request<ApiPaginated<ApiAppeal>>("/dispatcher/appeals", auth, { query }),
+    dispatcher: {
+        reference: {
+            problemTypes: (auth: Auth) => request<ApiProblemType[]>("/dispatcher/problem-types", auth),
 
-        top: (auth: Auth, limit?: number) =>
-            request<ApiAppeal[]>("/dispatcher/appeals/top", auth, { query: { limit } }),
+            reasons: (auth: Auth, problemTypeId: number) =>
+                request<ApiReason[]>(`/dispatcher/problem-types/${problemTypeId}/reasons`, auth),
+        },
 
-        stats: (auth: Auth) => request<ApiHouseAppealStats[]>("/dispatcher/appeals/stats", auth),
+        appeals: {
+            list: (auth: Auth, query: ApiAppealListQuery = {}) =>
+                request<ApiPaginated<ApiAppeal>>("/dispatcher/appeals", auth, { query }),
 
-        get: (auth: Auth, id: number) => request<ApiAppeal>(`/dispatcher/appeals/${id}`, auth),
+            top: (auth: Auth, limit?: number) =>
+                request<ApiAppeal[]>("/dispatcher/appeals/top", auth, { query: { limit } }),
 
-        setStatus: (
-            auth: Auth,
-            id: number,
-            body: { status: ApiAppealStatus; comment: string; photo_url?: string },
-        ) => request<ApiAppealStatusChange>(`/dispatcher/appeals/${id}/status`, auth, { method: "POST", body }),
+            stats: (auth: Auth) => request<ApiHouseAppealStats[]>("/dispatcher/appeals/stats", auth),
+
+            get: (auth: Auth, id: number) => request<ApiAppeal>(`/dispatcher/appeals/${id}`, auth),
+
+            setStatus: (
+                auth: Auth,
+                id: number,
+                body: { status: ApiAppealStatus; comment: string; photo_url?: string },
+            ) => request<ApiAppealStatusChange>(`/dispatcher/appeals/${id}/status`, auth, { method: "POST", body }),
+        },
+
+        notifications: {
+            list: (auth: Auth, query: { house_id?: number[]; status?: ApiNotificationStatus } = {}) =>
+                request<ApiNotification[]>("/dispatcher/notifications", auth, { query }),
+
+            create: (
+                auth: Auth,
+                body: {
+                    house_id: number;
+                    scope: ApiNotificationScope;
+                    entrance_number?: number;
+                    problem_type_id: number;
+                    reason_id?: number;
+                    title?: string;
+                    body: string;
+                    starts_at: string;
+                    ends_at: string;
+                },
+            ) => request<ApiNotification>("/dispatcher/notifications", auth, { method: "POST", body }),
+
+            revoke: (auth: Auth, id: number) =>
+                request<void>(`/dispatcher/notifications/${id}/revoke`, auth, { method: "POST" }),
+        },
     },
 
-    notifications: {
-        list: (auth: Auth, query: { house_id?: number[]; status?: ApiNotificationStatus } = {}) =>
-            request<ApiNotification[]>("/dispatcher/notifications", auth, { query }),
+    resident: {
+        appeals: {
+            create: (
+                auth: Auth,
+                body: {
+                    problem_type_id: number;
+                    reason_id?: number;
+                    entrance_number?: number;
+                    description: string;
+                    importance?: string;
+                    wants_recalculation?: boolean;
+                    discovered_at?: string;
+                },
+            ) => request<ApiAppeal>("/resident/appeals", auth, { method: "POST", body }),
 
-        create: (
-            auth: Auth,
-            body: {
-                house_id: number;
-                scope: ApiNotificationScope;
-                entrance_number?: number;
-                problem_type_id: number;
-                reason_id?: number;
-                title?: string;
-                body: string;
-                starts_at: string;
-                ends_at: string;
-            },
-        ) => request<ApiNotification>("/dispatcher/notifications", auth, { method: "POST", body }),
+            list: (
+                auth: Auth,
+                query: {
+                    mine?: boolean;
+                    status?: string[];
+                    entrance_number?: number[];
+                    problem_type_id?: number[];
+                    page?: number;
+                    page_size?: number;
+                } = {},
+            ) => request<ApiPaginated<ApiAppeal>>("/resident/appeals", auth, { query }),
 
-        revoke: (auth: Auth, id: number) =>
-            request<void>(`/dispatcher/notifications/${id}/revoke`, auth, { method: "POST" }),
-    },
+            get: (auth: Auth, id: number) => request<ApiAppeal>(`/resident/appeals/${id}`, auth),
 
-    houses: {
-        create: (auth: Auth, body: { address: string; number?: string }) =>
-            request<ApiHouse>("/representative/houses", auth, { method: "POST", body }),
+            like: (auth: Auth, id: number) => request<void>(`/resident/appeals/${id}/like`, auth, { method: "POST" }),
 
-        list: (auth: Auth) => request<ApiHouse[]>("/representative/houses", auth),
+            unlike: (auth: Auth, id: number) =>
+                request<void>(`/resident/appeals/${id}/like`, auth, { method: "DELETE" }),
+        },
 
-        listUnassigned: (auth: Auth) => request<ApiHouse[]>("/representative/houses/unassigned", auth),
+        notifications: {
+            list: (auth: Auth) => request<ApiNotification[]>("/resident/notifications", auth),
 
-        importCsv: (auth: Auth, file: { data: Buffer; filename: string }) =>
-            request<ImportReport>("/representative/houses/csv", auth, { method: "POST", body: csvFormData(file) }),
-    },
+            get: (auth: Auth, id: number) => request<ApiNotification>(`/resident/notifications/${id}`, auth),
+        },
 
-    residents: {
-        listByHouse: (auth: Auth, houseId: number) =>
-            request<ApiResident[]>(`/representative/houses/${houseId}/residents`, auth),
-
-        importCsv: (auth: Auth, houseId: number, file: { data: Buffer; filename: string }) =>
-            request<ImportReport>(`/representative/houses/${houseId}/residents/csv`, auth, {
-                method: "POST",
-                body: csvFormData(file),
-            }),
-    },
-
-    dispatchers: {
-        create: (auth: Auth, body: { full_name: string; phone: string }) =>
-            request<ApiUser>("/representative/dispatchers", auth, { method: "POST", body }),
-
-        list: (auth: Auth) => request<ApiUser[]>("/representative/dispatchers", auth),
-
-        importCsv: (auth: Auth, file: { data: Buffer; filename: string }) =>
-            request<ImportReport>("/representative/dispatchers/csv", auth, {
-                method: "POST",
-                body: csvFormData(file),
-            }),
-    },
-
-    assignments: {
-        listAll: (auth: Auth) => request<ApiDispatcherHouse[]>("/representative/assignments", auth),
-
-        listByDispatcher: (auth: Auth, dispatcherId: number) =>
-            request<ApiHouse[]>(`/representative/dispatchers/${dispatcherId}/houses`, auth),
-
-        assignHouses: (auth: Auth, dispatcherId: number, houseIds: number[]) =>
-            request<ImportReport>(`/representative/dispatchers/${dispatcherId}/houses`, auth, {
-                method: "POST",
-                body: { house_ids: houseIds },
-            }),
-
-        unassignHouse: (auth: Auth, dispatcherId: number, houseId: number) =>
-            request<void>(`/representative/dispatchers/${dispatcherId}/houses/${houseId}`, auth, {
-                method: "DELETE",
-            }),
+        house: {
+            chatLink: (auth: Auth) => request<{ chat_invite_link: string | null }>("/resident/house/chat-link", auth),
+        },
     },
 };

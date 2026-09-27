@@ -96,7 +96,7 @@ export const menuFlow = {
         }
 
         if (payload === "menu:import_residents") {
-            const houses = await api.houses.list(authFor(ctx));
+            const houses = await api.representative.houses.list(authFor(ctx));
             if (houses.length === 0) {
                 await ctx.answerOnCallback({ message: { text: "Сначала добавьте хотя бы один дом." } });
                 return true;

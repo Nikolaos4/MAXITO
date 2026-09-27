@@ -14,7 +14,7 @@ function authFor(ctx: AppContext): Auth {
     return { maxUserId: String(ctx.user!.user_id) };
 }
 
-function formatAppealsList(appeals: Awaited<ReturnType<typeof api.appeals.top>>): string {
+function formatAppealsList(appeals: Awaited<ReturnType<typeof api.dispatcher.appeals.top>>): string {
     if (appeals.length === 0) return "Активных обращений пока нет.";
 
     return appeals
@@ -35,7 +35,7 @@ async function showTopAppeals(ctx: AppContext) {
     if (!ctx.user) return;
 
     try {
-        const appeals = await api.appeals.top(authFor(ctx), 5);
+        const appeals = await api.dispatcher.appeals.top(authFor(ctx), 5);
         await ctx.answerOnCallback({
             message: { text: formatAppealsList(appeals), attachments: [backToDispatcherMenuKeyboard] },
         });
@@ -49,7 +49,7 @@ async function showTopAppeals(ctx: AppContext) {
     }
 }
 
-function formatStatsList(stats: Awaited<ReturnType<typeof api.appeals.stats>>): string {
+function formatStatsList(stats: Awaited<ReturnType<typeof api.dispatcher.appeals.stats>>): string {
     if (stats.length === 0) return "За вами пока не закреплено ни одного дома.";
 
     return stats
@@ -61,7 +61,7 @@ async function showStats(ctx: AppContext) {
     if (!ctx.user) return;
 
     try {
-        const stats = await api.appeals.stats(authFor(ctx));
+        const stats = await api.dispatcher.appeals.stats(authFor(ctx));
         await ctx.answerOnCallback({
             message: { text: formatStatsList(stats), attachments: [backToDispatcherMenuKeyboard] },
         });
