@@ -2,7 +2,8 @@ import { Keyboard } from "@maxhub/max-bot-api";
 import { FetchError } from "ofetch";
 import { api, type Auth } from "@/api";
 import { clearFlow, getSession, setData, setStep, type AppContext } from "@/context";
-import { downloadFile, findCsvAttachment, formatImportReport } from "@/csv-import";
+import { downloadFile, findCsvAttachment, formatImportReport, sendCsvTemplate } from "@/csv-import";
+import { csvTemplates } from "@/csv-templates";
 import { backToMenuKeyboard, cancelKeyboard } from "@/menu";
 
 function authFor(ctx: AppContext): Auth {
@@ -148,10 +149,11 @@ export const houseFlow = {
         setStep(ctx.user.user_id, "house/import_residents_csv");
         await ctx.answerOnCallback({
             message: {
-                text: 'Пришлите CSV-файл с жителями. Обязательные колонки — "full_name", "phone".',
+                text: 'Пришлите CSV-файл с жителями. Обязательные колонки — "full_name", "phone", "apartment", необязательная — "entrance_number".',
                 attachments: [cancelKeyboard],
             },
         });
+        await sendCsvTemplate(ctx, csvTemplates.residents);
         return true;
     },
 
