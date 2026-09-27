@@ -8,6 +8,7 @@ import { UserIcon } from "../../components/Icons";
 import type { Appeal, ChangeStatusInput } from "../../types";
 import { DispatcherAppealModal } from "./DispatcherAppealModal";
 import { LikeCount } from "./LikeCount";
+import { isUnseenReply, markReplySeen } from "../replySeen";
 
 interface Props {
   appeal: Appeal;
@@ -20,15 +21,25 @@ interface Props {
   onChangeStatus: (input: ChangeStatusInput) => Promise<void>;
 }
 
-export function DispatcherAppealCard({ appeal, readOnly, ...rest }: Props) {
+export function DispatcherAppealCard({ appeal, dispatcherId, readOnly, ...rest }: Props) {
   const [modal, setModal] = useState(false);
   const extraComments = appeal.comments.length;
+  const isNewReply = isUnseenReply(appeal, dispatcherId);
+
+  function openModal() {
+    const last = appeal.comments[appeal.comments.length - 1];
+    if (last && last.authorId === appeal.authorId) markReplySeen(dispatcherId, appeal.id, last.id);
+    setModal(true);
+  }
 
   return (
     <article className={`card appeal${readOnly ? " appeal--readonly" : ""}`}>
       <header className="appeal__meta">
         <span>{formatDate(appeal.createdAt)}&nbsp;&nbsp;{formatTime(appeal.createdAt)}</span>
-        <StatusBadge status={appeal.status} />
+        <span className="appeal__meta-right">
+          {isNewReply && <span className="appeal__new-badge">Ответ жителя</span>}
+          <StatusBadge status={appeal.status} />
+        </span>
       </header>
 
       <p className="appeal__house">Дом №{appeal.houseNumber}{appeal.entrance > 0 && ` · подъезд ${appeal.entrance}`}</p>
@@ -49,9 +60,12 @@ export function DispatcherAppealCard({ appeal, readOnly, ...rest }: Props) {
         </span>
       </footer>
 
-      <button className="link" onClick={() => setModal(true)}>Подробнее</button>
+      <button className="link" onClick={openModal}>Подробнее</button>
 
-      {modal && <DispatcherAppealModal appeal={appeal} readOnly={readOnly} onClose={() => setModal(false)} {...rest} />}
+      {modal && (
+        <DispatcherAppealModal appeal={appeal} dispatcherId={dispatcherId} readOnly={readOnly}
+          onClose={() => setModal(false)} {...rest} />
+      )}
     </article>
   );
 }

@@ -21,7 +21,9 @@ export function App() {
   const [hasUnread, setHasUnread] = useState(false);
   const hideToast = useCallback(() => setToast(""), []);
   const refreshUnread = useCallback(() => {
-    api.getUnreadNotificationsCount().then((n) => setHasUnread(n > 0)).catch(() => {});
+    Promise.all([api.getUnreadNotificationsCount(), api.getNeedInfoAppeals()])
+      .then(([n, needInfo]) => setHasUnread(n > 0 || needInfo.length > 0))
+      .catch(() => {});
   }, []);
 
   useEffect(() => {

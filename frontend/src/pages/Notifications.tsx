@@ -1,20 +1,26 @@
 import { useCallback, useEffect, useState } from "react";
 import { api } from "../api";
 import { NotificationCard } from "../components/NotificationCard";
+import { NeedInfoCard } from "../components/NeedInfoCard";
 import { DoorIcon, HomeIcon } from "../components/Icons";
 import { PageHead } from "../components/PageHead";
-import type { Notification, NotificationFeed } from "../types";
+import type { Appeal, Notification, NotificationFeed } from "../types";
 
 const FEEDS = [
   { id: "house", label: "Дом", Icon: HomeIcon },
   { id: "entrance", label: "Подъезд", Icon: DoorIcon },
 ] as const;
 
-/** Уведомления о плановых работах — те же, что публикует диспетчер. */
+/** Уведомления: свои обращения, ждущие ответа, — сверху, дальше плановые работы диспетчера. */
 export function Notifications({ onRead }: { onRead?: () => void }) {
   const [feed, setFeed] = useState<NotificationFeed>("house");
   const [items, setItems] = useState<Notification[] | null>(null);
+  const [needInfo, setNeedInfo] = useState<Appeal[] | null>(null);
   const [failed, setFailed] = useState(false);
+
+  const loadNeedInfo = useCallback(() => {
+    api.getNeedInfoAppeals().then(setNeedInfo).catch(() => setNeedInfo([]));
+  }, []);
 
   const load = useCallback(() => {
     setItems(null);
@@ -27,6 +33,14 @@ export function Notifications({ onRead }: { onRead?: () => void }) {
   }, [feed]);
 
   useEffect(load, [load]);
+  useEffect(loadNeedInfo, [loadNeedInfo]);
+
+  function reply(appealId: number, text: string) {
+    return api.replyNeedInfo(appealId, text).then(() => {
+      setNeedInfo((list) => list?.filter((a) => a.id !== appealId) ?? null);
+      onRead?.();
+    });
+  }
 
   return (
     <>
@@ -40,6 +54,8 @@ export function Notifications({ onRead }: { onRead?: () => void }) {
           </button>
         ))}
       </div>
+
+      {needInfo?.map((a) => <NeedInfoCard key={a.id} appeal={a} onReply={(text) => reply(a.id, text)} />)}
 
       {failed && (
         <p className="empty">Не удалось загрузить уведомления. <button className="link" onClick={load}>Повторить</button></p>
