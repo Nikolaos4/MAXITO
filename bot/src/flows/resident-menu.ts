@@ -5,12 +5,25 @@ import {
     RESIDENT_MENU_TEXT,
     RESIDENT_PROBLEM_TYPE_TEXT,
     backToResidentMenuKeyboard,
+    buildResidentProblemTypeKeyboard,
     residentMenuKeyboard,
-    residentProblemTypeKeyboard,
 } from "@/menu";
 
 function authFor(ctx: AppContext): Auth {
     return { maxUserId: String(ctx.user!.user_id) };
+}
+
+async function showProblemTypes(ctx: AppContext) {
+    try {
+        const problemTypes = await api.resident.reference.problemTypes(authFor(ctx));
+        await ctx.answerOnCallback({
+            message: { text: RESIDENT_PROBLEM_TYPE_TEXT, attachments: [buildResidentProblemTypeKeyboard(problemTypes)] },
+        });
+    } catch {
+        await ctx.answerOnCallback({
+            message: { text: "Не удалось загрузить список тем, попробуйте позже.", attachments: [backToResidentMenuKeyboard] },
+        });
+    }
 }
 
 async function showChatLink(ctx: AppContext) {
@@ -71,9 +84,7 @@ export const residentMenuFlow = {
             return true;
         }
 
-        await ctx.answerOnCallback({
-            message: { text: RESIDENT_PROBLEM_TYPE_TEXT, attachments: [residentProblemTypeKeyboard] },
-        });
+        await showProblemTypes(ctx);
         return true;
     },
 

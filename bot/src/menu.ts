@@ -46,25 +46,15 @@ export const residentMenuKeyboard = Keyboard.inlineKeyboard([
     [Keyboard.button.link("Уведомления", RESIDENT_NOTIFICATIONS_URL)],
 ]);
 
-export const RESIDENT_PROBLEM_TYPES = [
-    { code: "elevator", title: "Не работает лифт" },
-    { code: "yard", title: "Не убран двор / подъезд" },
-    { code: "electricity", title: "Отключено электричество" },
-    { code: "pipe", title: "Прорвало трубу / затопление" },
-    { code: "heating", title: "Проблемы с отоплением" },
-    { code: "water", title: "Проблемы с водой" },
-    { code: "other", title: "Другое" },
-] as const;
-
 export const backToResidentMenuKeyboard = Keyboard.inlineKeyboard([
     [Keyboard.button.callback("В меню", "resident_menu:show")],
 ]);
 
 export const RESIDENT_PROBLEM_TYPE_TEXT = "Выберите тип проблемы:";
 
-export const residentProblemTypeKeyboard = Keyboard.inlineKeyboard([
-    ...RESIDENT_PROBLEM_TYPES.map((pt) => [
-        Keyboard.button.link(pt.title, `${RESIDENT_APPEAL_FORM_URL}?type=${pt.code}`),
-    ]),
-    [Keyboard.button.callback("В меню", "resident_menu:show")],
-]);
+export function buildResidentProblemTypeKeyboard(problemTypes: { code: string; title: string }[]) {
+    return Keyboard.inlineKeyboard([
+        ...problemTypes.map((pt) => [Keyboard.button.link(pt.title, `${RESIDENT_APPEAL_FORM_URL}?type=${pt.code}`)]),
+        [Keyboard.button.callback("В меню", "resident_menu:show")],
+    ]);
+}
