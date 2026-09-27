@@ -2,7 +2,8 @@ import { Keyboard } from "@maxhub/max-bot-api";
 import { FetchError } from "ofetch";
 import { api, type Auth } from "@/api";
 import { clearFlow, getSession, setData, setStep, type AppContext } from "@/context";
-import { downloadFile, findCsvAttachment, formatImportReport } from "@/csv-import";
+import { downloadFile, findCsvAttachment, formatImportReport, sendCsvTemplate } from "@/csv-import";
+import { csvTemplates } from "@/csv-templates";
 import { backToMenuKeyboard, cancelKeyboard } from "@/menu";
 
 function authFor(ctx: AppContext): Auth {
@@ -56,7 +57,7 @@ async function handleNumber(ctx: AppContext, text: string) {
     const number = text === "-" ? "" : text;
 
     try {
-        const house = await api.houses.create(authFor(ctx), { address, number });
+        const house = await api.representative.houses.create(authFor(ctx), { address, number });
         clearFlow(ctx.user.user_id);
         await ctx.reply(`Дом добавлен: ${house.address}${house.number ? ", " + house.number : ""} (id ${house.id}).`, {
             attachments: [backToMenuKeyboard],
@@ -82,7 +83,7 @@ async function handleImportCsv(ctx: AppContext) {
 
     try {
         const data = await downloadFile(file.payload.url);
-        const report = await api.houses.importCsv(authFor(ctx), { data, filename: file.filename });
+        const report = await api.representative.houses.importCsv(authFor(ctx), { data, filename: file.filename });
         clearFlow(ctx.user.user_id);
         await ctx.reply(formatImportReport(report), { attachments: [backToMenuKeyboard] });
     } catch (err) {
@@ -109,7 +110,7 @@ async function handleImportResidentsCsv(ctx: AppContext) {
 
     try {
         const data = await downloadFile(file.payload.url);
-        const report = await api.residents.importCsv(authFor(ctx), houseId, { data, filename: file.filename });
+        const report = await api.representative.residents.importCsv(authFor(ctx), houseId, { data, filename: file.filename });
         clearFlow(ctx.user.user_id);
         await ctx.reply(formatImportReport(report), { attachments: [backToMenuKeyboard] });
     } catch (err) {
@@ -148,10 +149,11 @@ export const houseFlow = {
         setStep(ctx.user.user_id, "house/import_residents_csv");
         await ctx.answerOnCallback({
             message: {
-                text: 'Пришлите CSV-файл с жителями. Обязательные колонки — "full_name", "phone".',
+                text: 'Пришлите CSV-файл с жителями. Обязательные колонки — "full_name", "phone", "apartment", необязательная — "entrance_number".',
                 attachments: [cancelKeyboard],
             },
         });
+        await sendCsvTemplate(ctx, csvTemplates.residents);
         return true;
     },
 

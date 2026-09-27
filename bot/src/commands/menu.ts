@@ -1,6 +1,13 @@
 import type { AppContext } from "@/context";
 import { getSession } from "@/context";
-import { DISPATCHER_MENU_TEXT, dispatcherMenuKeyboard, MENU_TEXT, mainMenuKeyboard } from "@/menu";
+import {
+    DISPATCHER_MENU_TEXT,
+    MENU_TEXT,
+    RESIDENT_MENU_TEXT,
+    dispatcherMenuKeyboard,
+    mainMenuKeyboard,
+    residentMenuKeyboard,
+} from "@/menu";
 
 export async function menuCommand(ctx: AppContext) {
     if (!ctx.user) return;
@@ -13,6 +20,9 @@ export async function menuCommand(ctx: AppContext) {
     if (session.role === "dispatcher") {
         return ctx.reply(DISPATCHER_MENU_TEXT, { attachments: [dispatcherMenuKeyboard] });
     }
+    if (session.role === "resident") {
+        return ctx.reply(RESIDENT_MENU_TEXT, { attachments: [residentMenuKeyboard] });
+    }
 
-    await ctx.reply("Меню доступно только представителю управляющей компании или диспетчеру.");
+    await ctx.reply("Авторизуйтесь, чтобы увидеть меню.");
 }

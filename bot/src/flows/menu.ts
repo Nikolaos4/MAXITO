@@ -1,5 +1,7 @@
 import { api, type Auth } from "@/api";
 import { clearFlow, getSession, setData, setFlow, setStep, type AppContext } from "@/context";
+import { sendCsvTemplate } from "@/csv-import";
+import { csvTemplates } from "@/csv-templates";
 import { buildHouseSelectKeyboard, houseSelectText, HOUSES_PAGE_SIZE } from "@/flows/house";
 import {
     DISPATCHER_MENU_TEXT,
@@ -67,6 +69,7 @@ export const menuFlow = {
                     attachments: [cancelKeyboard],
                 },
             });
+            await sendCsvTemplate(ctx, csvTemplates.houses);
             return true;
         }
 
@@ -88,11 +91,12 @@ export const menuFlow = {
                     attachments: [cancelKeyboard],
                 },
             });
+            await sendCsvTemplate(ctx, csvTemplates.dispatchers);
             return true;
         }
 
         if (payload === "menu:import_residents") {
-            const houses = await api.houses.list(authFor(ctx));
+            const houses = await api.representative.houses.list(authFor(ctx));
             if (houses.length === 0) {
                 await ctx.answerOnCallback({ message: { text: "Сначала добавьте хотя бы один дом." } });
                 return true;
