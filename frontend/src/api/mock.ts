@@ -41,6 +41,7 @@ export const mockApi: Api = {
 
   toggleLike: (id) => {
     const a = findAppeal(id);
+    if (a.authorId === me().id) throw new Error("Нельзя лайкать своё обращение");
     a.likedByMe = !a.likedByMe;
     a.likes += a.likedByMe ? 1 : -1;
     save();

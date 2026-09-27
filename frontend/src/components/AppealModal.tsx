@@ -13,12 +13,14 @@ export interface AppealHandlers {
 
 interface Props extends AppealHandlers {
   appeal: Appeal;
+  meId: string;
   readOnly?: boolean;
   onClose: () => void;
 }
 
 /** Полное описание обращения; здесь тоже можно лайкать. */
-export function AppealModal({ appeal, readOnly, onClose, onLike }: Props) {
+export function AppealModal({ appeal, meId, readOnly, onClose, onLike }: Props) {
+  const isOwn = appeal.authorId === meId;
   useEffect(() => {
     // Esc в открытом просмотре фото закрывает только его
     const onKey = (e: KeyboardEvent) => {
@@ -50,7 +52,10 @@ export function AppealModal({ appeal, readOnly, onClose, onLike }: Props) {
 
         <div className="appeal__footer">
           <span className="appeal__author"><UserIcon width={20} height={20} />{appeal.authorName}</span>
-          <span className="appeal__actions"><LikeButton appeal={appeal} readOnly={readOnly} onLike={onLike} /></span>
+          <span className="appeal__actions">
+            <LikeButton appeal={appeal} disabled={readOnly || isOwn}
+              title={isOwn ? "Нельзя лайкать своё обращение" : undefined} onLike={onLike} />
+          </span>
         </div>
       </div>
     </div>

@@ -6,9 +6,12 @@ import { Info } from "./pages/Info";
 import { Notifications } from "./pages/Notifications";
 import { PlannedWork } from "./pages/PlannedWork";
 import { TabBar, type Tab } from "./components/TabBar";
+import { resolveInitialTab, syncTabToUrl } from "../page";
+
+const TABS = ["create", "feed", "notifications", "info"] as const;
 
 export function App() {
-  const [tab, setTab] = useState<Tab>("create");
+  const [tab, setTab] = useState<Tab>(() => resolveInitialTab(TABS, "create"));
   const [toast, setToast] = useState("");
   const [hasUnread, setHasUnread] = useState(false);
   const hideToast = useCallback(() => setToast(""), []);
@@ -17,6 +20,7 @@ export function App() {
   }, []);
 
   useEffect(refreshUnread, [refreshUnread]);
+  useEffect(() => syncTabToUrl(tab), [tab]);
 
   return (
     <>

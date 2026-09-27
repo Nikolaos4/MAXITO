@@ -56,7 +56,7 @@ export function Feed({ me, initialFeed = "house" }: { me: Me; initialFeed?: Feed
       {visible?.length === 0 && <p className="empty">{archive ? "В архиве пока пусто" : "Обращений пока нет"}</p>}
 
       {visible?.map((a) => (
-        <AppealCard key={a.id} appeal={a} readOnly={archive}
+        <AppealCard key={a.id} appeal={a} meId={me.id} readOnly={archive}
           onLike={() => api.toggleLike(a.id).then(replace)} />
       ))}
     </>

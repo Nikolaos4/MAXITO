@@ -1,15 +1,39 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { api } from "../api";
 import { Chip } from "../components/Chip";
 import { DateField } from "../components/DateField";
-import { UserIcon } from "../components/Icons";
+import { AlertIcon, UserIcon } from "../components/Icons";
 import { PageHead } from "../components/PageHead";
 import { TimeField } from "../components/TimeField";
 import { Select } from "../components/Select";
 import { CATEGORIES } from "../data/categories";
 import { getStartParam } from "../max";
 import { checkFiles, MEDIA_HINT } from "../media";
-import type { Category, Me } from "../types";
+import { plural } from "../format";
+import type { Appeal, Category, Me } from "../types";
+
+const SHOWN_DUPLICATES = 2;
+
+/** Карточка «по вашей проблеме уже есть обращение»: список кратких описаний + переход к списку. */
+function DuplicateNotice({ category, appeals, onView }: { category: Category; appeals: Appeal[]; onView: () => void }) {
+  if (appeals.length === 0) return null;
+  const shown = appeals.slice(0, SHOWN_DUPLICATES);
+  const extra = appeals.length - shown.length;
+
+  return (
+    <div className="card duplicate-notice">
+      <div className="duplicate-notice__head">
+        <AlertIcon width={22} height={22} />
+        <p>По вашей проблеме уже есть {plural(appeals.length, "обращение", "обращения", "обращений")}:</p>
+      </div>
+      <ul className="duplicate-notice__list">
+        {shown.map((a) => <li key={a.id}>{category.title} — {a.reason}</li>)}
+        {extra > 0 && <li className="duplicate-notice__more">+ ещё {extra}</li>}
+      </ul>
+      <button type="button" className="btn btn--small duplicate-notice__btn" onClick={onView}>Перейти</button>
+    </div>
+  );
+}
 
 const pad = (n: number) => String(n).padStart(2, "0");
 const todayIso = () => {
@@ -24,8 +48,8 @@ export function resolveCategory(): Category | null {
   return CATEGORIES.find((c) => c.code === (fromUrl ?? fromMax)) ?? null;
 }
 
-function AppealForm({ category, me, onBack, onDone }: {
-  category: Category; me: Me; onBack: () => void; onDone: () => void;
+function AppealForm({ category, me, onBack, onDone, onViewExisting }: {
+  category: Category; me: Me; onBack: () => void; onDone: () => void; onViewExisting: () => void;
 }) {
   const [entrance, setEntrance] = useState("");
   const [date, setDate] = useState("");
@@ -38,10 +62,20 @@ function AppealForm({ category, me, onBack, onDone }: {
   const [error, setError] = useState("");
   const [files, setFiles] = useState<File[]>([]);
   const [warnings, setWarnings] = useState<string[]>([]);
+  // Обращения по этой же теме, уже созданные кем-то из дома (архив в расчёт не берём)
+  const [existing, setExisting] = useState<Appeal[]>([]);
+
+  useEffect(() => {
+    api.listAppeals("house")
+      .then((list) => setExisting(list.filter((a) => a.categoryCode === category.code && a.status !== "completed")))
+      .catch(() => setExisting([]));
+  }, [category.code]);
 
   const reasonOptions = category.reasons;
+  const currentReason = category.freeText ? customReason.trim() : reason;
+  const duplicate = !!currentReason && existing.some((a) => a.reason === currentReason);
   const errors = { entrance: !entrance, date: !date, time: !time, reason: category.freeText ? !customReason.trim() : !reason };
-  const invalid = Object.values(errors).some(Boolean);
+  const invalid = Object.values(errors).some(Boolean) || duplicate;
   const show = (k: keyof typeof errors) => tried && errors[k];
 
   async function addFiles(list: FileList | null) {
@@ -77,6 +111,8 @@ function AppealForm({ category, me, onBack, onDone }: {
       <PageHead title="Обращение" onBack={onBack} />
       <h2 className="page-subtitle">{category.title}</h2>
 
+      <DuplicateNotice category={category} appeals={existing} onView={onViewExisting} />
+
       <div className="card form">
         <span className="author-chip"><UserIcon width={20} height={20} />{me.fullName}</span>
 
@@ -108,6 +144,12 @@ function AppealForm({ category, me, onBack, onDone }: {
             {show("reason") && <p className="form__error">Выберите причину</p>}
           </>
         )}
+        {duplicate && (
+          <div className="form__error-row">
+            <p className="form__error">Такое обращение уже создано</p>
+            <button type="button" className="link" onClick={onViewExisting}>Перейти</button>
+          </div>
+        )}
 
         <p className="form__label">Комментарий</p>
         <textarea className="field field--textarea" placeholder="Введите текст" value={comment}
@@ -131,7 +173,7 @@ function AppealForm({ category, me, onBack, onDone }: {
         {error && <p className="form__error">{error}</p>}
 
         <div className="form__footer">
-          <button className="btn" onClick={submit} disabled={sending}>{sending ? "Отправка…" : "Отправить"}</button>
+          <button className="btn" onClick={submit} disabled={sending || duplicate}>{sending ? "Отправка…" : "Отправить"}</button>
         </div>
       </div>
     </>
@@ -153,10 +195,11 @@ function CategoryPicker({ onPick }: { onPick: (c: Category) => void }) {
   );
 }
 
-export function CreateAppeal({ me, category, onPick, onBack, onCreated }: {
+export function CreateAppeal({ me, category, onPick, onBack, onCreated, onViewExisting }: {
   me: Me; category: Category | null; onPick: (c: Category) => void; onBack: () => void; onCreated: () => void;
+  onViewExisting: () => void;
 }) {
   return category
-    ? <AppealForm key={category.code} category={category} me={me} onBack={onBack} onDone={onCreated} />
+    ? <AppealForm key={category.code} category={category} me={me} onBack={onBack} onDone={onCreated} onViewExisting={onViewExisting} />
     : <CategoryPicker onPick={onPick} />;
 }

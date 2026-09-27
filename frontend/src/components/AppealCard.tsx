@@ -10,12 +10,14 @@ import { StatusBadge } from "./StatusBadge";
 
 interface Props extends AppealHandlers {
   appeal: Appeal;
+  meId: string;
   /** Архивное обращение: без лайков */
   readOnly?: boolean;
 }
 
-export function AppealCard({ appeal, readOnly, ...handlers }: Props) {
+export function AppealCard({ appeal, meId, readOnly, ...handlers }: Props) {
   const [modal, setModal] = useState(false);
+  const isOwn = appeal.authorId === meId;
 
   return (
     <article className={`card appeal${readOnly ? " appeal--readonly" : ""}`}>
@@ -36,13 +38,14 @@ export function AppealCard({ appeal, readOnly, ...handlers }: Props) {
       <footer className="appeal__footer">
         <span className="appeal__author"><UserIcon width={20} height={20} />{appeal.authorName}</span>
         <span className="appeal__actions">
-          <LikeButton appeal={appeal} readOnly={readOnly} onLike={handlers.onLike} />
+          <LikeButton appeal={appeal} disabled={readOnly || isOwn}
+            title={isOwn ? "Нельзя лайкать своё обращение" : undefined} onLike={handlers.onLike} />
         </span>
       </footer>
 
       <button className="link" onClick={() => setModal(true)}>Подробнее</button>
 
-      {modal && <AppealModal appeal={appeal} readOnly={readOnly} onClose={() => setModal(false)} {...handlers} />}
+      {modal && <AppealModal appeal={appeal} meId={meId} readOnly={readOnly} onClose={() => setModal(false)} {...handlers} />}
     </article>
   );
 }

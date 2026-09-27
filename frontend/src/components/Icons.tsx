@@ -64,3 +64,10 @@ export const BellIcon = (p: SVGProps<SVGSVGElement>) => (
     <path d="M10.2 19a1.8 1.8 0 0 0 3.6 0" />
   </svg>
 );
+export const AlertIcon = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base(p)}>
+    <circle cx="12" cy="12" r="9.5" />
+    <path d="M12 7.5v6" strokeLinecap="round" />
+    <path d="M12 16.7v.1" strokeLinecap="round" strokeWidth={2.4} />
+  </svg>
+);

@@ -6,12 +6,15 @@ import { CreateAppeal, resolveCategory } from "./pages/CreateAppeal";
 import { Feed } from "./pages/Feed";
 import { Info } from "./pages/Info";
 import { Notifications } from "./pages/Notifications";
+import { resolveInitialTab, syncTabToUrl } from "./page";
 import type { Category, Me } from "./types";
+
+const TABS = ["create", "feed", "notifications", "info"] as const;
 
 export function App() {
   const [me, setMe] = useState<Me | null>(null);
   const [failed, setFailed] = useState(false);
-  const [tab, setTab] = useState<Tab>("create");
+  const [tab, setTab] = useState<Tab>(() => resolveInitialTab(TABS, "create"));
   const [category, setCategory] = useState<Category | null>(resolveCategory);
   const [toast, setToast] = useState("");
   const [justCreated, setJustCreated] = useState(false);
@@ -29,6 +32,8 @@ export function App() {
     if (me) refreshUnread();
   }, [me, refreshUnread]);
 
+  useEffect(() => syncTabToUrl(tab), [tab]);
+
   function changeTab(next: Tab) {
     setJustCreated(false);
     // Повторное нажатие на «+» возвращает к выбору проблемы
@@ -45,7 +50,8 @@ export function App() {
       <main className="screen">
         {tab === "create" && (
           <CreateAppeal me={me} category={category} onPick={setCategory} onBack={() => setCategory(null)}
-            onCreated={() => { setCategory(null); setJustCreated(true); setToast("Обращение направлено"); setTab("feed"); }} />
+            onCreated={() => { setCategory(null); setJustCreated(true); setToast("Обращение направлено"); setTab("feed"); }}
+            onViewExisting={() => { setJustCreated(false); setTab("feed"); }} />
         )}
         {tab === "feed" && <Feed me={me} initialFeed={justCreated ? "mine" : "house"} />}
         {tab === "notifications" && <Notifications onRead={refreshUnread} />}
