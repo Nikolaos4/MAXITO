@@ -64,6 +64,6 @@ func (r *DispatcherHouseRepository) ListUnassignedHouses() ([]models.House, erro
 // ListAll — все текущие назначения диспетчер-дом с подгруженными связями.
 func (r *DispatcherHouseRepository) ListAll() ([]models.DispatcherHouse, error) {
 	var links []models.DispatcherHouse
-	err := r.db.Preload("Dispatcher").Preload("House").Preload("Assigner").Find(&links).Error
+	err := r.db.Preload("Dispatcher").Preload("House").Find(&links).Error
 	return links, err
 }

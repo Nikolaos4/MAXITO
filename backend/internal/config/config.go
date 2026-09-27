@@ -7,14 +7,15 @@ import (
 )
 
 type Config struct {
-	AppPort  string
-	GinMode  string
-	DBHost   string
-	DBPort   string
-	DBUser   string
+	AppPort    string
+	GinMode    string
+	DBHost     string
+	DBPort     string
+	DBUser     string
 	DBPassword string
-	DBName   string
-	DBSSLMode string
+	DBName     string
+	DBSSLMode  string
+	UploadDir  string
 }
 
 func Load() (*Config, error) {
@@ -30,6 +31,7 @@ func Load() (*Config, error) {
 		DBPassword: getEnv("DB_PASSWORD", "postgres"),
 		DBName:     getEnv("DB_NAME", "umniy_gorod"),
 		DBSSLMode:  getEnv("DB_SSLMODE", "disable"),
+		UploadDir:  getEnv("UPLOAD_DIR", "./uploads"),
 	}
 
 	return cfg, nil

@@ -6,7 +6,10 @@ import (
 
 	"maxito/internal/config"
 	"maxito/internal/database"
+	"maxito/internal/handlers/common"
+	"maxito/internal/handlers/dispatcher"
 	"maxito/internal/handlers/representative"
+	"maxito/internal/handlers/resident"
 	"maxito/internal/middleware"
 	"maxito/internal/models"
 	"maxito/internal/repository"
@@ -33,28 +36,68 @@ func main() {
 		&models.DispatcherHouse{},
 		&models.Resident{},
 		&models.ProblemType{},
+		&models.Reason{},
 		&models.Appeal{},
+		&models.AppealStatusChange{},
 		&models.AppealSubscription{},
+		&models.AppealAttachment{},
+		&models.NotificationRead{},
 		&models.Notification{},
 	); err != nil {
 		log.Fatalf("auto migrate failed: %v", err)
 	}
 	log.Println("AutoMigrate completed successfully")
 
+	if err := database.SeedReferenceData(db); err != nil {
+		log.Fatalf("failed to seed reference data: %v", err)
+	}
+	log.Println("Reference data (problem types, reasons) seeded successfully")
+
 	// Repositories
 	userRepo := repository.NewUserRepository(db)
 	houseRepo := repository.NewHouseRepository(db)
 	residentRepo := repository.NewResidentRepository(db)
 	dispHouseRepo := repository.NewDispatcherHouseRepository(db)
+	problemTypeRepo := repository.NewProblemTypeRepository(db)
+	reasonRepo := repository.NewReasonRepository(db)
+	appealRepo := repository.NewAppealRepository(db)
+	statusChangeRepo := repository.NewAppealStatusChangeRepository(db)
+	subscriptionRepo := repository.NewAppealSubscriptionRepository(db)
+	attachmentRepo := repository.NewAppealAttachmentRepository(db)
+	notificationRepo := repository.NewNotificationRepository(db)
+	notifReadRepo := repository.NewNotificationReadRepository(db)
 
 	// Services
 	repSvc := services.NewRepresentativeService(db, userRepo, houseRepo, residentRepo, dispHouseRepo)
+	dispatcherSvc := services.NewDispatcherService(
+		db, dispHouseRepo, appealRepo, statusChangeRepo, subscriptionRepo, attachmentRepo,
+		notificationRepo, houseRepo, problemTypeRepo, reasonRepo,
+	)
+	residentSvc := services.NewResidentService(
+		db, residentRepo, appealRepo, statusChangeRepo, subscriptionRepo, attachmentRepo,
+		notificationRepo, notifReadRepo, houseRepo, problemTypeRepo, reasonRepo,
+	)
 
-	// Handlers
+	// Handlers — Представитель
 	houseHandler := representative.NewHouseHandler(houseRepo, repSvc)
-	dispatcherHandler := representative.NewDispatcherHandler(repSvc, userRepo)
-	residentHandler := representative.NewResidentHandler(repSvc, residentRepo)
+	dispatcherMgmtHandler := representative.NewDispatcherHandler(repSvc, userRepo)
+	residentMgmtHandler := representative.NewResidentHandler(repSvc, residentRepo)
 	assignmentHandler := representative.NewAssignmentHandler(repSvc)
+
+	// Handlers — Диспетчер
+	appealHandler := dispatcher.NewAppealHandler(dispatcherSvc)
+	notificationHandler := dispatcher.NewNotificationHandler(dispatcherSvc)
+	referenceHandler := dispatcher.NewReferenceHandler(problemTypeRepo, reasonRepo)
+	dispatcherHouseHandler := dispatcher.NewHouseHandler(dispatcherSvc)
+
+	// Handlers — Житель
+	residentAppealHandler := resident.NewAppealHandler(residentSvc)
+	residentNotificationHandler := resident.NewNotificationHandler(residentSvc)
+	residentHouseHandler := resident.NewHouseHandler(residentSvc)
+
+	// Handlers — общий
+	meHandler := common.NewMeHandler(residentRepo, dispHouseRepo)
+	uploadHandler := common.NewUploadHandler(cfg.UploadDir)
 
 	gin.SetMode(cfg.GinMode)
 	r := gin.Default()
@@ -64,9 +107,17 @@ func main() {
 		c.JSON(200, gin.H{"status": "ok"})
 	})
 
+	// Отдаём загруженные файлы напрямую как статику.
+	r.Static("/uploads", cfg.UploadDir)
+
 	// API v1
 	api := r.Group("/api/v1")
 	{
+		// Кто я — доступно любой роли, без RequireRole, ровно потому,
+		// что клиент ещё не знает роль на момент вызова.
+		api.GET("/me", middleware.AuthByMaxUserID(db), meHandler.Me)
+		api.POST("/upload", middleware.AuthByMaxUserID(db), uploadHandler.Upload)
+
 		rep := api.Group("/representative")
 		rep.Use(middleware.AuthByMaxUserID(db))
 		rep.Use(middleware.RequireRole(models.RoleRepresentative))
@@ -76,22 +127,74 @@ func main() {
 			rep.GET("/houses", houseHandler.ListHouses)
 			rep.POST("/houses/csv", houseHandler.ImportHousesCSV)
 			rep.GET("/houses/unassigned", assignmentHandler.ListUnassignedHouses)
+			rep.PUT("/houses/:house_id/chat-link", houseHandler.SetChatLink)
 
 			// Жители конкретного дома
-			rep.GET("/houses/:house_id/residents", residentHandler.ListResidents)
-			rep.POST("/houses/:house_id/residents/csv", residentHandler.ImportResidentsCSV)
+			rep.GET("/houses/:house_id/residents", residentMgmtHandler.ListResidents)
+			rep.POST("/houses/:house_id/residents/csv", residentMgmtHandler.ImportResidentsCSV)
 
 			// Диспетчеры
-			rep.POST("/dispatchers", dispatcherHandler.CreateDispatcher)
-			rep.POST("/dispatchers/csv", dispatcherHandler.ImportDispatchersCSV)
-			rep.GET("/dispatchers", dispatcherHandler.ListDispatchers)
-			
+			rep.POST("/dispatchers", dispatcherMgmtHandler.CreateDispatcher)
+			rep.POST("/dispatchers/csv", dispatcherMgmtHandler.ImportDispatchersCSV)
+			rep.GET("/dispatchers", dispatcherMgmtHandler.ListDispatchers)
+
 			// Распределение домов между диспетчерами
 			rep.POST("/dispatchers/:dispatcher_id/houses", assignmentHandler.AssignHouses)
 			rep.DELETE("/dispatchers/:dispatcher_id/houses/:house_id", assignmentHandler.UnassignHouse)
 			rep.GET("/dispatchers/:dispatcher_id/houses", assignmentHandler.ListDispatcherHouses)
 
 			rep.GET("/assignments", assignmentHandler.ListAssignments)
+		}
+
+		disp := api.Group("/dispatcher")
+		disp.Use(middleware.AuthByMaxUserID(db))
+		disp.Use(middleware.RequireRole(models.RoleDispatcher))
+		{
+			// Обращения (только по своим домам)
+			disp.GET("/appeals", appealHandler.ListAppeals)
+			disp.GET("/appeals/top", appealHandler.TopAppeals)
+			disp.GET("/appeals/stats", appealHandler.UnprocessedStats)
+			disp.GET("/appeals/:id", appealHandler.GetAppeal)
+			disp.POST("/appeals/:id/status", appealHandler.ChangeStatus)
+
+			// Уведомления
+			disp.GET("/notifications", notificationHandler.ListNotifications)
+			disp.POST("/notifications", notificationHandler.CreateNotification)
+			disp.POST("/notifications/:id/revoke", notificationHandler.RevokeNotification)
+
+			// Справочники (темы/причины — нужны для формы создания уведомления)
+			disp.GET("/problem-types", referenceHandler.ListProblemTypes)
+			disp.GET("/problem-types/:id/reasons", referenceHandler.ListReasons)
+
+			// Дома диспетчера
+			disp.GET("/houses", dispatcherHouseHandler.ListHouses)
+			disp.GET("/houses/:house_id/entrances", dispatcherHouseHandler.ListEntrances)
+		}
+
+		res := api.Group("/resident")
+		res.Use(middleware.AuthByMaxUserID(db))
+		res.Use(middleware.RequireRole(models.RoleResident))
+		{
+			// Обращения
+			res.POST("/appeals", residentAppealHandler.CreateAppeal)
+			res.GET("/appeals", residentAppealHandler.ListAppeals)
+			res.GET("/appeals/:id", residentAppealHandler.GetAppeal)
+			res.POST("/appeals/:id/like", residentAppealHandler.Like)
+			res.DELETE("/appeals/:id/like", residentAppealHandler.Unlike)
+
+			// Уведомления
+			res.GET("/notifications", residentNotificationHandler.ListNotifications)
+			res.GET("/notifications/:id", residentNotificationHandler.GetNotification)
+
+			// Дом
+			res.GET("/house", residentHouseHandler.GetHouse)
+			res.GET("/house/chat-link", residentHouseHandler.ChatLink)
+			res.GET("/house/entrances", residentHouseHandler.ListEntrances)
+
+			// Справочники (те же темы/причины, что у диспетчера — нужны
+			// для формы создания обращения)
+			res.GET("/problem-types", referenceHandler.ListProblemTypes)
+			res.GET("/problem-types/:id/reasons", referenceHandler.ListReasons)
 		}
 	}
 
