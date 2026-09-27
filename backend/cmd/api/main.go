@@ -8,7 +8,10 @@ import (
 	"maxito/internal/database"
 	"maxito/internal/handlers/common"
 	"maxito/internal/handlers/dispatcher"
+	"maxito/internal/handlers/common"
+	"maxito/internal/handlers/dispatcher"
 	"maxito/internal/handlers/representative"
+	"maxito/internal/handlers/resident"
 	"maxito/internal/handlers/resident"
 	"maxito/internal/middleware"
 	"maxito/internal/models"
@@ -37,7 +40,9 @@ func main() {
 		&models.Resident{},
 		&models.ProblemType{},
 		&models.Reason{},
+		&models.Reason{},
 		&models.Appeal{},
+		&models.AppealStatusChange{},
 		&models.AppealStatusChange{},
 		&models.AppealSubscription{},
 		&models.AppealAttachment{},
@@ -47,6 +52,11 @@ func main() {
 		log.Fatalf("auto migrate failed: %v", err)
 	}
 	log.Println("AutoMigrate completed successfully")
+
+	if err := database.SeedReferenceData(db); err != nil {
+		log.Fatalf("failed to seed reference data: %v", err)
+	}
+	log.Println("Reference data (problem types, reasons) seeded successfully")
 
 	if err := database.SeedReferenceData(db); err != nil {
 		log.Fatalf("failed to seed reference data: %v", err)
@@ -79,7 +89,10 @@ func main() {
 	)
 
 	// Handlers — Представитель
+	// Handlers — Представитель
 	houseHandler := representative.NewHouseHandler(houseRepo, repSvc)
+	dispatcherMgmtHandler := representative.NewDispatcherHandler(repSvc, userRepo)
+	residentMgmtHandler := representative.NewResidentHandler(repSvc, residentRepo)
 	dispatcherMgmtHandler := representative.NewDispatcherHandler(repSvc, userRepo)
 	residentMgmtHandler := representative.NewResidentHandler(repSvc, residentRepo)
 	assignmentHandler := representative.NewAssignmentHandler(repSvc)
@@ -128,12 +141,19 @@ func main() {
 			rep.POST("/houses/csv", houseHandler.ImportHousesCSV)
 			rep.GET("/houses/unassigned", assignmentHandler.ListUnassignedHouses)
 			rep.PUT("/houses/:house_id/chat-link", houseHandler.SetChatLink)
+			rep.PUT("/houses/:house_id/chat-link", houseHandler.SetChatLink)
 
 			// Жители конкретного дома
 			rep.GET("/houses/:house_id/residents", residentMgmtHandler.ListResidents)
 			rep.POST("/houses/:house_id/residents/csv", residentMgmtHandler.ImportResidentsCSV)
+			rep.GET("/houses/:house_id/residents", residentMgmtHandler.ListResidents)
+			rep.POST("/houses/:house_id/residents/csv", residentMgmtHandler.ImportResidentsCSV)
 
 			// Диспетчеры
+			rep.POST("/dispatchers", dispatcherMgmtHandler.CreateDispatcher)
+			rep.POST("/dispatchers/csv", dispatcherMgmtHandler.ImportDispatchersCSV)
+			rep.GET("/dispatchers", dispatcherMgmtHandler.ListDispatchers)
+
 			rep.POST("/dispatchers", dispatcherMgmtHandler.CreateDispatcher)
 			rep.POST("/dispatchers/csv", dispatcherMgmtHandler.ImportDispatchersCSV)
 			rep.GET("/dispatchers", dispatcherMgmtHandler.ListDispatchers)

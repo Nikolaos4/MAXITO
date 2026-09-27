@@ -2,7 +2,7 @@ import { FetchError } from "ofetch";
 import { api, type Auth } from "@/api";
 import { clearFlow, getSession, setData, setStep, type AppContext } from "@/context";
 import { downloadFile, findCsvAttachment, formatImportReport } from "@/csv-import";
-import { backToMenuKeyboard } from "@/menu";
+import { backToMenuKeyboard, cancelKeyboard } from "@/menu";
 
 function authFor(ctx: AppContext): Auth {
     return { maxUserId: String(ctx.user!.user_id) };
@@ -13,7 +13,7 @@ async function handleFullName(ctx: AppContext, text: string) {
 
     setData(ctx.user.user_id, { fullName: text });
     setStep(ctx.user.user_id, "dispatcher/phone");
-    await ctx.reply("Введите номер телефона диспетчера.");
+    await ctx.reply("Введите номер телефона диспетчера.", { attachments: [cancelKeyboard] });
 }
 
 async function handlePhone(ctx: AppContext, text: string) {
@@ -23,7 +23,7 @@ async function handlePhone(ctx: AppContext, text: string) {
     const fullName = session.data.fullName as string;
 
     try {
-        const dispatcher = await api.dispatchers.create(authFor(ctx), { full_name: fullName, phone: text });
+        const dispatcher = await api.representative.dispatchers.create(authFor(ctx), { full_name: fullName, phone: text });
         clearFlow(ctx.user.user_id);
         await ctx.reply(`Диспетчер добавлен: ${dispatcher.full_name}, ${dispatcher.phone} (id ${dispatcher.id}).`, {
             attachments: [backToMenuKeyboard],
@@ -51,7 +51,7 @@ async function handleImportCsv(ctx: AppContext) {
 
     try {
         const data = await downloadFile(file.payload.url);
-        const report = await api.dispatchers.importCsv(authFor(ctx), { data, filename: file.filename });
+        const report = await api.representative.dispatchers.importCsv(authFor(ctx), { data, filename: file.filename });
         clearFlow(ctx.user.user_id);
         await ctx.reply(formatImportReport(report), { attachments: [backToMenuKeyboard] });
     } catch (err) {

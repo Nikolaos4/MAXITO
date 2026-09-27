@@ -18,6 +18,9 @@ type AppealStatus string
 // NotificationScope enum
 type NotificationScope string
 
+// NotificationScope enum
+type NotificationScope string
+
 const (
 	RoleRepresentative Role = "representative"
 	RoleDispatcher     Role = "dispatcher"
@@ -36,6 +39,15 @@ const (
 	StatusCompleted  AppealStatus = "completed"
 	StatusRejected   AppealStatus = "rejected"
 )
+
+const (
+	ScopeHouse    NotificationScope = "house"
+	ScopeEntrance NotificationScope = "entrance"
+)
+
+// ProblemTypeCodeOther — код темы "Другое". Уведомления и причины с этим
+// кодом/флагом никогда не блокируют создание обращений (см. Reason.IsOther).
+const ProblemTypeCodeOther = "other"
 
 const (
 	ScopeHouse    NotificationScope = "house"
@@ -69,6 +81,9 @@ type House struct {
 	Address        string         `gorm:"size:500;not null;uniqueIndex:idx_house_address_number" json:"address"`
 	Number         string         `gorm:"size:50;uniqueIndex:idx_house_address_number" json:"number"`
 	EntrancesCount int            `gorm:"not null" json:"entrances_count"`
+	Address        string         `gorm:"size:500;not null;uniqueIndex:idx_house_address_number" json:"address"`
+	Number         string         `gorm:"size:50;uniqueIndex:idx_house_address_number" json:"number"`
+	EntrancesCount int            `gorm:"not null" json:"entrances_count"`
 	ChatInviteLink *string        `gorm:"size:500" json:"chat_invite_link,omitempty"`
 	CreatedAt      time.Time      `json:"created_at"`
 	UpdatedAt      time.Time      `json:"updated_at"`
@@ -86,11 +101,15 @@ type DispatcherHouse struct {
 	ID           uint      `gorm:"primaryKey" json:"id"`
 	DispatcherID uint      `gorm:"not null;index:,unique,composite:disp_house" json:"dispatcher_id"`
 	HouseID      uint      `gorm:"not null;index:,unique,composite:disp_house" json:"house_id"`
+	DispatcherID uint      `gorm:"not null;index:,unique,composite:disp_house" json:"dispatcher_id"`
+	HouseID      uint      `gorm:"not null;index:,unique,composite:disp_house" json:"house_id"`
 	AssignedBy   uint      `gorm:"not null" json:"assigned_by"` // Representative who assigned
 	AssignedAt   time.Time `json:"assigned_at"`
 
 	Dispatcher *User  `gorm:"foreignKey:DispatcherID" json:"dispatcher,omitempty"`
+	Dispatcher *User  `gorm:"foreignKey:DispatcherID" json:"dispatcher,omitempty"`
 	House      *House `gorm:"foreignKey:HouseID" json:"house,omitempty"`
+	Assigner   *User  `gorm:"foreignKey:AssignedBy" json:"assigner,omitempty"`
 	Assigner   *User  `gorm:"foreignKey:AssignedBy" json:"assigner,omitempty"`
 }
 
@@ -106,16 +125,37 @@ type Resident struct {
 	DeletedAt      gorm.DeletedAt `gorm:"index" json:"-"`
 
 	User  *User  `gorm:"foreignKey:UserID" json:"user,omitempty"`
+	User  *User  `gorm:"foreignKey:UserID" json:"user,omitempty"`
 	House *House `gorm:"foreignKey:HouseID" json:"house,omitempty"`
 }
 
 // ProblemType — тема обращения/уведомления (Лифт, Вода, Подъезд и т.д.)
+// ProblemType — тема обращения/уведомления (Лифт, Вода, Подъезд и т.д.)
 type ProblemType struct {
 	ID         uint      `gorm:"primaryKey" json:"id"`
 	Code       string    `gorm:"uniqueIndex;size:50;not null" json:"code"` // код нужен для простоты определения проблемы
+	Code       string    `gorm:"uniqueIndex;size:50;not null" json:"code"` // код нужен для простоты определения проблемы
 	Title      string    `gorm:"size:255;not null" json:"title"`
 	IsCritical bool      `gorm:"default:false" json:"is_critical"` // маркер того, что проблему надо решать срочно и через звонок
+	IsCritical bool      `gorm:"default:false" json:"is_critical"` // маркер того, что проблему надо решать срочно и через звонок
 	CreatedAt  time.Time `json:"created_at"`
+
+	Reasons []Reason `gorm:"foreignKey:ProblemTypeID" json:"reasons,omitempty"`
+}
+
+// Reason — уточнение темы (для темы "Лифт": "Не работает", "Застревает" и т.д.).
+// У каждой темы (включая "Другое") есть ровно одна причина с IsOther=true — она
+// используется, когда тема сама по себе "Другое", и никогда не участвует в
+// блокировке обращений уведомлениями.
+type Reason struct {
+	ID            uint      `gorm:"primaryKey" json:"id"`
+	ProblemTypeID uint      `gorm:"not null;index:,unique,composite:type_code" json:"problem_type_id"`
+	Code          string    `gorm:"size:50;not null;index:,unique,composite:type_code" json:"code"`
+	Title         string    `gorm:"size:255;not null" json:"title"`
+	IsOther       bool      `gorm:"default:false" json:"is_other"`
+	CreatedAt     time.Time `json:"created_at"`
+
+	ProblemType ProblemType `gorm:"foreignKey:ProblemTypeID" json:"-"`
 
 	Reasons []Reason `gorm:"foreignKey:ProblemTypeID" json:"reasons,omitempty"`
 }
@@ -141,6 +181,9 @@ type Appeal struct {
 	HouseID            uint           `gorm:"not null;index" json:"house_id"`
 	AuthorID           uint           `gorm:"not null;index" json:"author_id"`
 	ProblemTypeID      uint           `gorm:"not null;index" json:"problem_type_id"`
+	ReasonID           uint           `gorm:"not null;index" json:"reason_id"`
+	EntranceNumber     *int           `gorm:"index" json:"entrance_number,omitempty"` // null = весь дом
+	DiscoveredAt       *time.Time     `json:"discovered_at,omitempty"` // когда житель заметил проблему (необязательно)
 	ReasonID           uint           `gorm:"not null;index" json:"reason_id"`
 	EntranceNumber     *int           `gorm:"index" json:"entrance_number,omitempty"` // null = весь дом
 	DiscoveredAt       *time.Time     `json:"discovered_at,omitempty"` // когда житель заметил проблему (необязательно)
@@ -201,12 +244,19 @@ type AppealSubscription struct {
 	ID        uint      `gorm:"primaryKey" json:"id"`
 	AppealID  uint      `gorm:"not null;index:,unique,composite:appeal_user" json:"appeal_id"`
 	UserID    uint      `gorm:"not null;index:,unique,composite:appeal_user" json:"user_id"`
+	AppealID  uint      `gorm:"not null;index:,unique,composite:appeal_user" json:"appeal_id"`
+	UserID    uint      `gorm:"not null;index:,unique,composite:appeal_user" json:"user_id"`
 	CreatedAt time.Time `json:"created_at"`
 
 	Appeal Appeal `gorm:"foreignKey:AppealID" json:"-"`
 	User   *User  `gorm:"foreignKey:UserID" json:"user,omitempty"`
+	User   *User  `gorm:"foreignKey:UserID" json:"user,omitempty"`
 }
 
+// Notification — плановое уведомление диспетчера. Пока действует
+// (StartsAt..EndsAt) и покрывает дом/подъезд, оно блокирует создание новых
+// обращений жителей по той же теме и причине (кроме случая, когда тема
+// или причина — "Другое", см. ProblemTypeCodeOther и Reason.IsOther).
 // Notification — плановое уведомление диспетчера. Пока действует
 // (StartsAt..EndsAt) и покрывает дом/подъезд, оно блокирует создание новых
 // обращений жителей по той же теме и причине (кроме случая, когда тема
@@ -224,7 +274,22 @@ type Notification struct {
 	EndsAt         time.Time         `gorm:"index" json:"ends_at"`
 	RevokedAt      *time.Time        `json:"revoked_at,omitempty"` // досрочная отмена
 	CreatedAt      time.Time         `json:"created_at"`
+	ID             uint              `gorm:"primaryKey" json:"id"`
+	HouseID        uint              `gorm:"not null;index" json:"house_id"`
+	AuthorID       uint              `gorm:"not null" json:"author_id"`
+	ReasonID       uint              `gorm:"not null;index" json:"reason_id"`
+	ScopeType      NotificationScope `gorm:"size:20;not null" json:"scope_type"`
+	EntranceNumber *int              `gorm:"index" json:"entrance_number,omitempty"` // обязателен при scope_type = entrance
+	Title          string            `gorm:"size:255;not null" json:"title"`
+	Body           string            `gorm:"type:text;not null" json:"body"`
+	StartsAt       time.Time         `gorm:"index" json:"starts_at"`
+	EndsAt         time.Time         `gorm:"index" json:"ends_at"`
+	RevokedAt      *time.Time        `json:"revoked_at,omitempty"` // досрочная отмена
+	CreatedAt      time.Time         `json:"created_at"`
 
+	House  *House  `gorm:"foreignKey:HouseID" json:"house,omitempty"`
+	Author *User   `gorm:"foreignKey:AuthorID" json:"author,omitempty"`
+	Reason *Reason `gorm:"foreignKey:ReasonID" json:"reason,omitempty"`
 	House  *House  `gorm:"foreignKey:HouseID" json:"house,omitempty"`
 	Author *User   `gorm:"foreignKey:AuthorID" json:"author,omitempty"`
 	Reason *Reason `gorm:"foreignKey:ReasonID" json:"reason,omitempty"`
