@@ -8,9 +8,13 @@ type Step =
     | "authorization/phone"
     | "house/address"
     | "house/number"
+    | "house/entrances_count"
     | "house/import_csv"
+    | "house/import_residents_select"
+    | "house/import_residents_csv"
     | "dispatcher/full_name"
-    | "dispatcher/phone";
+    | "dispatcher/phone"
+    | "dispatcher/import_csv";
 
 export type Role = ApiRole;
 

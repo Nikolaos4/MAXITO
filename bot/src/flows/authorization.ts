@@ -2,9 +2,10 @@ import { Keyboard } from "@maxhub/max-bot-api";
 import { FetchError } from "ofetch";
 import { api, type Auth } from "@/api";
 import { clearFlow, getSession, setFlow, setRole, setStep, type AppContext } from "@/context";
-import { MENU_TEXT, mainMenuKeyboard } from "@/menu";
+import { residentMenuKeyboard } from "@/flows/resident-menu";
+import { DISPATCHER_MENU_TEXT, MENU_TEXT, RESIDENT_MENU_TEXT, dispatcherMenuKeyboard, mainMenuKeyboard } from "@/menu";
 
-async function askForPhone(ctx: AppContext) {
+export async function askForPhone(ctx: AppContext) {
     if (!ctx.user) return;
 
     setFlow(ctx.user.user_id, "authorization");
@@ -15,27 +16,42 @@ async function askForPhone(ctx: AppContext) {
     });
 }
 
+export async function tryRestoreRole(ctx: AppContext): Promise<boolean> {
+    if (!ctx.user) return false;
+
+    try {
+        const me = await api.me({ maxUserId: String(ctx.user.user_id) });
+        setRole(ctx.user.user_id, me.role);
+        return true;
+    } catch {
+        return false;
+    }
+}
+
 async function tryBind(ctx: AppContext, phone: string) {
     if (!ctx.user) return;
 
     const auth: Auth = { maxUserId: String(ctx.user.user_id), phone };
 
     try {
-        await api.houses.list(auth);
-        setRole(ctx.user.user_id, "representative");
+        const me = await api.me(auth);
+        setRole(ctx.user.user_id, me.role);
         clearFlow(ctx.user.user_id);
-        await ctx.reply("Готово! Вы авторизованы как представитель управляющей компании.");
-        await ctx.reply(MENU_TEXT, { attachments: [mainMenuKeyboard] });
-        return;
+
+        if (me.role === "representative") {
+            await ctx.reply("Готово! Вы авторизованы как представитель управляющей компании.");
+            await ctx.reply(MENU_TEXT, { attachments: [mainMenuKeyboard] });
+        } else if (me.role === "dispatcher") {
+            await ctx.reply("Готово! Вы авторизованы как диспетчер.");
+            await ctx.reply(DISPATCHER_MENU_TEXT, { attachments: [dispatcherMenuKeyboard] });
+        } else {
+            await ctx.reply("Готово! Вы авторизованы как житель.");
+            await ctx.reply(RESIDENT_MENU_TEXT, { attachments: [await residentMenuKeyboard(ctx)] });
+        }
     } catch (err) {
         const status = err instanceof FetchError ? err.statusCode : undefined;
 
-        // ponytail: роли dispatcher/resident на бэке пока не реализованы,
-        // поэтому 403 после успешного бинда трактуем как "рано, подождите".
-        if (status === 403) {
-            clearFlow(ctx.user.user_id);
-            await ctx.reply("Номер найден, но для вашей роли функционал бота пока в разработке.");
-        } else if (status === 401) {
+        if (status === 401) {
             await ctx.reply(
                 "Такой номер телефона не найден в системе. Обратитесь к представителю вашей УК, чтобы вас добавили.",
             );
