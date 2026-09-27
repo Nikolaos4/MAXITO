@@ -132,6 +132,8 @@ p.form__label { white-space: normal; }
 
 .appeal { display: flex; flex-direction: column; gap: var(--s2); margin-bottom: var(--s4); }
 .appeal__meta { display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: var(--text-soft); }
+.appeal__meta-right { display: inline-flex; align-items: center; gap: 6px; }
+.appeal__new-badge { background: var(--accent); color: #fff; border-radius: 999px; padding: 3px 10px; font-size: 11px; font-weight: 600; }
 .appeal__title { font-size: 22px; font-weight: 600; }
 .appeal__subtitle { display: flex; align-items: center; gap: var(--s2); flex-wrap: wrap; }
 .appeal__reason { font-size: 16px; font-weight: 600; color: var(--accent); }
@@ -172,6 +174,8 @@ p.form__label { white-space: normal; }
 /* Notifications */
 .notification { display: flex; flex-direction: column; gap: var(--s2); margin-bottom: var(--s4); }
 .notification__badge { display: inline-flex; align-items: center; gap: 6px; background: var(--bg-filled); color: var(--accent-dark); border-radius: 999px; padding: 3px 12px; font-size: 12px; font-weight: 500; }
+.notification__badge--need-info { background: var(--accent); color: #fff; }
+.notification--need-info .notification__dot { background: #fff; }
 .notification__dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); flex-shrink: 0; }
 .notification-filters { display: flex; flex-direction: column; gap: var(--s2); margin-bottom: var(--s4); }
 
