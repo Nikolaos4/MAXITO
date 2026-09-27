@@ -1,13 +1,7 @@
 import type { AppContext } from "@/context";
 import { getSession } from "@/context";
-import {
-    DISPATCHER_MENU_TEXT,
-    MENU_TEXT,
-    RESIDENT_MENU_TEXT,
-    dispatcherMenuKeyboard,
-    mainMenuKeyboard,
-    residentMenuKeyboard,
-} from "@/menu";
+import { residentMenuKeyboard } from "@/flows/resident-menu";
+import { DISPATCHER_MENU_TEXT, MENU_TEXT, RESIDENT_MENU_TEXT, dispatcherMenuKeyboard, mainMenuKeyboard } from "@/menu";
 
 export async function menuCommand(ctx: AppContext) {
     if (!ctx.user) return;
@@ -21,7 +15,7 @@ export async function menuCommand(ctx: AppContext) {
         return ctx.reply(DISPATCHER_MENU_TEXT, { attachments: [dispatcherMenuKeyboard] });
     }
     if (session.role === "resident") {
-        return ctx.reply(RESIDENT_MENU_TEXT, { attachments: [residentMenuKeyboard] });
+        return ctx.reply(RESIDENT_MENU_TEXT, { attachments: [await residentMenuKeyboard(ctx)] });
     }
 
     await ctx.reply("Авторизуйтесь, чтобы увидеть меню.");

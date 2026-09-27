@@ -39,12 +39,14 @@ const RESIDENT_APPEAL_FORM_URL = "https://example.com/resident/appeal";
 const RESIDENT_APPEALS_URL = "https://example.com/resident/appeals";
 const RESIDENT_NOTIFICATIONS_URL = "https://example.com/resident/notifications";
 
-export const residentMenuKeyboard = Keyboard.inlineKeyboard([
-    [Keyboard.button.callback("Сообщить о проблеме", "resident_menu:report")],
-    [Keyboard.button.link("Все обращения", RESIDENT_APPEALS_URL)],
-    [Keyboard.button.callback("Перейти в чат дома", "resident_menu:chat_link")],
-    [Keyboard.button.link("Уведомления", RESIDENT_NOTIFICATIONS_URL)],
-]);
+export function buildResidentMenuKeyboard(chatInviteLink?: string | null) {
+    return Keyboard.inlineKeyboard([
+        [Keyboard.button.callback("Сообщить о проблеме", "resident_menu:report")],
+        [Keyboard.button.link("Все обращения", RESIDENT_APPEALS_URL)],
+        ...(chatInviteLink ? [[Keyboard.button.link("Перейти в чат дома", chatInviteLink)]] : []),
+        [Keyboard.button.link("Объявления", RESIDENT_NOTIFICATIONS_URL)],
+    ]);
+}
 
 export const backToResidentMenuKeyboard = Keyboard.inlineKeyboard([
     [Keyboard.button.callback("В меню", "resident_menu:show")],
