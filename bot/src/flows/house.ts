@@ -3,7 +3,7 @@ import { FetchError } from "ofetch";
 import { api, type Auth } from "@/api";
 import { clearFlow, getSession, setData, setStep, type AppContext } from "@/context";
 import { downloadFile, findCsvAttachment, formatImportReport } from "@/csv-import";
-import { backToMenuKeyboard } from "@/menu";
+import { backToMenuKeyboard, cancelKeyboard } from "@/menu";
 
 function authFor(ctx: AppContext): Auth {
     return { maxUserId: String(ctx.user!.user_id) };
@@ -33,6 +33,8 @@ export function buildHouseSelectKeyboard(houses: HouseOption[], page: number) {
     if (clamped < totalPages - 1) nav.push(Keyboard.button.callback("Далее »", `house_residents_page:${clamped + 1}`));
     if (nav.length > 0) rows.push(nav);
 
+    rows.push([Keyboard.button.callback("Отмена", "flow:cancel")]);
+
     return Keyboard.inlineKeyboard(rows);
 }
 
@@ -41,7 +43,9 @@ async function handleAddress(ctx: AppContext, text: string) {
 
     setData(ctx.user.user_id, { address: text });
     setStep(ctx.user.user_id, "house/number");
-    await ctx.reply('Есть ли у дома отдельный номер корпуса/строения? Если нет — отправьте "-".');
+    await ctx.reply('Есть ли у дома отдельный номер корпуса/строения? Если нет — отправьте "-".', {
+        attachments: [cancelKeyboard],
+    });
 }
 
 async function handleNumber(ctx: AppContext, text: string) {
@@ -143,7 +147,10 @@ export const houseFlow = {
         setData(ctx.user.user_id, { residentsHouseId: houseId });
         setStep(ctx.user.user_id, "house/import_residents_csv");
         await ctx.answerOnCallback({
-            message: { text: 'Пришлите CSV-файл с жителями. Обязательные колонки — "full_name", "phone".' },
+            message: {
+                text: 'Пришлите CSV-файл с жителями. Обязательные колонки — "full_name", "phone".',
+                attachments: [cancelKeyboard],
+            },
         });
         return true;
     },

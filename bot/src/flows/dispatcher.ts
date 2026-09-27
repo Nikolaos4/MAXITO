@@ -2,7 +2,7 @@ import { FetchError } from "ofetch";
 import { api, type Auth } from "@/api";
 import { clearFlow, getSession, setData, setStep, type AppContext } from "@/context";
 import { downloadFile, findCsvAttachment, formatImportReport } from "@/csv-import";
-import { backToMenuKeyboard } from "@/menu";
+import { backToMenuKeyboard, cancelKeyboard } from "@/menu";
 
 function authFor(ctx: AppContext): Auth {
     return { maxUserId: String(ctx.user!.user_id) };
@@ -13,7 +13,7 @@ async function handleFullName(ctx: AppContext, text: string) {
 
     setData(ctx.user.user_id, { fullName: text });
     setStep(ctx.user.user_id, "dispatcher/phone");
-    await ctx.reply("Введите номер телефона диспетчера.");
+    await ctx.reply("Введите номер телефона диспетчера.", { attachments: [cancelKeyboard] });
 }
 
 async function handlePhone(ctx: AppContext, text: string) {

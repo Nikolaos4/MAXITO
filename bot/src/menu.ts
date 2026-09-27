@@ -12,6 +12,8 @@ export const mainMenuKeyboard = Keyboard.inlineKeyboard([
 
 export const backToMenuKeyboard = Keyboard.inlineKeyboard([[Keyboard.button.callback("В главное меню", "menu:show")]]);
 
+export const cancelKeyboard = Keyboard.inlineKeyboard([[Keyboard.button.callback("Отмена", "flow:cancel")]]);
+
 // ponytail: веб-приложений ещё нет, ссылки-заглушки — заменить на реальные, когда появятся.
 const DISPATCHER_APPEALS_URL = "https://example.com/dispatcher/appeals";
 const DISPATCHER_NOTIFICATIONS_URL = "https://example.com/dispatcher/notifications";

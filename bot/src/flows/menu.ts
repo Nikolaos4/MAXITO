@@ -1,7 +1,13 @@
 import { api, type Auth } from "@/api";
 import { clearFlow, getSession, setData, setFlow, setStep, type AppContext } from "@/context";
 import { buildHouseSelectKeyboard, houseSelectText, HOUSES_PAGE_SIZE } from "@/flows/house";
-import { MENU_TEXT, mainMenuKeyboard } from "@/menu";
+import {
+    DISPATCHER_MENU_TEXT,
+    MENU_TEXT,
+    cancelKeyboard,
+    dispatcherMenuKeyboard,
+    mainMenuKeyboard,
+} from "@/menu";
 
 function authFor(ctx: AppContext): Auth {
     return { maxUserId: String(ctx.user!.user_id) };
@@ -12,6 +18,22 @@ export const menuFlow = {
         if (!ctx.user || !ctx.callback) return false;
 
         const payload = ctx.callback.payload;
+
+        if (payload === "flow:cancel") {
+            clearFlow(ctx.user.user_id);
+            const session = getSession(ctx.user.user_id);
+            if (session.role === "representative") {
+                await ctx.answerOnCallback({ message: { text: MENU_TEXT, attachments: [mainMenuKeyboard] } });
+            } else if (session.role === "dispatcher") {
+                await ctx.answerOnCallback({
+                    message: { text: DISPATCHER_MENU_TEXT, attachments: [dispatcherMenuKeyboard] },
+                });
+            } else {
+                await ctx.answerOnCallback({ message: { text: "Отменено." } });
+            }
+            return true;
+        }
+
         const known = [
             "menu:add_house",
             "menu:import_houses",
@@ -42,6 +64,7 @@ export const menuFlow = {
             await ctx.answerOnCallback({
                 message: {
                     text: 'Пришлите CSV-файл с домами. Обязательная колонка — "address", необязательная — "number".',
+                    attachments: [cancelKeyboard],
                 },
             });
             return true;
@@ -50,7 +73,9 @@ export const menuFlow = {
         if (payload === "menu:add_dispatcher") {
             setFlow(ctx.user.user_id, "dispatcher");
             setStep(ctx.user.user_id, "dispatcher/full_name");
-            await ctx.answerOnCallback({ message: { text: "Введите ФИО диспетчера." } });
+            await ctx.answerOnCallback({
+                message: { text: "Введите ФИО диспетчера.", attachments: [cancelKeyboard] },
+            });
             return true;
         }
 
@@ -60,6 +85,7 @@ export const menuFlow = {
             await ctx.answerOnCallback({
                 message: {
                     text: 'Пришлите CSV-файл с диспетчерами. Обязательные колонки — "full_name", "phone".',
+                    attachments: [cancelKeyboard],
                 },
             });
             return true;
@@ -89,7 +115,9 @@ export const menuFlow = {
         setFlow(ctx.user.user_id, "house");
         setStep(ctx.user.user_id, "house/address");
 
-        await ctx.answerOnCallback({ message: { text: "Введите адрес дома, например: ул. Ленина, 25." } });
+        await ctx.answerOnCallback({
+            message: { text: "Введите адрес дома, например: ул. Ленина, 25.", attachments: [cancelKeyboard] },
+        });
         return true;
     },
 
