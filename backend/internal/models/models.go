@@ -142,6 +142,7 @@ type Appeal struct {
 	ProblemTypeID      uint           `gorm:"not null;index" json:"problem_type_id"`
 	ReasonID           uint           `gorm:"not null;index" json:"reason_id"`
 	EntranceNumber     *int           `gorm:"index" json:"entrance_number,omitempty"` // null = весь дом
+	DiscoveredAt       *time.Time     `json:"discovered_at,omitempty"` // когда житель заметил проблему (необязательно)
 	Description        string         `gorm:"type:text;not null" json:"description"`
 	Importance         Importance     `gorm:"size:20;default:'normal'" json:"importance"`
 	Status             AppealStatus   `gorm:"size:20;default:'accepted';index" json:"status"`

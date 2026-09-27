@@ -95,6 +95,29 @@ func (r *NotificationRepository) HasActiveBlock(
 	return count > 0, err
 }
 
+// ListActiveForResident возвращает уведомления, актуальные конкретно для
+// жителя: общедомовые (scope_type=house) плюс подъездные для его подъезда
+// entranceNumber (nil — только общедомовые), при этом отозванные и
+// истёкшие по сроку не показываются вообще (это отличает эндпоинт от
+// диспетчерского List, где статус можно явно запросить любой).
+func (r *NotificationRepository) ListActiveForResident(houseID uint, entranceNumber *int) ([]models.Notification, error) {
+	q := r.db.Model(&models.Notification{}).
+		Preload("Reason").
+		Where("house_id = ?", houseID).
+		Where("revoked_at IS NULL AND ends_at >= ?", time.Now())
+
+	if entranceNumber != nil {
+		q = q.Where("(scope_type = ? OR (scope_type = ? AND entrance_number = ?))",
+			models.ScopeHouse, models.ScopeEntrance, *entranceNumber)
+	} else {
+		q = q.Where("scope_type = ?", models.ScopeHouse)
+	}
+
+	var list []models.Notification
+	err := q.Order("starts_at DESC").Find(&list).Error
+	return list, err
+}
+
 func (r *NotificationRepository) Revoke(id uint) error {
 	res := r.db.Model(&models.Notification{}).
 		Where("id = ? AND revoked_at IS NULL", id).

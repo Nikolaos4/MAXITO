@@ -121,13 +121,13 @@ func (s *DispatcherService) ensureOwnsHouse(dispatcherID, houseID uint) error {
 // Если в фильтре указаны house_id — они пересекаются со "своими" домами;
 // запрос на чужой дом молча отбрасывается, а не считается ошибкой доступа
 // (чтобы фильтр "все свои дома + этот один чужой по ошибке" не валил весь запрос).
-func (s *DispatcherService) ListAppeals(dispatcherID uint, filter repository.AppealFilter) ([]models.Appeal, int64, error) {
+func (s *DispatcherService) ListAppeals(dispatcherID uint, filter repository.AppealFilter) ([]repository.AppealWithLikes, int64, error) {
 	owned, err := s.ownedHouseIDs(dispatcherID)
 	if err != nil {
 		return nil, 0, err
 	}
 	if len(owned) == 0 {
-		return []models.Appeal{}, 0, nil
+		return []repository.AppealWithLikes{}, 0, nil
 	}
 
 	if len(filter.HouseIDs) == 0 {
@@ -144,7 +144,7 @@ func (s *DispatcherService) ListAppeals(dispatcherID uint, filter repository.App
 			}
 		}
 		if len(allowed) == 0 {
-			return []models.Appeal{}, 0, nil
+			return []repository.AppealWithLikes{}, 0, nil
 		}
 		filter.HouseIDs = allowed
 	}
@@ -153,13 +153,13 @@ func (s *DispatcherService) ListAppeals(dispatcherID uint, filter repository.App
 }
 
 // TopAppeals — N обращений с наибольшим числом лайков по своим домам.
-func (s *DispatcherService) TopAppeals(dispatcherID uint, limit int) ([]models.Appeal, error) {
+func (s *DispatcherService) TopAppeals(dispatcherID uint, limit int) ([]repository.AppealWithLikes, error) {
 	owned, err := s.ownedHouseIDs(dispatcherID)
 	if err != nil {
 		return nil, err
 	}
 	if len(owned) == 0 {
-		return []models.Appeal{}, nil
+		return []repository.AppealWithLikes{}, nil
 	}
 
 	appeals, _, err := s.appealRepo.List(repository.AppealFilter{

@@ -60,6 +60,7 @@ func main() {
 	reasonRepo := repository.NewReasonRepository(db)
 	appealRepo := repository.NewAppealRepository(db)
 	statusChangeRepo := repository.NewAppealStatusChangeRepository(db)
+	subscriptionRepo := repository.NewAppealSubscriptionRepository(db)
 	notificationRepo := repository.NewNotificationRepository(db)
 
 	// Services
@@ -67,7 +68,9 @@ func main() {
 	dispatcherSvc := services.NewDispatcherService(
 		db, dispHouseRepo, appealRepo, statusChangeRepo, notificationRepo, problemTypeRepo, reasonRepo,
 	)
-	residentSvc := services.NewResidentService(residentRepo, appealRepo, notificationRepo, problemTypeRepo, reasonRepo)
+	residentSvc := services.NewResidentService(
+		residentRepo, appealRepo, statusChangeRepo, subscriptionRepo, notificationRepo, houseRepo, problemTypeRepo, reasonRepo,
+	)
 
 	// Handlers — Представитель
 	houseHandler := representative.NewHouseHandler(houseRepo, repSvc)
@@ -82,6 +85,8 @@ func main() {
 
 	// Handlers — Житель
 	residentAppealHandler := resident.NewAppealHandler(residentSvc)
+	residentNotificationHandler := resident.NewNotificationHandler(residentSvc)
+	residentHouseHandler := resident.NewHouseHandler(residentSvc)
 
 	// Handlers — общий
 	meHandler := common.NewMeHandler(residentRepo, dispHouseRepo)
@@ -110,6 +115,7 @@ func main() {
 			rep.GET("/houses", houseHandler.ListHouses)
 			rep.POST("/houses/csv", houseHandler.ImportHousesCSV)
 			rep.GET("/houses/unassigned", assignmentHandler.ListUnassignedHouses)
+			rep.PUT("/houses/:house_id/chat-link", houseHandler.SetChatLink)
 
 			// Жители конкретного дома
 			rep.GET("/houses/:house_id/residents", residentMgmtHandler.ListResidents)
@@ -153,7 +159,19 @@ func main() {
 		res.Use(middleware.AuthByMaxUserID(db))
 		res.Use(middleware.RequireRole(models.RoleResident))
 		{
+			// Обращения
 			res.POST("/appeals", residentAppealHandler.CreateAppeal)
+			res.GET("/appeals", residentAppealHandler.ListAppeals)
+			res.GET("/appeals/:id", residentAppealHandler.GetAppeal)
+			res.POST("/appeals/:id/like", residentAppealHandler.Like)
+			res.DELETE("/appeals/:id/like", residentAppealHandler.Unlike)
+
+			// Уведомления
+			res.GET("/notifications", residentNotificationHandler.ListNotifications)
+			res.GET("/notifications/:id", residentNotificationHandler.GetNotification)
+
+			// Дом
+			res.GET("/house/chat-link", residentHouseHandler.ChatLink)
 		}
 	}
 

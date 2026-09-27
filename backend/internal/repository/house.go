@@ -31,3 +31,14 @@ func (r *HouseRepository) GetByID(id uint) (*models.House, error) {
 	}
 	return &house, nil
 }
+
+func (r *HouseRepository) UpdateChatInviteLink(houseID uint, link string) error {
+	res := r.db.Model(&models.House{}).Where("id = ?", houseID).Update("chat_invite_link", link)
+	if res.Error != nil {
+		return res.Error
+	}
+	if res.RowsAffected == 0 {
+		return gorm.ErrRecordNotFound
+	}
+	return nil
+}

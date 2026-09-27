@@ -20,6 +20,7 @@ type ParsedCSV struct {
 // их отсутствие возвращает ошибку сразу, не читая тело файла.
 func ParseCSV(r io.Reader, requiredColumns []string) (*ParsedCSV, error) {
 	reader := csv.NewReader(r)
+	reader.Comma = ';'
 	reader.TrimLeadingSpace = true
 	// Разное число колонок в разных строках (например, необязательная
 	// последняя колонка не указана до конца файла) не должно валить весь файл.

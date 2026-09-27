@@ -2,6 +2,7 @@ package representative
 
 import (
 	"net/http"
+	"strconv"
 
 	"maxito/internal/models"
 	"maxito/internal/repository"
@@ -54,6 +55,33 @@ func (h *HouseHandler) ListHouses(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, houses)
+}
+
+type SetChatLinkRequest struct {
+	ChatInviteLink string `json:"chat_invite_link" binding:"required"`
+}
+
+// SetChatLink — сохранить ссылку-приглашение в чат дома. Ссылку Представитель
+// создаёт вручную на стороне MAX и один раз кладёт сюда — автоматическое
+// создание группы ботом не делаем (см. исходное описание проекта).
+func (h *HouseHandler) SetChatLink(c *gin.Context) {
+	houseID, err := strconv.ParseUint(c.Param("house_id"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid house_id"})
+		return
+	}
+
+	var req SetChatLinkRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if err := h.houseRepo.UpdateChatInviteLink(uint(houseID), req.ChatInviteLink); err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "house not found"})
+		return
+	}
+	c.Status(http.StatusNoContent)
 }
 
 // ImportHousesCSV — массовое добавление домов через CSV.
