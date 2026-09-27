@@ -3,7 +3,6 @@ import { api } from "../api";
 import { DateField } from "../../components/DateField";
 import { PageHead } from "../../components/PageHead";
 import { Select } from "../../components/Select";
-import { CATEGORIES } from "../../data/categories";
 import { PLANNED_WORK_TYPES } from "../../data/plannedWork";
 import type { Category, HouseInfo } from "../../types";
 
@@ -16,12 +15,12 @@ const maxIso = () => {
 };
 
 /** Шаг 1: общая тема плановых работ — тот же список, что видит житель. */
-function CategoryPicker({ onPick }: { onPick: (c: Category) => void }) {
+function CategoryPicker({ categories, onPick }: { categories: Category[]; onPick: (c: Category) => void }) {
   return (
     <>
       <PageHead title="Плановые работы" />
       <div className="categories">
-        {CATEGORIES.map((c) => (
+        {categories.map((c) => (
           <button key={c.code} className="card category" onClick={() => onPick(c)}>{c.title}</button>
         ))}
       </div>
@@ -150,8 +149,18 @@ function PlannedWorkForm({ category, onBack, onCreated }: {
 }
 
 export function PlannedWork({ onCreated }: { onCreated: () => void }) {
+  const [categories, setCategories] = useState<Category[] | null>(null);
+  const [failed, setFailed] = useState(false);
   const [category, setCategory] = useState<Category | null>(null);
+
+  useEffect(() => {
+    api.getCategories().then(setCategories).catch(() => setFailed(true));
+  }, []);
+
+  if (failed) return <p className="empty">Не удалось загрузить список тем</p>;
+  if (!categories) return <p className="empty">Загрузка…</p>;
+
   return category
     ? <PlannedWorkForm key={category.code} category={category} onBack={() => setCategory(null)} onCreated={onCreated} />
-    : <CategoryPicker onPick={setCategory} />;
+    : <CategoryPicker categories={categories} onPick={setCategory} />;
 }

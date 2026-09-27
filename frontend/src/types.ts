@@ -79,13 +79,19 @@ export interface EmergencyService {
 export interface HouseInfo {
   /** Номер дома, как в Appeal.houseNumber и в списках диспетчера */
   number: string;
-  address: string;
-  floors: number;
   entrances: number;
-  builtYear: number;
-  /** Сколько жителей дома зарегистрировано в системе */
-  residentsCount: number;
-  company: {
+  /**
+   * Ниже — то, что реальный бэкенд пока не отдаёт (нет таких полей ни у
+   * House, ни у одной доступной жителю/диспетчеру ручки): адрес, этажность,
+   * год постройки, число жильцов, управляющая компания, тарифы, аварийные
+   * службы. В моках заполнено демо-данными, в реальном режиме — undefined,
+   * и соответствующие блоки Info.tsx просто не рисуются.
+   */
+  address?: string;
+  floors?: number;
+  builtYear?: number;
+  residentsCount?: number;
+  company?: {
     fullName: string;
     shortName: string;
     dispatcherPhone: string;
@@ -93,8 +99,10 @@ export interface HouseInfo {
     email: string;
     site: string;
   };
-  tariffs: Tariff[];
-  emergencyServices: EmergencyService[];
+  tariffs?: Tariff[];
+  emergencyServices?: EmergencyService[];
+  /** Есть только это — ссылка на общий чат дома (может быть ещё не заведена) */
+  chatInviteLink?: string | null;
 }
 
 export interface DispatcherMe {

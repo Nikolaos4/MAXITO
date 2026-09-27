@@ -1,5 +1,6 @@
 import { getMaxUser } from "../max";
 import { countUnread, delay, findAppeal, houseByNumber, markNotificationsRead, nextId, notificationView, refresh, save, sortNotifications, store, toAttachment } from "../store";
+import { CATEGORIES } from "../data/categories";
 import type { HouseInfo, Me } from "../types";
 import type { Api } from "./types";
 
@@ -12,6 +13,7 @@ const me = (): Me => {
 export const mockApi: Api = {
   getMe: () => delay(me()),
   getHouseInfo: (): Promise<HouseInfo> => delay(houseByNumber(me().houseNumber)),
+  getCategories: () => delay(CATEGORIES),
 
   listAppeals: (feed) => {
     refresh();

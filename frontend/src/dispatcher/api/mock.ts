@@ -3,6 +3,7 @@ import {
   countUnread, createNotification, delay, DISPATCHER, findAppeal, HOUSES, markNotificationsRead,
   nextId, notificationView, refresh, save, sortNotifications, store, toAttachment,
 } from "../../store";
+import { CATEGORIES } from "../../data/categories";
 import type { Appeal } from "../../types";
 import type { DispatcherApi } from "./types";
 
@@ -11,6 +12,7 @@ const myHouses = () => HOUSES.filter((h) => DISPATCHER.houseNumbers.includes(h.n
 export const mockApi: DispatcherApi = {
   getMe: () => delay(DISPATCHER),
   getHouses: () => delay(myHouses()),
+  getCategories: () => delay(CATEGORIES),
 
   listAppeals: (houseNumber) => {
     refresh();

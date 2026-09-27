@@ -1,9 +1,11 @@
-import type { Appeal, ChangeStatusInput, DispatcherMe, HouseInfo, Notification, PlannedWorkInput } from "../../types";
+import type { Appeal, Category, ChangeStatusInput, DispatcherMe, HouseInfo, Notification, PlannedWorkInput } from "../../types";
 
 export interface DispatcherApi {
   getMe(): Promise<DispatcherMe>;
   /** Дома, закреплённые за диспетчером */
   getHouses(): Promise<HouseInfo[]>;
+  /** Темы и причины плановых работ — список задаёт бэкенд, не хардкод на фронте */
+  getCategories(): Promise<Category[]>;
   /** houseNumber === "all" — обращения по всем домам диспетчера, отсортированы по лайкам */
   listAppeals(houseNumber: string): Promise<Appeal[]>;
   createPlannedWork(input: PlannedWorkInput): Promise<void>;

@@ -5,6 +5,10 @@ import { STATUS_TRANSITIONS } from "../../data/status";
 import { checkFiles } from "../../media";
 import type { AppealStatus, ChangeStatusInput } from "../../types";
 
+// Бэкенд принимает фото к завершению только готовой ссылкой (photo_url), а
+// эндпоинта загрузки файла нигде нет — приложить реальный файл не получится.
+const SUPPORTS_PHOTO = import.meta.env.VITE_USE_MOCK !== "false";
+
 /** Смена статуса: только разрешённые графом переходы, обязательный комментарий, фото — только при завершении. */
 export function StatusChangeForm({ current, onSubmit }: {
   current: AppealStatus; onSubmit: (input: ChangeStatusInput) => Promise<void>;
@@ -62,7 +66,7 @@ export function StatusChangeForm({ current, onSubmit }: {
         maxLength={1000} onChange={(e) => setComment(e.target.value)} />
       {tried && !comment.trim() && <p className="form__error">Оставьте комментарий к изменению статуса</p>}
 
-      {status === "completed" && (
+      {SUPPORTS_PHOTO && status === "completed" && (
         <>
           <p className="form__hint">Можно приложить фото выполненных работ (необязательно)</p>
           <div className="attach">

@@ -6,13 +6,15 @@ import { AlertIcon, UserIcon } from "../components/Icons";
 import { PageHead } from "../components/PageHead";
 import { TimeField } from "../components/TimeField";
 import { Select } from "../components/Select";
-import { CATEGORIES } from "../data/categories";
 import { getStartParam } from "../max";
 import { checkFiles, MEDIA_HINT } from "../media";
 import { plural } from "../format";
 import type { Appeal, Category, Me } from "../types";
 
 const SHOWN_DUPLICATES = 2;
+// Фото/видео сервер пока не принимает вообще — эту часть формы показываем
+// только в демо-режиме, чтобы не обещать то, чего нет.
+const SUPPORTS_ATTACHMENTS = import.meta.env.VITE_USE_MOCK !== "false";
 
 /** Карточка «по вашей проблеме уже есть обращение»: список кратких описаний + переход к списку. */
 function DuplicateNotice({ category, appeals, onView }: { category: Category; appeals: Appeal[]; onView: () => void }) {
@@ -41,11 +43,9 @@ const todayIso = () => {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 };
 
-/** Если бот уже передал категорию (?category=lift или start_param), выбор пропускаем. */
-export function resolveCategory(): Category | null {
-  const fromUrl = new URLSearchParams(window.location.search).get("category");
-  const fromMax = getStartParam();
-  return CATEGORIES.find((c) => c.code === (fromUrl ?? fromMax)) ?? null;
+/** Если бот уже передал код темы (?category=lift или start_param), выбор темы пропускаем. */
+export function resolveCategoryCode(): string | null {
+  return new URLSearchParams(window.location.search).get("category") ?? getStartParam() ?? null;
 }
 
 function AppealForm({ category, me, onBack, onDone, onViewExisting }: {
@@ -155,19 +155,23 @@ function AppealForm({ category, me, onBack, onDone, onViewExisting }: {
         <textarea className="field field--textarea" placeholder="Введите текст" value={comment}
           maxLength={1000} onChange={(e) => setComment(e.target.value)} />
 
-        <p className="form__label">Фото или видео подтверждение</p>
-        <p className="form__hint">{MEDIA_HINT}</p>
-        <div className="attach">
-          {files.map((f, i) => (
-            <Chip key={f.name + i} onRemove={() => { setWarnings([]); setFiles(files.filter((_, j) => j !== i)); }}>{f.name}</Chip>
-          ))}
-          <label className="chip chip--add" aria-label="Добавить файл">
-            +
-            <input type="file" accept="image/*,video/*" multiple onChange={(e) => { void addFiles(e.target.files); e.target.value = ""; }} />
-          </label>
-        </div>
-        {warnings.length > 0 && (
-          <div className="form__warning" role="alert">{warnings.map((w) => <p key={w}>{w}</p>)}</div>
+        {SUPPORTS_ATTACHMENTS && (
+          <>
+            <p className="form__label">Фото или видео подтверждение</p>
+            <p className="form__hint">{MEDIA_HINT}</p>
+            <div className="attach">
+              {files.map((f, i) => (
+                <Chip key={f.name + i} onRemove={() => { setWarnings([]); setFiles(files.filter((_, j) => j !== i)); }}>{f.name}</Chip>
+              ))}
+              <label className="chip chip--add" aria-label="Добавить файл">
+                +
+                <input type="file" accept="image/*,video/*" multiple onChange={(e) => { void addFiles(e.target.files); e.target.value = ""; }} />
+              </label>
+            </div>
+            {warnings.length > 0 && (
+              <div className="form__warning" role="alert">{warnings.map((w) => <p key={w}>{w}</p>)}</div>
+            )}
+          </>
         )}
 
         {error && <p className="form__error">{error}</p>}
@@ -180,14 +184,14 @@ function AppealForm({ category, me, onBack, onDone, onViewExisting }: {
   );
 }
 
-/** Шаг 1: выбор общей проблемы. */
-function CategoryPicker({ onPick }: { onPick: (c: Category) => void }) {
+/** Шаг 1: выбор общей проблемы. Список тем/причин задаёт бэкенд — не хардкод. */
+function CategoryPicker({ categories, onPick }: { categories: Category[]; onPick: (c: Category) => void }) {
   return (
     <>
       <PageHead title="Обращение" />
       <h2 className="page-subtitle">С чем проблема?</h2>
       <div className="categories">
-        {CATEGORIES.map((c) => (
+        {categories.map((c) => (
           <button key={c.code} className="card category" onClick={() => onPick(c)}>{c.title}</button>
         ))}
       </div>
@@ -195,11 +199,23 @@ function CategoryPicker({ onPick }: { onPick: (c: Category) => void }) {
   );
 }
 
-export function CreateAppeal({ me, category, onPick, onBack, onCreated, onViewExisting }: {
-  me: Me; category: Category | null; onPick: (c: Category) => void; onBack: () => void; onCreated: () => void;
+export function CreateAppeal({ me, categoryCode, onPick, onBack, onCreated, onViewExisting }: {
+  me: Me; categoryCode: string | null; onPick: (code: string) => void; onBack: () => void; onCreated: () => void;
   onViewExisting: () => void;
 }) {
+  const [categories, setCategories] = useState<Category[] | null>(null);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    api.getCategories().then(setCategories).catch(() => setFailed(true));
+  }, []);
+
+  if (failed) return <p className="empty">Не удалось загрузить список тем обращения</p>;
+  if (!categories) return <p className="empty">Загрузка…</p>;
+
+  const category = categories.find((c) => c.code === categoryCode) ?? null;
+
   return category
     ? <AppealForm key={category.code} category={category} me={me} onBack={onBack} onDone={onCreated} onViewExisting={onViewExisting} />
-    : <CategoryPicker onPick={onPick} />;
+    : <CategoryPicker categories={categories} onPick={(c) => onPick(c.code)} />;
 }

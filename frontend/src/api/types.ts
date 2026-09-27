@@ -1,8 +1,10 @@
-import type { Appeal, CreateAppealInput, Feed, HouseInfo, Me, Notification, NotificationFeed } from "../types";
+import type { Appeal, Category, CreateAppealInput, Feed, HouseInfo, Me, Notification, NotificationFeed } from "../types";
 
 export interface Api {
   getMe(): Promise<Me>;
   getHouseInfo(): Promise<HouseInfo>;
+  /** Темы и причины обращения — список задаёт бэкенд, не хардкод на фронте */
+  getCategories(): Promise<Category[]>;
   listAppeals(feed: Feed): Promise<Appeal[]>;
   createAppeal(input: CreateAppealInput): Promise<Appeal>;
   /** Возвращает обновлённое обращение */

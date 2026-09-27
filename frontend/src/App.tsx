@@ -2,12 +2,12 @@ import { useCallback, useEffect, useState } from "react";
 import { api } from "./api";
 import { TabBar, type Tab } from "./components/TabBar";
 import { Toast } from "./components/Toast";
-import { CreateAppeal, resolveCategory } from "./pages/CreateAppeal";
+import { CreateAppeal, resolveCategoryCode } from "./pages/CreateAppeal";
 import { Feed } from "./pages/Feed";
 import { Info } from "./pages/Info";
 import { Notifications } from "./pages/Notifications";
 import { resolveInitialTab, syncTabToUrl } from "./page";
-import type { Category, Me } from "./types";
+import type { Me } from "./types";
 
 const TABS = ["create", "feed", "notifications", "info"] as const;
 
@@ -15,7 +15,7 @@ export function App() {
   const [me, setMe] = useState<Me | null>(null);
   const [failed, setFailed] = useState(false);
   const [tab, setTab] = useState<Tab>(() => resolveInitialTab(TABS, "create"));
-  const [category, setCategory] = useState<Category | null>(resolveCategory);
+  const [categoryCode, setCategoryCode] = useState<string | null>(resolveCategoryCode);
   const [toast, setToast] = useState("");
   const [justCreated, setJustCreated] = useState(false);
   const [hasUnread, setHasUnread] = useState(false);
@@ -37,7 +37,7 @@ export function App() {
   function changeTab(next: Tab) {
     setJustCreated(false);
     // Повторное нажатие на «+» возвращает к выбору проблемы
-    if (next === "create" && tab === "create") setCategory(null);
+    if (next === "create" && tab === "create") setCategoryCode(null);
     setTab(next);
   }
 
@@ -49,8 +49,8 @@ export function App() {
       {toast && <Toast message={toast} onHide={hideToast} />}
       <main className="screen">
         {tab === "create" && (
-          <CreateAppeal me={me} category={category} onPick={setCategory} onBack={() => setCategory(null)}
-            onCreated={() => { setCategory(null); setJustCreated(true); setToast("Обращение направлено"); setTab("feed"); }}
+          <CreateAppeal me={me} categoryCode={categoryCode} onPick={setCategoryCode} onBack={() => setCategoryCode(null)}
+            onCreated={() => { setCategoryCode(null); setJustCreated(true); setToast("Обращение направлено"); setTab("feed"); }}
             onViewExisting={() => { setJustCreated(false); setTab("feed"); }} />
         )}
         {tab === "feed" && <Feed me={me} initialFeed={justCreated ? "mine" : "house"} />}

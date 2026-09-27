@@ -10,6 +10,12 @@ import { CommentForm, CommentItem } from "./Comments";
 import { LikeCount } from "./LikeCount";
 import { StatusChangeForm } from "./StatusChangeForm";
 
+// Свободные комментарии (вне смены статуса), а с ними правка/удаление своих —
+// бэкенд поддерживает только комментарий как часть смены статуса (история,
+// неизменяемая задним числом). В реальном режиме показываем эту историю
+// только для чтения.
+const SUPPORTS_FREE_COMMENTS = import.meta.env.VITE_USE_MOCK !== "false";
+
 interface Props {
   appeal: Appeal;
   dispatcherId: string;
@@ -62,10 +68,10 @@ export function DispatcherAppealModal({ appeal, dispatcherId, readOnly, onClose,
         <h4 className="modal__subtitle">Комментарии ({appeal.comments.length})</h4>
         {appeal.comments.length === 0 && <p className="muted">Комментариев пока нет</p>}
         {appeal.comments.map((c) => (
-          <CommentItem key={c.id} comment={c} mine={!readOnly && c.authorId === dispatcherId}
+          <CommentItem key={c.id} comment={c} mine={SUPPORTS_FREE_COMMENTS && !readOnly && c.authorId === dispatcherId}
             onEdit={(t) => onEditComment(c.id, t)} onDelete={() => onDeleteComment(c.id)} />
         ))}
-        {!readOnly && <CommentForm onSubmit={onComment} />}
+        {SUPPORTS_FREE_COMMENTS && !readOnly && <CommentForm onSubmit={onComment} />}
       </div>
     </div>
   );
