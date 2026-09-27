@@ -5,9 +5,9 @@
  * и пишут один и тот же ключ localStorage, как будто это общий бэкенд.
  * Реальный бэкенд должен заменить этот файл целиком.
  */
-import type { Appeal, Attachment, Comment, HouseInfo } from "./types";
+import type { Appeal, Attachment, Comment, HouseInfo, Notification, PlannedWorkInput } from "./types";
 
-const KEY = "maxito:mock:v8";
+const KEY = "maxito:mock:v9";
 export const delay = <T>(v: T) => new Promise<T>((r) => setTimeout(() => r(v), 150));
 
 export const DISPATCHER = { id: "dispatcher-1", fullName: "Иванова Ольга Сергеевна", houseNumbers: ["3", "5", "8"] };
@@ -113,17 +113,55 @@ const seed = (): Appeal[] => [
   },
 ];
 
-export interface Store { appeals: Appeal[]; nextId: number }
+/** Внутреннее хранимое уведомление: readBy не отдаётся клиенту напрямую, из него считается Notification.unread. */
+export interface StoredNotification extends Omit<Notification, "unread"> {
+  /** Кто уже открывал вкладку «Уведомления» и видел это уведомление: id жителя (me().id) или диспетчера */
+  readBy: string[];
+}
+
+const seedNotifications = (): StoredNotification[] => [
+  {
+    id: 1901, createdAt: "2026-09-18T12:48:00", houseNumber: "3", entrance: 0, categoryCode: "water",
+    workType: "Отключение горячей воды", from: "2026-09-10T00:00:00", to: "2026-09-16T23:59:00",
+    comment: "Уважаемые жители, в связи с проведением плановых ремонтных работ, в период с 10.09.26 по 16.09.26 в вашем доме будет отключено горячее водоснабжение. Приносим извинения за неудобства.",
+    readBy: [DISPATCHER.id],
+  },
+];
+
+export interface Store { appeals: Appeal[]; notifications: StoredNotification[]; nextId: number }
 
 function load(): Store {
   try {
     const raw = localStorage.getItem(KEY);
-    if (raw) return JSON.parse(raw) as Store;
+    if (raw) {
+      const s = JSON.parse(raw) as Store;
+      if (!s.notifications) s.notifications = seedNotifications();
+      return s;
+    }
   } catch { /* localStorage недоступен — работаем в памяти */ }
-  return { appeals: seed(), nextId: 2000 };
+  return { appeals: seed(), notifications: seedNotifications(), nextId: 2000 };
 }
 
 export const store: Store = load();
+
+/**
+ * Житель и диспетчер — разные вкладки с независимой копией store в памяти.
+ * Если не подтягивать localStorage перед каждой записью, поздняя запись одной вкладки
+ * затирает своим устаревшим снимком то, что успела сохранить другая (например, диспетчер
+ * создаёт уведомление и своей записью откатывает отметки «прочитано», которые житель
+ * только что поставил в своей вкладке). Поэтому каждая мутация сначала подтягивает свежие
+ * данные, и только потом применяет свои изменения поверх них.
+ */
+export function refresh() {
+  try {
+    const raw = localStorage.getItem(KEY);
+    if (!raw) return;
+    const s = JSON.parse(raw) as Store;
+    store.appeals = s.appeals;
+    store.notifications = s.notifications ?? seedNotifications();
+    store.nextId = Math.max(store.nextId, s.nextId);
+  } catch { /* localStorage недоступен — работаем с тем, что есть в памяти */ }
+}
 
 // Blob-ссылки на видео живут только в текущей сессии, поэтому в localStorage их не пишем.
 // Настоящий бэкенд отдаёт постоянные url.
@@ -163,7 +201,48 @@ export async function toAttachment(f: File): Promise<Attachment> {
 export const nextId = () => store.nextId++;
 
 export function findAppeal(id: number): Appeal {
+  refresh();
   const a = store.appeals.find((x) => x.id === id);
   if (!a) throw new Error("Обращение не найдено");
   return a;
 }
+
+/** Уведомление создаёт только диспетчер; сам автор сразу считается прочитавшим его. */
+export function createNotification(input: PlannedWorkInput): StoredNotification {
+  refresh();
+  const n: StoredNotification = {
+    id: nextId(), createdAt: new Date().toISOString(),
+    houseNumber: input.houseNumber, entrance: input.entrance, categoryCode: input.categoryCode,
+    workType: input.workType, comment: input.comment, from: input.from, to: input.to,
+    readBy: [DISPATCHER.id],
+  };
+  store.notifications.unshift(n);
+  save();
+  return n;
+}
+
+/** Публичный вид уведомления для конкретного зрителя (без чужого readBy). */
+export const notificationView = (n: StoredNotification, viewerId: string): Notification => {
+  const { readBy, ...rest } = n;
+  return { ...rest, unread: !readBy.includes(viewerId) };
+};
+
+/** Непрочитанные — сверху; внутри каждой группы — по ближайшей дате начала работ. Прочитанное уведомление
+ *  перестаёт быть «закреплённым» и просто встаёт в общий порядок по дате начала. */
+export const sortNotifications = (list: Notification[]): Notification[] =>
+  [...list].sort((a, b) => Number(b.unread) - Number(a.unread) || a.from.localeCompare(b.from) || a.id - b.id);
+
+export function markNotificationsRead(ids: number[], viewerId: string) {
+  refresh();
+  let changed = false;
+  for (const n of store.notifications) {
+    if (ids.includes(n.id) && !n.readBy.includes(viewerId)) {
+      n.readBy.push(viewerId);
+      changed = true;
+    }
+  }
+  if (changed) save();
+}
+
+export const countUnread = (list: StoredNotification[], viewerId: string) =>
+  list.filter((n) => !n.readBy.includes(viewerId)).length;

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { api } from "../api";
 import { ArchiveIcon } from "../../components/Icons";
 import { PageHead } from "../../components/PageHead";
+import { isTerminalStatus } from "../../data/status";
 import type { Appeal, DispatcherMe, HouseInfo } from "../../types";
 import { DispatcherAppealCard } from "../components/DispatcherAppealCard";
 import { HouseFilter } from "../components/HouseFilter";
@@ -31,8 +32,8 @@ export function Feed() {
   const replace = (updated: Appeal) =>
     setAppeals((list) => list?.map((a) => (a.id === updated.id ? updated : a)).sort((a, b) => b.likes - a.likes) ?? null);
 
-  // Архив — выполненные обращения; остальные (включая отклонённые) — текущие
-  const visible = appeals?.filter((a) => (a.status === "completed") === archive);
+  // Архив — решённые и отклонённые обращения (по ним больше нечего делать); остальные — текущие
+  const visible = appeals?.filter((a) => isTerminalStatus(a.status) === archive);
 
   return (
     <>

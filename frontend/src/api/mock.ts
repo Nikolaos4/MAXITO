@@ -1,5 +1,5 @@
 import { getMaxUser } from "../max";
-import { delay, findAppeal, houseByNumber, nextId, save, store, toAttachment } from "../store";
+import { countUnread, delay, findAppeal, houseByNumber, markNotificationsRead, nextId, notificationView, refresh, save, sortNotifications, store, toAttachment } from "../store";
 import type { HouseInfo, Me } from "../types";
 import type { Api } from "./types";
 
@@ -14,6 +14,7 @@ export const mockApi: Api = {
   getHouseInfo: (): Promise<HouseInfo> => delay(houseByNumber(me().houseNumber)),
 
   listAppeals: (feed) => {
+    refresh();
     const m = me();
     const list = store.appeals.filter((a) => {
       if (a.houseNumber !== m.houseNumber) return false;
@@ -25,6 +26,7 @@ export const mockApi: Api = {
   },
 
   createAppeal: async (input) => {
+    refresh();
     const m = me();
     const attachments = await Promise.all(input.files.map(toAttachment));
     const appeal = {
@@ -43,5 +45,28 @@ export const mockApi: Api = {
     a.likes += a.likedByMe ? 1 : -1;
     save();
     return delay({ ...a });
+  },
+
+  listNotifications: (feed) => {
+    refresh();
+    const m = me();
+    const list = store.notifications.filter((n) => {
+      if (n.houseNumber !== m.houseNumber) return false;
+      return feed === "house" ? true : n.entrance === m.entrance || n.entrance === 0;
+    });
+    return delay(sortNotifications(list.map((n) => notificationView(n, m.id))));
+  },
+
+  getUnreadNotificationsCount: () => {
+    refresh();
+    const m = me();
+    // Считаем по всем уведомлениям дома — так же, как показывает вкладка «Дом»
+    const list = store.notifications.filter((n) => n.houseNumber === m.houseNumber);
+    return delay(countUnread(list, m.id));
+  },
+
+  markNotificationsRead: (ids) => {
+    markNotificationsRead(ids, me().id);
+    return delay(undefined);
   },
 };

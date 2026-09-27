@@ -26,6 +26,9 @@ export const httpApi: DispatcherApi = {
   getHouses: () => request("/dispatcher/houses"),
   listAppeals: (houseNumber) => request(`/dispatcher/appeals?house=${houseNumber}`),
   createPlannedWork: (input) => request("/dispatcher/planned-works", { method: "POST", body: JSON.stringify(input) }),
+  listNotifications: (houseNumber) => request(`/dispatcher/notifications?house=${houseNumber}`),
+  getUnreadNotificationsCount: () => request("/dispatcher/notifications/unread-count"),
+  markNotificationsRead: (ids) => request("/dispatcher/notifications/read", { method: "POST", body: JSON.stringify({ ids }) }),
   changeStatus: (id, { files, ...fields }) => {
     const form = new FormData();
     form.append("data", JSON.stringify(fields));

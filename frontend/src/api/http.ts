@@ -34,4 +34,7 @@ export const httpApi: Api = {
     return request("/resident/appeals", { method: "POST", body: form });
   },
   toggleLike: (id) => request(`/resident/appeals/${id}/like`, { method: "POST" }),
+  listNotifications: (feed) => request(`/resident/notifications?feed=${feed}`),
+  getUnreadNotificationsCount: () => request("/resident/notifications/unread-count"),
+  markNotificationsRead: (ids) => request("/resident/notifications/read", { method: "POST", body: JSON.stringify({ ids }) }),
 };

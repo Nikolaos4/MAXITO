@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { api } from "../api";
 import { Accordion, KeyValueRow } from "../components/Accordion";
-import { StatBuildingIcon, StatDoorIcon } from "../components/Icons";
+import { DoorIcon, StatBuildingIcon } from "../components/Icons";
 import { PageHead } from "../components/PageHead";
 import type { HouseInfo, Me } from "../types";
 
@@ -29,11 +29,11 @@ export function Info({ me }: { me: Me }) {
             <div className="info__stats">
               <div>
                 <span className="info__stat-label">Этажность</span>
-                <span className="info__stat-value"><StatBuildingIcon width={26} height={26} />{info.floors}</span>
+                <span className="info__stat-value"><StatBuildingIcon width={28} height={28} />{info.floors}</span>
               </div>
               <div>
                 <span className="info__stat-label">Подъезды</span>
-                <span className="info__stat-value"><StatDoorIcon width={22} height={26} />{info.entrances}</span>
+                <span className="info__stat-value"><DoorIcon width={28} height={28} />{info.entrances}</span>
               </div>
               <div>
                 <span className="info__stat-label">Построен</span>

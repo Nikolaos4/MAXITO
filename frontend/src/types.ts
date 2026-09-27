@@ -2,6 +2,8 @@ export type AppealStatus = "accepted" | "in_progress" | "need_info" | "completed
 
 export type Feed = "house" | "entrance" | "mine";
 
+export type NotificationFeed = "house" | "entrance";
+
 export interface Category {
   code: string;
   title: string;
@@ -122,4 +124,22 @@ export interface ChangeStatusInput {
   comment: string;
   /** Фото — только когда статус меняют на «Выполнено» */
   files: File[];
+}
+
+/** Уведомление о плановых работах — то же самое, что создаёт диспетчер на странице «Плановые работы» */
+export interface Notification {
+  id: number;
+  createdAt: string;
+  houseNumber: string;
+  /** 0 — весь дом */
+  entrance: number;
+  categoryCode: string;
+  workType: string;
+  comment: string;
+  /** ISO, начало работ */
+  from: string;
+  /** ISO, конец работ */
+  to: string;
+  /** Непрочитано текущим зрителем (житель или диспетчер) */
+  unread: boolean;
 }

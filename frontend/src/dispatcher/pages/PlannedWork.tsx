@@ -3,7 +3,6 @@ import { api } from "../api";
 import { DateField } from "../../components/DateField";
 import { PageHead } from "../../components/PageHead";
 import { Select } from "../../components/Select";
-import { TimeField } from "../../components/TimeField";
 import { CATEGORIES } from "../../data/categories";
 import { PLANNED_WORK_TYPES } from "../../data/plannedWork";
 import type { Category, HouseInfo } from "../../types";
@@ -40,9 +39,7 @@ function PlannedWorkForm({ category, onBack, onCreated }: {
   const [houseNumber, setHouseNumber] = useState("");
   const [entrance, setEntrance] = useState("0");
   const [fromDate, setFromDate] = useState("");
-  const [fromTime, setFromTime] = useState("");
   const [toDate, setToDate] = useState("");
-  const [toTime, setToTime] = useState("");
   const [workType, setWorkType] = useState("");
   const [customType, setCustomType] = useState("");
   const [comment, setComment] = useState("");
@@ -55,10 +52,9 @@ function PlannedWorkForm({ category, onBack, onCreated }: {
   }, []);
 
   const isOther = workType === "Другое";
-  const datesFilled = !!fromDate && !!fromTime && !!toDate && !!toTime;
-  const order = datesFilled && `${toDate}T${toTime}` < `${fromDate}T${fromTime}`;
+  const order = !!fromDate && !!toDate && toDate < fromDate;
   const errors = {
-    house: !houseNumber, fromDate: !fromDate, fromTime: !fromTime, toDate: !toDate, toTime: !toTime,
+    house: !houseNumber, fromDate: !fromDate, toDate: !toDate,
     workType: isOther ? !customType.trim() : !workType,
     order,
   };
@@ -78,10 +74,10 @@ function PlannedWorkForm({ category, onBack, onCreated }: {
         entrance: Number(entrance),
         workType: isOther ? customType.trim() : workType,
         comment: comment.trim(),
-        from: new Date(`${fromDate}T${fromTime}`).toISOString(),
-        to: new Date(`${toDate}T${toTime}`).toISOString(),
+        from: new Date(`${fromDate}T00:00`).toISOString(),
+        to: new Date(`${toDate}T23:59`).toISOString(),
       });
-      setEntrance("0"); setFromDate(""); setFromTime(""); setToDate(""); setToTime("");
+      setEntrance("0"); setFromDate(""); setToDate("");
       setWorkType(""); setCustomType(""); setComment(""); setTried(false);
       onCreated();
     } catch {
@@ -117,14 +113,10 @@ function PlannedWorkForm({ category, onBack, onCreated }: {
         <div className="form__row">
           <span className="form__label">с</span>
           <DateField className="form__grow" value={fromDate} max={maxIso()} placeholder="Дата" error={show("fromDate")}
-            onChange={(v) => { setFromDate(v); if (toDate && toDate < v) { setToDate(""); setToTime(""); } }} />
-          <TimeField className="form__grow" value={fromTime} placeholder="Время" error={show("fromTime")} onChange={setFromTime} />
-        </div>
-        <div className="form__row">
+            onChange={(v) => { setFromDate(v); if (toDate && toDate < v) setToDate(""); }} />
           <span className="form__label">по</span>
           <DateField className="form__grow" value={toDate} max={maxIso()} min={fromDate || undefined}
             error={show("toDate") || show("order")} placeholder="Дата" onChange={setToDate} />
-          <TimeField className="form__grow" value={toTime} placeholder="Время" error={show("toTime") || show("order")} onChange={setToTime} />
         </div>
         {show("order") && <p className="form__error">Срок «по» не может быть раньше срока «с»</p>}
 

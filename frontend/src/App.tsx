@@ -5,6 +5,7 @@ import { Toast } from "./components/Toast";
 import { CreateAppeal, resolveCategory } from "./pages/CreateAppeal";
 import { Feed } from "./pages/Feed";
 import { Info } from "./pages/Info";
+import { Notifications } from "./pages/Notifications";
 import type { Category, Me } from "./types";
 
 export function App() {
@@ -14,11 +15,19 @@ export function App() {
   const [category, setCategory] = useState<Category | null>(resolveCategory);
   const [toast, setToast] = useState("");
   const [justCreated, setJustCreated] = useState(false);
+  const [hasUnread, setHasUnread] = useState(false);
   const hideToast = useCallback(() => setToast(""), []);
+  const refreshUnread = useCallback(() => {
+    api.getUnreadNotificationsCount().then((n) => setHasUnread(n > 0)).catch(() => {});
+  }, []);
 
   useEffect(() => {
     api.getMe().then(setMe).catch(() => setFailed(true));
   }, []);
+
+  useEffect(() => {
+    if (me) refreshUnread();
+  }, [me, refreshUnread]);
 
   function changeTab(next: Tab) {
     setJustCreated(false);
@@ -39,9 +48,10 @@ export function App() {
             onCreated={() => { setCategory(null); setJustCreated(true); setToast("Обращение направлено"); setTab("feed"); }} />
         )}
         {tab === "feed" && <Feed me={me} initialFeed={justCreated ? "mine" : "house"} />}
+        {tab === "notifications" && <Notifications onRead={refreshUnread} />}
         {tab === "info" && <Info me={me} />}
       </main>
-      <TabBar tab={tab} onChange={changeTab} />
+      <TabBar tab={tab} onChange={changeTab} hasUnread={hasUnread} />
     </>
   );
 }

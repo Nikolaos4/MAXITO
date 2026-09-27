@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { api } from "../api";
 import { Accordion, KeyValueRow } from "../../components/Accordion";
-import { StatBuildingIcon, StatDoorIcon, UserIcon } from "../../components/Icons";
+import { DoorIcon, StatBuildingIcon, UserIcon } from "../../components/Icons";
 import { PageHead } from "../../components/PageHead";
 import { Select } from "../../components/Select";
 import type { HouseInfo } from "../../types";
@@ -26,8 +26,11 @@ export function Info() {
       {!failed && !houses && <p className="empty">Загрузка…</p>}
 
       {houses && (
-        <Select className="house-select" value={houseNumber} placeholder="Дом" onChange={setHouseNumber}
-          options={houses.map((h) => ({ value: h.number, label: `Дом №${h.number}` }))} />
+        <>
+          <p className="form__label house-select__label">Выбран дом</p>
+          <Select className="house-select" value={houseNumber} placeholder="Дом" onChange={setHouseNumber}
+            options={houses.map((h) => ({ value: h.number, label: `Дом №${h.number}` }))} />
+        </>
       )}
 
       {info && (
@@ -38,11 +41,11 @@ export function Info() {
             <div className="info__stats">
               <div>
                 <span className="info__stat-label">Этажность</span>
-                <span className="info__stat-value"><StatBuildingIcon width={26} height={26} />{info.floors}</span>
+                <span className="info__stat-value"><StatBuildingIcon width={28} height={28} />{info.floors}</span>
               </div>
               <div>
                 <span className="info__stat-label">Подъезды</span>
-                <span className="info__stat-value"><StatDoorIcon width={22} height={26} />{info.entrances}</span>
+                <span className="info__stat-value"><DoorIcon width={28} height={28} />{info.entrances}</span>
               </div>
               <div>
                 <span className="info__stat-label">Построен</span>
@@ -50,7 +53,7 @@ export function Info() {
               </div>
               <div>
                 <span className="info__stat-label">Жильцы</span>
-                <span className="info__stat-value"><UserIcon width={22} height={22} />{info.residentsCount}</span>
+                <span className="info__stat-value"><UserIcon width={28} height={28} />{info.residentsCount}</span>
               </div>
             </div>
           </Accordion>

@@ -10,6 +10,12 @@ export function formatTime(iso: string) {
   return `${p(d.getHours())}:${p(d.getMinutes())}`;
 }
 
+/** Короткая дата с двузначным годом — для периода плановых работ («10.09.26») */
+export function formatShortDate(iso: string) {
+  const d = new Date(iso);
+  return `${p(d.getDate())}.${p(d.getMonth() + 1)}.${String(d.getFullYear()).slice(-2)}`;
+}
+
 /** «жалоба» с правильным склонением */
 export function plural(n: number, one: string, few: string, many: string) {
   const m10 = n % 10, m100 = n % 100;

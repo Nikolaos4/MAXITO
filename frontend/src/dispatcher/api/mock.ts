@@ -1,5 +1,8 @@
 import { isTerminalStatus, STATUS_TRANSITIONS } from "../../data/status";
-import { delay, DISPATCHER, findAppeal, HOUSES, nextId, save, store, toAttachment } from "../../store";
+import {
+  countUnread, createNotification, delay, DISPATCHER, findAppeal, HOUSES, markNotificationsRead,
+  nextId, notificationView, refresh, save, sortNotifications, store, toAttachment,
+} from "../../store";
 import type { Appeal } from "../../types";
 import type { DispatcherApi } from "./types";
 
@@ -10,16 +13,36 @@ export const mockApi: DispatcherApi = {
   getHouses: () => delay(myHouses()),
 
   listAppeals: (houseNumber) => {
+    refresh();
     const list = store.appeals.filter((a) =>
       houseNumber === "all" ? DISPATCHER.houseNumbers.includes(a.houseNumber) : a.houseNumber === houseNumber,
     );
     return delay([...list].sort((a, b) => b.likes - a.likes || b.createdAt.localeCompare(a.createdAt) || b.id - a.id));
   },
 
-  createPlannedWork: async (input) => {
-    // Уведомление о плановых работах — используется ботом для рассылки жителям
-    // и для автоблокировки необоснованных обращений на этот период. Демо: просто подтверждаем приём.
-    void input;
+  createPlannedWork: (input) => {
+    // Плановые работы = уведомление: рассылается жителям дома и виден диспетчеру,
+    // используется ботом и для автоблокировки необоснованных обращений на этот период.
+    createNotification(input);
+    return delay(undefined);
+  },
+
+  listNotifications: (houseNumber) => {
+    refresh();
+    const list = store.notifications.filter((n) =>
+      houseNumber === "all" ? DISPATCHER.houseNumbers.includes(n.houseNumber) : n.houseNumber === houseNumber,
+    );
+    return delay(sortNotifications(list.map((n) => notificationView(n, DISPATCHER.id))));
+  },
+
+  getUnreadNotificationsCount: () => {
+    refresh();
+    const list = store.notifications.filter((n) => DISPATCHER.houseNumbers.includes(n.houseNumber));
+    return delay(countUnread(list, DISPATCHER.id));
+  },
+
+  markNotificationsRead: (ids) => {
+    markNotificationsRead(ids, DISPATCHER.id);
     return delay(undefined);
   },
 
