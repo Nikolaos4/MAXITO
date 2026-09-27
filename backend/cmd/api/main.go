@@ -8,10 +8,7 @@ import (
 	"maxito/internal/database"
 	"maxito/internal/handlers/common"
 	"maxito/internal/handlers/dispatcher"
-	"maxito/internal/handlers/common"
-	"maxito/internal/handlers/dispatcher"
 	"maxito/internal/handlers/representative"
-	"maxito/internal/handlers/resident"
 	"maxito/internal/handlers/resident"
 	"maxito/internal/middleware"
 	"maxito/internal/models"
@@ -91,8 +88,6 @@ func main() {
 	// Handlers — Представитель
 	// Handlers — Представитель
 	houseHandler := representative.NewHouseHandler(houseRepo, repSvc)
-	dispatcherMgmtHandler := representative.NewDispatcherHandler(repSvc, userRepo)
-	residentMgmtHandler := representative.NewResidentHandler(repSvc, residentRepo)
 	dispatcherMgmtHandler := representative.NewDispatcherHandler(repSvc, userRepo)
 	residentMgmtHandler := representative.NewResidentHandler(repSvc, residentRepo)
 	assignmentHandler := representative.NewAssignmentHandler(repSvc)
