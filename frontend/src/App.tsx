@@ -11,10 +11,10 @@ import type { Me } from "./types";
 
 const TABS = ["create", "feed", "notifications", "info"] as const;
 
-export function App() {
+export function App({ initialTab }: { initialTab?: string } = {}) {
   const [me, setMe] = useState<Me | null>(null);
   const [failed, setFailed] = useState(false);
-  const [tab, setTab] = useState<Tab>(() => resolveInitialTab(TABS, "create"));
+  const [tab, setTab] = useState<Tab>(() => resolveInitialTab(TABS, "create", initialTab));
   const [categoryCode, setCategoryCode] = useState<string | null>(resolveCategoryCode);
   const [toast, setToast] = useState("");
   const [justCreated, setJustCreated] = useState(false);

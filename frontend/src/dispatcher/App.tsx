@@ -10,8 +10,8 @@ import { resolveInitialTab, syncTabToUrl } from "../page";
 
 const TABS = ["create", "feed", "notifications", "info"] as const;
 
-export function App() {
-  const [tab, setTab] = useState<Tab>(() => resolveInitialTab(TABS, "create"));
+export function App({ initialTab }: { initialTab?: string } = {}) {
+  const [tab, setTab] = useState<Tab>(() => resolveInitialTab(TABS, "create", initialTab));
   const [toast, setToast] = useState("");
   const [hasUnread, setHasUnread] = useState(false);
   const hideToast = useCallback(() => setToast(""), []);
