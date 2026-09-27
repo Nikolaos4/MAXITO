@@ -2,7 +2,14 @@ import { Keyboard } from "@maxhub/max-bot-api";
 import { FetchError } from "ofetch";
 import { api, type Auth } from "@/api";
 import { clearFlow, getSession, setFlow, setRole, setStep, type AppContext } from "@/context";
-import { DISPATCHER_MENU_TEXT, MENU_TEXT, dispatcherMenuKeyboard, mainMenuKeyboard } from "@/menu";
+import {
+    DISPATCHER_MENU_TEXT,
+    MENU_TEXT,
+    RESIDENT_MENU_TEXT,
+    dispatcherMenuKeyboard,
+    mainMenuKeyboard,
+    residentMenuKeyboard,
+} from "@/menu";
 
 export async function askForPhone(ctx: AppContext) {
     if (!ctx.user) return;
@@ -44,8 +51,8 @@ async function tryBind(ctx: AppContext, phone: string) {
             await ctx.reply("Готово! Вы авторизованы как диспетчер.");
             await ctx.reply(DISPATCHER_MENU_TEXT, { attachments: [dispatcherMenuKeyboard] });
         } else {
-            // ponytail: функционал жителя в боте пока не реализован.
-            await ctx.reply("Номер найден, но для вашей роли функционал бота пока в разработке.");
+            await ctx.reply("Готово! Вы авторизованы как житель.");
+            await ctx.reply(RESIDENT_MENU_TEXT, { attachments: [residentMenuKeyboard] });
         }
     } catch (err) {
         const status = err instanceof FetchError ? err.statusCode : undefined;
