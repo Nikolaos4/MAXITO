@@ -33,14 +33,18 @@ export const backToDispatcherMenuKeyboard = Keyboard.inlineKeyboard([
 
 export const RESIDENT_MENU_TEXT = "Главное меню жителя. Выберите действие:";
 
+// ponytail: мини-приложения ещё не готовы — ссылки-заглушки, заменить на
+// реальные, когда появятся.
+const RESIDENT_APPEAL_FORM_URL = "https://example.com/resident/appeal";
+const RESIDENT_APPEALS_URL = "https://example.com/resident/appeals";
+const RESIDENT_NOTIFICATIONS_URL = "https://example.com/resident/notifications";
+
 export const residentMenuKeyboard = Keyboard.inlineKeyboard([
     [Keyboard.button.callback("Сообщить о проблеме", "resident_menu:report")],
+    [Keyboard.button.link("Все обращения", RESIDENT_APPEALS_URL)],
+    [Keyboard.button.callback("Перейти в чат дома", "resident_menu:chat_link")],
+    [Keyboard.button.link("Уведомления", RESIDENT_NOTIFICATIONS_URL)],
 ]);
-
-// ponytail: мини-приложение с формой обращения ещё не готово — ссылка-заглушка,
-// заменить на реальную, когда появится. Тип проблемы передаётся параметром,
-// чтобы форма могла сразу его подставить.
-const RESIDENT_APPEAL_FORM_URL = "https://example.com/resident/appeal";
 
 export const RESIDENT_PROBLEM_TYPES = [
     { code: "elevator", title: "Не работает лифт" },
@@ -51,6 +55,10 @@ export const RESIDENT_PROBLEM_TYPES = [
     { code: "water", title: "Проблемы с водой" },
     { code: "other", title: "Другое" },
 ] as const;
+
+export const backToResidentMenuKeyboard = Keyboard.inlineKeyboard([
+    [Keyboard.button.callback("В меню", "resident_menu:show")],
+]);
 
 export const RESIDENT_PROBLEM_TYPE_TEXT = "Выберите тип проблемы:";
 
