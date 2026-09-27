@@ -136,19 +136,12 @@ func main() {
 			rep.POST("/houses/csv", houseHandler.ImportHousesCSV)
 			rep.GET("/houses/unassigned", assignmentHandler.ListUnassignedHouses)
 			rep.PUT("/houses/:house_id/chat-link", houseHandler.SetChatLink)
-			rep.PUT("/houses/:house_id/chat-link", houseHandler.SetChatLink)
 
 			// Жители конкретного дома
 			rep.GET("/houses/:house_id/residents", residentMgmtHandler.ListResidents)
 			rep.POST("/houses/:house_id/residents/csv", residentMgmtHandler.ImportResidentsCSV)
-			rep.GET("/houses/:house_id/residents", residentMgmtHandler.ListResidents)
-			rep.POST("/houses/:house_id/residents/csv", residentMgmtHandler.ImportResidentsCSV)
 
 			// Диспетчеры
-			rep.POST("/dispatchers", dispatcherMgmtHandler.CreateDispatcher)
-			rep.POST("/dispatchers/csv", dispatcherMgmtHandler.ImportDispatchersCSV)
-			rep.GET("/dispatchers", dispatcherMgmtHandler.ListDispatchers)
-
 			rep.POST("/dispatchers", dispatcherMgmtHandler.CreateDispatcher)
 			rep.POST("/dispatchers/csv", dispatcherMgmtHandler.ImportDispatchersCSV)
 			rep.GET("/dispatchers", dispatcherMgmtHandler.ListDispatchers)
