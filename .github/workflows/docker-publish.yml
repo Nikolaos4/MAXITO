@@ -21,6 +21,8 @@ jobs:
             context: ./bot
           - name: frontend
             context: ./frontend
+          - name: backend
+            context: ./backend
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -64,7 +66,7 @@ jobs:
       - name: Ping Portainer redeploy webhook
         if: success()
         env:
-          WEBHOOK_URL: ${{ matrix.name == 'bot' && secrets.PORTAINER_BOT_WEBHOOK || secrets.PORTAINER_FRONTEND_WEBHOOK }}
+          WEBHOOK_URL: ${{ matrix.name == 'bot' && secrets.PORTAINER_BOT_WEBHOOK || matrix.name == 'frontend' && secrets.PORTAINER_FRONTEND_WEBHOOK || secrets.PORTAINER_BACKEND_WEBHOOK }}
         run: |
           if [ -z "$WEBHOOK_URL" ]; then
             echo "Webhook for ${{ matrix.name }} is not configured, skipping."
