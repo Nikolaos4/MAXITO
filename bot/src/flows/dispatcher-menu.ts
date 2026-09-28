@@ -59,7 +59,9 @@ function formatStatsList(stats: Awaited<ReturnType<typeof api.dispatcher.appeals
 function formatHousesList(houses: Awaited<ReturnType<typeof api.dispatcher.houses.list>>): string {
     if (houses.length === 0) return "За вами пока не закреплено ни одного дома.";
 
-    return houses.map((h) => `${h.address}${h.number ? ", " + h.number : ""}`).join("\n");
+    return houses
+        .map((h, i) => `Дом ${i + 1}: ${h.address}${h.number ? ", " + h.number : ""}\nПодъездов: ${h.entrances_count}`)
+        .join("\n\n");
 }
 
 async function showHouses(ctx: AppContext) {

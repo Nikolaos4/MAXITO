@@ -20,6 +20,7 @@ type ApiHouse = {
     id: number;
     address: string;
     number: string;
+    entrances_count: number;
     chat_invite_link?: string | null;
     created_at: string;
     updated_at: string;
