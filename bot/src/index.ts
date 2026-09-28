@@ -6,6 +6,7 @@ import { env } from "@/env";
 import { getSession, type AppContext } from "@/context";
 import { initFlows } from "@/flows";
 import { askForPhone, tryRestoreRole } from "@/flows/authorization";
+import { startNotifyServer } from "@/notify";
 
 const bot = new Bot<AppContext>(env.BOT_TOKEN);
 
@@ -29,4 +30,5 @@ bot.use(async (ctx: AppContext, next) => {
 initCommands(bot);
 initFlows(bot);
 
+startNotifyServer(bot);
 bot.start();

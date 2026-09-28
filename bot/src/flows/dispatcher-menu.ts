@@ -1,13 +1,7 @@
-import { api, type Auth, type ApiAppealStatus } from "@/api";
+import { api, type Auth } from "@/api";
 import { getSession, type AppContext } from "@/context";
 import { DISPATCHER_MENU_TEXT, backToDispatcherMenuKeyboard, buildDispatcherMenuKeyboard } from "@/menu";
-
-const STATUS_LABELS: Record<ApiAppealStatus, string> = {
-    accepted: "Принято",
-    in_progress: "В работе",
-    completed: "Выполнено",
-    rejected: "Отклонено",
-};
+import { STATUS_LABELS } from "@/status";
 
 function authFor(ctx: AppContext): Auth {
     return { maxUserId: String(ctx.user!.user_id) };
