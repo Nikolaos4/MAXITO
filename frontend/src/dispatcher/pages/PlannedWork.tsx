@@ -3,7 +3,6 @@ import { api } from "../api";
 import { DateField } from "../../components/DateField";
 import { PageHead } from "../../components/PageHead";
 import { Select } from "../../components/Select";
-import { PLANNED_WORK_TYPES } from "../../data/plannedWork";
 import type { Category, HouseInfo } from "../../types";
 
 const pad = (n: number) => String(n).padStart(2, "0");
@@ -50,7 +49,11 @@ function PlannedWorkForm({ category, onBack, onCreated }: {
     api.getHouses().then((list) => { setHouses(list); if (list[0]) setHouseNumber(list[0].number); }).catch(() => setFailed(true));
   }, []);
 
-  const isOther = workType === "Другое";
+  // Свободный текст — только у темы «Другое» целиком; у остальных тем вид работ
+  // выбирается строго из причин ЭТОЙ темы (category.reasons), которые пришли
+  // с бэкенда, — иначе можно было бы выбрать, например, «Отключение воды»
+  // под темой «Лифт», и бэкенд не найдёт такую причину у этой темы.
+  const isOther = category.freeText;
   const order = !!fromDate && !!toDate && toDate < fromDate;
   const errors = {
     house: !houseNumber, fromDate: !fromDate, toDate: !toDate,
@@ -129,7 +132,7 @@ function PlannedWorkForm({ category, onBack, onCreated }: {
         ) : (
           <>
             <Select value={workType} placeholder="Вид работ" error={show("workType")}
-              options={PLANNED_WORK_TYPES.map((t) => ({ value: t, label: t }))} onChange={setWorkType} />
+              options={category.reasons.map((r) => ({ value: r, label: r }))} onChange={setWorkType} />
             {show("workType") && <p className="form__error">Выберите вид работ</p>}
           </>
         )}
