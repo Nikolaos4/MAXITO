@@ -122,5 +122,7 @@ export interface Paginated<T> {
 
 export interface BackendErrorBody {
   error?: string;
+  code?: string;
   existing_appeal_id?: number;
+  blocking_notification?: BackendNotification;
 }

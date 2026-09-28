@@ -1,5 +1,5 @@
 import { ensureAuthToken, getMaxUser } from "../max";
-import type { BackendErrorBody } from "./types";
+import type { BackendErrorBody, BackendNotification } from "./types";
 
 const BASE = import.meta.env.VITE_API_BASE_URL ?? "/api/v1";
 // Только для разработки/теста вне MAX, где взять телефон неоткуда иначе —
@@ -7,7 +7,15 @@ const BASE = import.meta.env.VITE_API_BASE_URL ?? "/api/v1";
 const DEV_PHONE = import.meta.env.VITE_DEV_PHONE as string | undefined;
 
 export class BackendError extends Error {
-  constructor(public status: number, message: string, public existingAppealId?: number) {
+  constructor(
+    public status: number,
+    message: string,
+    public existingAppealId?: number,
+    /** Машиночитаемый код ошибки (см. handlers/*) — например "blocked_by_notification" */
+    public code?: string,
+    /** Уведомление, из-за которого создание обращения заблокировано — только для code "blocked_by_notification" */
+    public blockingNotification?: BackendNotification,
+  ) {
     super(message);
   }
 }
@@ -53,7 +61,7 @@ export async function backendRequest<T>(
 
   if (!res.ok) {
     const err = (body ?? {}) as BackendErrorBody;
-    throw new BackendError(res.status, err.error ?? res.statusText, err.existing_appeal_id);
+    throw new BackendError(res.status, err.error ?? res.statusText, err.existing_appeal_id, err.code, err.blocking_notification);
   }
   return body as T;
 }

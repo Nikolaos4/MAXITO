@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "../api";
+import { BackendError } from "../backend/request";
 import { Chip } from "../components/Chip";
 import { DateField } from "../components/DateField";
 import { AlertIcon, UserIcon } from "../components/Icons";
@@ -7,8 +8,8 @@ import { PageHead } from "../components/PageHead";
 import { TimeField } from "../components/TimeField";
 import { Select } from "../components/Select";
 import { checkFiles, MEDIA_HINT } from "../media";
-import { plural } from "../format";
-import type { Appeal, Category, Me } from "../types";
+import { formatShortDate, plural } from "../format";
+import type { Appeal, Category, Me, Notification } from "../types";
 
 const SHOWN_DUPLICATES = 2;
 // Фото/видео сервер пока не принимает вообще — эту часть формы показываем
@@ -32,6 +33,18 @@ function DuplicateNotice({ category, appeals, onView }: { category: Category; ap
         {extra > 0 && <li className="duplicate-notice__more">+ ещё {extra}</li>}
       </ul>
       <button type="button" className="btn btn--small duplicate-notice__btn" onClick={onView}>Перейти</button>
+    </div>
+  );
+}
+
+/** Карточка «по этой теме уже идут плановые работы»: бэкенд всё равно блокирует создание, но предупреждаем заранее. */
+function PlannedWorkNotice({ notification }: { notification: Notification }) {
+  return (
+    <div className="card duplicate-notice">
+      <div className="duplicate-notice__head">
+        <AlertIcon width={22} height={22} />
+        <p>По этой теме уже запланированы работы: «{notification.workType}», с {formatShortDate(notification.from)} по {formatShortDate(notification.to)}. Пока они не завершатся, создать обращение нельзя.</p>
+      </div>
     </div>
   );
 }
@@ -67,6 +80,9 @@ function AppealForm({ category, me, onBack, onDone, onViewExisting }: {
   const [warnings, setWarnings] = useState<string[]>([]);
   // Обращения по этой же теме, уже созданные кем-то из дома (архив в расчёт не берём)
   const [existing, setExisting] = useState<Appeal[]>([]);
+  // Плановые работы дома — чтобы предупредить о блокировке ещё до отправки формы
+  // (сам бэкенд тоже проверяет это при создании — см. catch в submit ниже).
+  const [notifications, setNotifications] = useState<Notification[]>([]);
 
   useEffect(() => {
     api.listAppeals("house")
@@ -74,11 +90,25 @@ function AppealForm({ category, me, onBack, onDone, onViewExisting }: {
       .catch(() => setExisting([]));
   }, [category.code]);
 
+  useEffect(() => {
+    api.listNotifications("house").then(setNotifications).catch(() => setNotifications([]));
+  }, [category.code]);
+
   const reasonOptions = category.reasons;
   const currentReason = category.freeText ? customReason.trim() : reason;
   const duplicate = !!currentReason && existing.some((a) => a.reason === currentReason);
+  // «Другое» пропускаем — на бэкенде такие причины тоже никогда не блокируются
+  // уведомлением (см. resident_service.go CreateAppeal), слишком растяжимая тема.
+  const blockingNotification = category.freeText || !currentReason || entrance === ""
+    ? undefined
+    : notifications.find((n) => {
+        if (n.categoryCode !== category.code || n.reason !== currentReason) return false;
+        if (n.entrance !== 0 && n.entrance !== Number(entrance)) return false;
+        const now = new Date().toISOString();
+        return n.from <= now && now <= n.to;
+      });
   const errors = { entrance: !entrance, date: !date, time: !time, reason: category.freeText ? !customReason.trim() : !reason };
-  const invalid = Object.values(errors).some(Boolean) || duplicate;
+  const invalid = Object.values(errors).some(Boolean) || duplicate || !!blockingNotification;
   const show = (k: keyof typeof errors) => tried && errors[k];
 
   async function addFiles(list: FileList | null) {
@@ -103,8 +133,15 @@ function AppealForm({ category, me, onBack, onDone, onViewExisting }: {
         files,
       });
       onDone();
-    } catch {
-      setError("Не удалось отправить обращение. Попробуйте ещё раз.");
+    } catch (e) {
+      // Подстраховка на случай, если проактивная проверка выше не сработала
+      // (например, уведомление создали уже после загрузки формы) — тот же
+      // самый запрет действует и на бэкенде, см. resident_service.go.
+      if (e instanceof BackendError && e.code === "blocked_by_notification") {
+        setError("По этой теме уже идут плановые работы — обновите страницу, чтобы увидеть их.");
+      } else {
+        setError("Не удалось отправить обращение. Попробуйте ещё раз.");
+      }
       setSending(false);
     }
   }
@@ -115,6 +152,7 @@ function AppealForm({ category, me, onBack, onDone, onViewExisting }: {
       <h2 className="page-subtitle">{category.title}</h2>
 
       <DuplicateNotice category={category} appeals={existing} onView={onViewExisting} />
+      {blockingNotification && <PlannedWorkNotice notification={blockingNotification} />}
 
       <div className="card form">
         <span className="author-chip"><UserIcon width={20} height={20} />{me.fullName}</span>
@@ -180,7 +218,7 @@ function AppealForm({ category, me, onBack, onDone, onViewExisting }: {
         {error && <p className="form__error">{error}</p>}
 
         <div className="form__footer">
-          <button className="btn" onClick={submit} disabled={sending || duplicate}>{sending ? "Отправка…" : "Отправить"}</button>
+          <button className="btn" onClick={submit} disabled={sending || duplicate || !!blockingNotification}>{sending ? "Отправка…" : "Отправить"}</button>
         </div>
       </div>
     </>
