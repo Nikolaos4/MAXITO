@@ -27,6 +27,7 @@ export function AppealCard({ appeal, meId, readOnly, open, onOpen, onCloseModal,
         <StatusBadge status={appeal.status} />
       </header>
 
+      <p className="appeal__house">{appeal.entrance > 0 ? `Подъезд ${appeal.entrance}` : "Весь дом"}</p>
       <h3 className="appeal__title">{appeal.categoryTitle}</h3>
 
       <div className="appeal__subtitle">
