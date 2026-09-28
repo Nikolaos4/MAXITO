@@ -51,6 +51,12 @@ func (r *UserRepository) GetDispatchers() ([]models.User, error) {
 	return users, err
 }
 
+// SetMaxUserID привязывает аккаунт MAX к пользователю. Уникальный индекс на
+// max_user_id не даст привязать один аккаунт MAX к двум людям даже при гонке.
+func (r *UserRepository) SetMaxUserID(id uint, maxUserID string) error {
+	return r.db.Model(&models.User{}).Where("id = ?", id).Update("max_user_id", maxUserID).Error
+}
+
 func (r *UserRepository) Deactivate(id uint) error {
 	return r.db.Model(&models.User{}).Where("id = ?", id).Update("is_active", false).Error
 }

@@ -1,9 +1,12 @@
 package middleware
 
 import (
+	"crypto/subtle"
 	"errors"
 	"net/http"
+	"strings"
 
+	"maxito/internal/auth"
 	"maxito/internal/models"
 	"maxito/internal/util"
 
@@ -13,53 +16,88 @@ import (
 
 const ContextUserKey = "currentUser"
 
-// AuthByMaxUserID — авторизация по заголовку X-Max-User-Id.
+// Authenticate — основная авторизация: заголовок "Authorization: Bearer <JWT>",
+// выданный POST /auth/max. Пользователь на каждый запрос заново берётся из
+// БД, поэтому отключение пользователя и смена роли действуют сразу, а не
+// только после истечения токена.
 //
-// Представитель, диспетчеры и жители изначально попадают в базу с
-// заполненным телефоном, но пустым max_user_id — он появляется только
-// когда MAX впервые присылает пользователя в бота. Поэтому логика в
-// два шага:
-//  1. Ищем уже привязанного пользователя по max_user_id — обычный путь
-//     для всех последующих запросов.
-//  2. Если не нашли — пробуем найти пользователя по телефону
-//     (заголовок X-Max-User-Phone) и, если он уже есть в базе,
-//     привязываем его max_user_id прямо сейчас (это и есть первый вход).
-//
-// ВАЖНО: имя и формат заголовка с телефоном (X-Max-User-Phone) —
-// заглушка, подставленная до уточнения реального контракта MAX Bot API
-// (может прийти в другом заголовке или в теле initData/webapp-запроса).
-// Как только формат станет известен, поменять нужно только этот файл.
-func AuthByMaxUserID(db *gorm.DB) gin.HandlerFunc {
+// Если allowDevHeaders=true (ALLOW_DEV_HEADERS в .env), дополнительно
+// принимается старая схема X-Max-User-Id / X-Max-User-Phone — ТОЛЬКО для
+// отладки в Postman. В боевом окружении флаг должен быть выключен: эти
+// заголовки ничем не подтверждены, любой может подставить чужие.
+func Authenticate(db *gorm.DB, tokens *auth.TokenService, allowDevHeaders bool) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		maxUserID := c.GetHeader("X-Max-User-Id")
-		if maxUserID == "" {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
-				"error": "header X-Max-User-Id is required",
-			})
-			return
-		}
+		var (
+			user *models.User
+			ok   bool
+		)
 
-		var user models.User
-		err := db.Where("max_user_id = ? AND is_active = ?", maxUserID, true).First(&user).Error
 		switch {
-		case err == nil:
-			c.Set(ContextUserKey, &user)
-			c.Next()
-			return
-		case !errors.Is(err, gorm.ErrRecordNotFound):
-			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "database error"})
+		case c.GetHeader("Authorization") != "":
+			user, ok = authenticateBearer(c, db, tokens)
+		case allowDevHeaders && c.GetHeader("X-Max-User-Id") != "":
+			user, ok = authenticateDevHeaders(c, db)
+		default:
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "authorization required"})
 			return
 		}
-
-		// Пользователь с таким max_user_id ещё не привязан — пробуем первичный биндинг по телефону.
-		user, ok := bindByPhone(c, db, maxUserID)
 		if !ok {
-			return // bindByPhone уже отправил ответ с ошибкой
+			return // ответ с ошибкой уже отправлен
 		}
 
-		c.Set(ContextUserKey, &user)
+		c.Set(ContextUserKey, user)
 		c.Next()
 	}
+}
+
+func authenticateBearer(c *gin.Context, db *gorm.DB, tokens *auth.TokenService) (*models.User, bool) {
+	header := c.GetHeader("Authorization")
+	scheme, tokenString, found := strings.Cut(header, " ")
+	if !found || !strings.EqualFold(scheme, "Bearer") || strings.TrimSpace(tokenString) == "" {
+		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "expected header 'Authorization: Bearer <token>'"})
+		return nil, false
+	}
+
+	claims, err := tokens.Parse(strings.TrimSpace(tokenString))
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid or expired token"})
+		return nil, false
+	}
+
+	var user models.User
+	err = db.Where("id = ? AND is_active = ?", claims.UserID, true).First(&user).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "user not found or deactivated"})
+			return nil, false
+		}
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "database error"})
+		return nil, false
+	}
+	return &user, true
+}
+
+// authenticateDevHeaders — прежняя схема для отладки: ищет пользователя по
+// X-Max-User-Id, а если он ещё не привязан — привязывает по телефону из
+// X-Max-User-Phone (первый вход).
+func authenticateDevHeaders(c *gin.Context, db *gorm.DB) (*models.User, bool) {
+	maxUserID := c.GetHeader("X-Max-User-Id")
+
+	var user models.User
+	err := db.Where("max_user_id = ? AND is_active = ?", maxUserID, true).First(&user).Error
+	switch {
+	case err == nil:
+		return &user, true
+	case !errors.Is(err, gorm.ErrRecordNotFound):
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "database error"})
+		return nil, false
+	}
+
+	bound, ok := bindByPhone(c, db, maxUserID)
+	if !ok {
+		return nil, false
+	}
+	return &bound, true
 }
 
 func bindByPhone(c *gin.Context, db *gorm.DB, maxUserID string) (models.User, bool) {
@@ -90,8 +128,6 @@ func bindByPhone(c *gin.Context, db *gorm.DB, maxUserID string) (models.User, bo
 		return models.User{}, false
 	}
 
-	// Если у найденного юзера уже стоит другой max_user_id — это конфликт данных
-	// (например, телефон переиспользован), а не обычный первый вход.
 	if user.MaxUserID != nil && *user.MaxUserID != maxUserID {
 		c.AbortWithStatusJSON(http.StatusConflict, gin.H{
 			"error": "phone is already bound to a different max_user_id",
@@ -108,6 +144,26 @@ func bindByPhone(c *gin.Context, db *gorm.DB, maxUserID string) (models.User, bo
 	}
 
 	return user, true
+}
+
+// RequireInternalKey защищает служебные эндпоинты для бота (/internal/*)
+// общим секретом в заголовке X-Internal-Key. Если ключ на сервере не задан,
+// эндпоинты закрыты полностью — пустой ключ никогда не должен совпасть с
+// пустым заголовком.
+func RequireInternalKey(key string) gin.HandlerFunc {
+	expected := []byte(key)
+	return func(c *gin.Context) {
+		if len(expected) == 0 {
+			c.AbortWithStatusJSON(http.StatusServiceUnavailable, gin.H{"error": "internal API is not configured"})
+			return
+		}
+		got := []byte(c.GetHeader("X-Internal-Key"))
+		if subtle.ConstantTimeCompare(got, expected) != 1 {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid internal key"})
+			return
+		}
+		c.Next()
+	}
 }
 
 // RequireRole проверяет, что у пользователя нужная роль.

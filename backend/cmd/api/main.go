@@ -3,9 +3,12 @@ package main
 import (
 	"fmt"
 	"log"
+	"time"
 
+	"maxito/internal/auth"
 	"maxito/internal/config"
 	"maxito/internal/database"
+	"maxito/internal/handlers/bot"
 	"maxito/internal/handlers/common"
 	"maxito/internal/handlers/dispatcher"
 	"maxito/internal/handlers/representative"
@@ -78,6 +81,26 @@ func main() {
 		notificationRepo, notifReadRepo, houseRepo, problemTypeRepo, reasonRepo,
 	)
 
+	// Авторизация: JWT + проверка подписи initData от MAX.
+	initDataSecret, err := cfg.InitDataSecretBytes()
+	if err != nil {
+		log.Fatalf("invalid config: %v", err)
+	}
+	if len(initDataSecret) == 0 {
+		log.Println("WARNING: MAX_INITDATA_SECRET is not set — POST /auth/max will answer 503")
+	}
+	if cfg.InternalAPIKey == "" {
+		log.Println("WARNING: INTERNAL_API_KEY is not set — /internal/* endpoints are disabled")
+	}
+	if cfg.AllowDevHeaders {
+		log.Println("WARNING: ALLOW_DEV_HEADERS=true — X-Max-User-Id header auth is ENABLED. Never use this in production")
+	}
+	tokenSvc := auth.NewTokenService(cfg.JWTSecret, time.Duration(cfg.JWTTTLHours)*time.Hour)
+	authSvc := services.NewAuthService(
+		userRepo, tokenSvc, initDataSecret, time.Duration(cfg.InitDataMaxAgeSecond)*time.Second,
+	)
+	authMW := middleware.Authenticate(db, tokenSvc, cfg.AllowDevHeaders)
+
 	// Handlers — Представитель
 	houseHandler := representative.NewHouseHandler(houseRepo, repSvc)
 	dispatcherMgmtHandler := representative.NewDispatcherHandler(repSvc, userRepo)
@@ -96,6 +119,8 @@ func main() {
 	residentHouseHandler := resident.NewHouseHandler(residentSvc)
 
 	// Handlers — общий
+	authHandler := common.NewAuthHandler(authSvc)
+	botHandler := bot.NewHandler(authSvc)
 	meHandler := common.NewMeHandler(residentRepo, dispHouseRepo)
 	uploadHandler := common.NewUploadHandler(cfg.UploadDir)
 
@@ -115,11 +140,22 @@ func main() {
 	{
 		// Кто я — доступно любой роли, без RequireRole, ровно потому,
 		// что клиент ещё не знает роль на момент вызова.
-		api.GET("/me", middleware.AuthByMaxUserID(db), meHandler.Me)
-		api.POST("/upload", middleware.AuthByMaxUserID(db), uploadHandler.Upload)
+		api.GET("/me", authMW, meHandler.Me)
+		api.POST("/upload", authMW, uploadHandler.Upload)
+
+		// Вход из мини-приложения: подписанный MAX'ом initData -> наш JWT.
+		// Без авторизации — именно здесь её и получают.
+		api.POST("/auth/max", authHandler.LoginByMax)
+
+		// Служебные эндпоинты для сервера бота (общий секрет X-Internal-Key).
+		internalAPI := api.Group("/internal")
+		internalAPI.Use(middleware.RequireInternalKey(cfg.InternalAPIKey))
+		{
+			internalAPI.POST("/bind", botHandler.Bind)
+		}
 
 		rep := api.Group("/representative")
-		rep.Use(middleware.AuthByMaxUserID(db))
+		rep.Use(authMW)
 		rep.Use(middleware.RequireRole(models.RoleRepresentative))
 		{
 			// Дома
@@ -147,7 +183,7 @@ func main() {
 		}
 
 		disp := api.Group("/dispatcher")
-		disp.Use(middleware.AuthByMaxUserID(db))
+		disp.Use(authMW)
 		disp.Use(middleware.RequireRole(models.RoleDispatcher))
 		{
 			// Обращения (только по своим домам)
@@ -172,7 +208,7 @@ func main() {
 		}
 
 		res := api.Group("/resident")
-		res.Use(middleware.AuthByMaxUserID(db))
+		res.Use(authMW)
 		res.Use(middleware.RequireRole(models.RoleResident))
 		{
 			// Обращения
