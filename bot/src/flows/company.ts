@@ -9,7 +9,7 @@ function authFor(ctx: AppContext): Auth {
 
 const skip = (text: string) => (text === "-" ? "" : text);
 
-function formatCompany(company: {
+export function formatCompany(company: {
     full_name?: string;
     short_name?: string;
     dispatcher_phone?: string;

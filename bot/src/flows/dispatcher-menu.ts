@@ -1,5 +1,7 @@
 import { api, type Auth, type ApiAppealStatus } from "@/api";
 import { getSession, type AppContext } from "@/context";
+import { formatCompany } from "@/flows/company";
+import { formatEmergencyServices } from "@/flows/emergency";
 import { DISPATCHER_MENU_TEXT, backToDispatcherMenuKeyboard, buildDispatcherMenuKeyboard } from "@/menu";
 
 const STATUS_LABELS: Record<ApiAppealStatus, string> = {
@@ -100,6 +102,27 @@ async function showStats(ctx: AppContext) {
     }
 }
 
+async function showInfo(ctx: AppContext) {
+    if (!ctx.user) return;
+
+    try {
+        const auth = authFor(ctx);
+        const [company, services] = await Promise.all([
+            api.dispatcher.company.get(auth),
+            api.dispatcher.emergencyServices.list(auth),
+        ]);
+        const text = `${formatCompany(company)}\n\nАварийные службы:\n${formatEmergencyServices(services)}`;
+        await ctx.answerOnCallback({ message: { text, attachments: [backToDispatcherMenuKeyboard] } });
+    } catch {
+        await ctx.answerOnCallback({
+            message: {
+                text: "Не удалось загрузить информацию, попробуйте позже.",
+                attachments: [backToDispatcherMenuKeyboard],
+            },
+        });
+    }
+}
+
 export const dispatcherMenuFlow = {
     onMessageCallback: async (ctx: AppContext) => {
         if (!ctx.user || !ctx.callback) return false;
@@ -109,6 +132,7 @@ export const dispatcherMenuFlow = {
             "dispatcher_menu:top_appeals",
             "dispatcher_menu:stats",
             "dispatcher_menu:houses",
+            "dispatcher_menu:info",
             "dispatcher_menu:show",
         ];
         if (!payload || !known.includes(payload)) return false;
@@ -133,6 +157,11 @@ export const dispatcherMenuFlow = {
 
         if (payload === "dispatcher_menu:houses") {
             await showHouses(ctx);
+            return true;
+        }
+
+        if (payload === "dispatcher_menu:info") {
+            await showInfo(ctx);
             return true;
         }
 

@@ -23,16 +23,20 @@ export async function startEmergencyImport(ctx: AppContext) {
     await sendCsvTemplate(ctx, csvTemplates.emergencyServices);
 }
 
+export function formatEmergencyServices(services: { name: string; phone: string }[]): string {
+    return services.length === 0
+        ? "Аварийные службы ещё не добавлены."
+        : services.map((s) => `${s.name}: ${s.phone}`).join("\n");
+}
+
 export async function showEmergencyServices(ctx: AppContext) {
     if (!ctx.user) return;
 
     try {
         const services = await api.representative.emergencyServices.list(authFor(ctx));
-        const text =
-            services.length === 0
-                ? "Аварийные службы ещё не добавлены."
-                : services.map((s) => `${s.name}: ${s.phone}`).join("\n");
-        await ctx.answerOnCallback({ message: { text, attachments: [backToMenuKeyboard] } });
+        await ctx.answerOnCallback({
+            message: { text: formatEmergencyServices(services), attachments: [backToMenuKeyboard] },
+        });
     } catch {
         await ctx.answerOnCallback({
             message: { text: "Не удалось загрузить список, попробуйте позже.", attachments: [backToMenuKeyboard] },
