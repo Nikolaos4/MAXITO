@@ -31,9 +31,10 @@ export async function tryRestoreRole(ctx: AppContext): Promise<boolean> {
 async function tryBind(ctx: AppContext, phone: string) {
     if (!ctx.user) return;
 
-    const auth: Auth = { maxUserId: String(ctx.user.user_id), phone };
+    const auth: Auth = { maxUserId: String(ctx.user.user_id) };
 
     try {
+        await api.bind(auth.maxUserId, phone);
         const me = await api.me(auth);
         setRole(ctx.user.user_id, me.role);
         clearFlow(ctx.user.user_id);
@@ -51,12 +52,14 @@ async function tryBind(ctx: AppContext, phone: string) {
     } catch (err) {
         const status = err instanceof FetchError ? err.statusCode : undefined;
 
-        if (status === 401) {
+        if (status === 404) {
             await ctx.reply(
                 "Такой номер телефона не найден в системе. Обратитесь к представителю вашей УК, чтобы вас добавили.",
             );
+        } else if (status === 403) {
+            await ctx.reply("Ваша учётная запись отключена. Обратитесь к представителю вашей УК.");
         } else if (status === 409) {
-            await ctx.reply("Этот номер уже привязан к другому аккаунту MAX. Обратитесь в поддержку.");
+            await ctx.reply("Этот номер или аккаунт MAX уже привязан к другому пользователю. Обратитесь в поддержку.");
         } else {
             await ctx.reply("Не удалось выполнить авторизацию, попробуйте ещё раз позже.");
         }
