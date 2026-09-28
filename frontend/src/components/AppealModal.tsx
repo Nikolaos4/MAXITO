@@ -45,6 +45,7 @@ export function AppealModal({ appeal, meId, readOnly, onClose, onLike }: Props) 
           <StatusBadge status={appeal.status} />
         </header>
 
+        <p className="appeal__house">{appeal.entrance > 0 ? `Подъезд ${appeal.entrance}` : "Весь дом"}</p>
         <h3 className="appeal__title">{appeal.categoryTitle}</h3>
         <div className="appeal__subtitle"><span className="appeal__reason">{appeal.reason}</span></div>
         {appeal.comment && <p className="appeal__text">{appeal.comment}</p>}
