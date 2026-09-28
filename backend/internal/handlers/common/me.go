@@ -20,9 +20,9 @@ func NewMeHandler(residentRepo *repository.ResidentRepository, dispHouseRepo *re
 }
 
 type ResidentInfo struct {
-	HouseID        uint `json:"house_id"`
+	HouseID        uint   `json:"house_id"`
 	Apartment      string `json:"apartment"`
-	EntranceNumber *int `json:"entrance_number,omitempty"`
+	EntranceNumber *int   `json:"entrance_number,omitempty"`
 }
 
 type DispatcherInfo struct {
