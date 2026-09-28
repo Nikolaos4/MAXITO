@@ -146,22 +146,6 @@ export const httpApi: Api = {
     return adaptAppeal(detail);
   },
 
-  getNeedInfoAppeals: async () => {
-    const raw = await backendRequest<{ items: BackendAppeal[] }>("/resident/appeals", {
-      query: { mine: "true", status: "need_info", page_size: 50 },
-    });
-    return raw.items.map(adaptAppeal);
-  },
-
-  replyNeedInfo: async (id, text) => {
-    await backendRequest(`/resident/appeals/${id}/reply`, {
-      method: "POST",
-      body: JSON.stringify({ comment: text.trim() }),
-    });
-    const detail = await backendRequest<BackendAppeal>(`/resident/appeals/${id}`);
-    return adaptAppeal(detail);
-  },
-
   listNotifications: async () => {
     const raw = await backendRequest<BackendNotification[]>("/resident/notifications");
     return Promise.all(raw.map(adaptNotification));

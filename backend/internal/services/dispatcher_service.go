@@ -16,8 +16,7 @@ import (
 // completed и rejected — конечные состояния, переходов из них нет.
 var allowedTransitions = map[models.AppealStatus][]models.AppealStatus{
 	models.StatusAccepted:   {models.StatusInProgress, models.StatusRejected},
-	models.StatusInProgress: {models.StatusNeedInfo, models.StatusCompleted, models.StatusRejected},
-	models.StatusNeedInfo:   {models.StatusInProgress},
+	models.StatusInProgress: {models.StatusCompleted, models.StatusRejected},
 	models.StatusCompleted:  {},
 	models.StatusRejected:   {},
 }
@@ -306,14 +305,13 @@ func (s *DispatcherService) ChangeStatus(dispatcherID, appealID uint, in ChangeS
 }
 
 // HouseAppealStats — статистика по необработанным обращениям одного дома.
-// "Необработанные" = accepted + in_progress + need_info (completed и
-// rejected — уже закрытые, в статистику не попадают).
+// "Необработанные" = accepted + in_progress (completed и rejected — уже
+// закрытые, в статистику не попадают).
 type HouseAppealStats struct {
 	HouseID    uint   `json:"house_id"`
 	Address    string `json:"address"`
 	Accepted   int64  `json:"accepted"`
 	InProgress int64  `json:"in_progress"`
-	NeedInfo   int64  `json:"need_info"`
 	Total      int64  `json:"total"`
 }
 
@@ -352,8 +350,6 @@ func (s *DispatcherService) UnprocessedStats(dispatcherID uint) ([]HouseAppealSt
 			stat.Accepted = row.Count
 		case models.StatusInProgress:
 			stat.InProgress = row.Count
-		case models.StatusNeedInfo:
-			stat.NeedInfo = row.Count
 		}
 		stat.Total += row.Count
 	}

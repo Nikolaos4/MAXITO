@@ -32,7 +32,6 @@ const (
 const (
 	StatusAccepted   AppealStatus = "accepted"
 	StatusInProgress AppealStatus = "in_progress"
-	StatusNeedInfo   AppealStatus = "need_info"
 	StatusCompleted  AppealStatus = "completed"
 	StatusRejected   AppealStatus = "rejected"
 )

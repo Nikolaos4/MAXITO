@@ -1,4 +1,4 @@
-export type AppealStatus = "accepted" | "in_progress" | "need_info" | "completed" | "rejected";
+export type AppealStatus = "accepted" | "in_progress" | "completed" | "rejected";
 
 export type Feed = "house" | "entrance" | "mine";
 

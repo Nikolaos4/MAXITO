@@ -6,7 +6,7 @@
  */
 
 export type BackendRole = "representative" | "dispatcher" | "resident";
-export type BackendAppealStatus = "accepted" | "in_progress" | "need_info" | "completed" | "rejected";
+export type BackendAppealStatus = "accepted" | "in_progress" | "completed" | "rejected";
 export type BackendScope = "house" | "entrance";
 
 export interface BackendUser {

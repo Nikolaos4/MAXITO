@@ -86,7 +86,6 @@ export const categoryByCode = (code: string): Category =>
 export const STATUS_LABEL: Record<AppealStatus, string> = {
   accepted: "Принято",
   in_progress: "В работе",
-  need_info: "Дополнить",
   completed: "Выполнено",
   rejected: "Отклонено",
 };

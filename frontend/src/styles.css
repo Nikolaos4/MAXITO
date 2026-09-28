@@ -19,8 +19,8 @@
   --st-rejected: #e8b8c0;
   --st-in_progress: #e8b4a0;
   --st-accepted: #8e9be0;
-  --st-need_info: #e3d69e;
   --st-completed: #a9e2a4;
+  --warning: #e3d69e;
   /* Отступы */
   --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 24px;
   --radius: 12px;
@@ -168,14 +168,11 @@ p.form__label { white-space: normal; }
 .status--rejected { background: var(--st-rejected); }
 .status--in_progress { background: var(--st-in_progress); }
 .status--accepted { background: var(--st-accepted); }
-.status--need_info { background: var(--st-need_info); }
 .status--completed { background: var(--st-completed); }
 
 /* Notifications */
 .notification { display: flex; flex-direction: column; gap: var(--s2); margin-bottom: var(--s4); }
 .notification__badge { display: inline-flex; align-items: center; gap: 6px; background: var(--bg-filled); color: var(--accent-dark); border-radius: 999px; padding: 3px 12px; font-size: 12px; font-weight: 500; }
-.notification__badge--need-info { background: var(--accent); color: #fff; }
-.notification--need-info .notification__dot { background: #fff; }
 .notification__dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); flex-shrink: 0; }
 .notification-filters { display: flex; flex-direction: column; gap: var(--s2); margin-bottom: var(--s4); }
 
@@ -215,7 +212,7 @@ p.form__label { white-space: normal; }
 
 /* Media */
 .form__hint { font-size: 12px; color: var(--text-soft); margin-top: calc(-1 * var(--s2)); }
-.form__warning { background: var(--st-need_info); border-radius: 8px; padding: var(--s2) var(--s3); font-size: 13px; }
+.form__warning { background: var(--warning); border-radius: 8px; padding: var(--s2) var(--s3); font-size: 13px; }
 
 /* Предупреждение о похожем обращении на странице создания */
 .duplicate-notice { display: flex; flex-direction: column; gap: var(--s2); margin-bottom: var(--s4); }

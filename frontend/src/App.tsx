@@ -21,8 +21,8 @@ export function App({ initialTab, initialCategory }: { initialTab?: string; init
   const [hasUnread, setHasUnread] = useState(false);
   const hideToast = useCallback(() => setToast(""), []);
   const refreshUnread = useCallback(() => {
-    Promise.all([api.getUnreadNotificationsCount(), api.getNeedInfoAppeals()])
-      .then(([n, needInfo]) => setHasUnread(n > 0 || needInfo.length > 0))
+    api.getUnreadNotificationsCount()
+      .then((n) => setHasUnread(n > 0))
       .catch(() => {});
   }, []);
 

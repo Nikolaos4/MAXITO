@@ -115,7 +115,7 @@ type ApiReason = {
     is_other: boolean;
 };
 
-export type ApiAppealStatus = "accepted" | "in_progress" | "need_info" | "completed" | "rejected";
+export type ApiAppealStatus = "accepted" | "in_progress" | "completed" | "rejected";
 
 type ApiAppealStatusChange = {
     id: number;
@@ -158,7 +158,6 @@ type ApiHouseAppealStats = {
     address: string;
     accepted: number;
     in_progress: number;
-    need_info: number;
     total: number;
 };
 
