@@ -181,7 +181,6 @@ func main() {
 			res.GET("/appeals/:id", residentAppealHandler.GetAppeal)
 			res.POST("/appeals/:id/like", residentAppealHandler.Like)
 			res.DELETE("/appeals/:id/like", residentAppealHandler.Unlike)
-			res.POST("/appeals/:id/reply", residentAppealHandler.ReplyNeedInfo)
 
 			// Уведомления
 			res.GET("/notifications", residentNotificationHandler.ListNotifications)

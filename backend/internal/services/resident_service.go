@@ -103,7 +103,7 @@ func NewResidentService(
 // свой дом"). Порядок проверок:
 //  1. Дубль: если в доме и ТОМ ЖЕ подъезде (точное совпадение
 //     entrance_number, "весь дом" совпадает только с "весь дом") уже есть
-//     не закрытое (accepted/in_progress/need_info) обращение по той же
+//     не закрытое (accepted/in_progress) обращение по той же
 //     причине — вернётся DuplicateAppealError с id существующего
 //     обращения, новое не создаётся. Обращение на другой подъезд или на
 //     весь дом дублем не считается.
@@ -269,48 +269,6 @@ func (s *ResidentService) GetAppealDetail(userID, appealID uint) (*ResidentAppea
 		Attachments: attachments,
 		History:     history,
 	}, nil
-}
-
-// ReplyNeedInfo — ответ жителя на запрос диспетчера "нужна доп. информация"
-// (статус need_info) по СВОЕМУ обращению. Единственный переход статуса,
-// который инициирует сам житель, а не диспетчер: need_info -> in_progress,
-// по тому же графу, что и у диспетчера, с обязательным комментарием.
-// Технически это обычный AppealStatusChange (changed_by = житель) — история
-// и переходы статуса остаются одним и тем же неизменяемым логом для обеих ролей.
-func (s *ResidentService) ReplyNeedInfo(userID, appealID uint, comment string) (*models.AppealStatusChange, error) {
-	appeal, err := s.appealRepo.GetByID(appealID)
-	if err != nil {
-		return nil, err
-	}
-	if appeal.AuthorID != userID {
-		return nil, gorm.ErrRecordNotFound
-	}
-	if appeal.Status != models.StatusNeedInfo {
-		return nil, errors.New("appeal is not awaiting additional information")
-	}
-	if comment == "" {
-		return nil, errors.New("comment is required")
-	}
-
-	change := &models.AppealStatusChange{
-		AppealID:   appealID,
-		FromStatus: appeal.Status,
-		ToStatus:   models.StatusInProgress,
-		Comment:    comment,
-		ChangedBy:  userID,
-	}
-
-	txErr := s.db.Transaction(func(tx *gorm.DB) error {
-		if err := tx.Create(change).Error; err != nil {
-			return err
-		}
-		return tx.Model(&models.Appeal{}).Where("id = ?", appealID).Update("status", models.StatusInProgress).Error
-	})
-	if txErr != nil {
-		return nil, txErr
-	}
-
-	return change, nil
 }
 
 // ---------- Лайки ----------

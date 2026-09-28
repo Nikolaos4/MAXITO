@@ -24,7 +24,7 @@ type AppealFilter struct {
 // поиска дублей: обращение, которое уже выполнено или отклонено, дублем
 // не считается — по нему можно создавать новое обращение заново.
 var openStatuses = []models.AppealStatus{
-	models.StatusAccepted, models.StatusInProgress, models.StatusNeedInfo,
+	models.StatusAccepted, models.StatusInProgress,
 }
 
 // FindOpenDuplicate ищет самое старое ещё не закрытое обращение по той же
@@ -185,9 +185,9 @@ type HouseStatusCount struct {
 }
 
 // CountUnprocessedByHouse считает обращения в "неразобранных" статусах
-// (accepted, in_progress, need_info) по каждому из указанных домов,
-// сгруппированные по статусу. Дома без единого обращения в выборке
-// просто не попадут в результат — их нулями достраивает вызывающий код.
+// (accepted, in_progress) по каждому из указанных домов, сгруппированные
+// по статусу. Дома без единого обращения в выборке просто не попадут в
+// результат — их нулями достраивает вызывающий код.
 func (r *AppealRepository) CountUnprocessedByHouse(houseIDs []uint) ([]HouseStatusCount, error) {
 	if len(houseIDs) == 0 {
 		return nil, nil
@@ -198,7 +198,7 @@ func (r *AppealRepository) CountUnprocessedByHouse(houseIDs []uint) ([]HouseStat
 		Select("house_id, status, COUNT(*) as count").
 		Where("house_id IN ?", houseIDs).
 		Where("status IN ?", []models.AppealStatus{
-			models.StatusAccepted, models.StatusInProgress, models.StatusNeedInfo,
+			models.StatusAccepted, models.StatusInProgress,
 		}).
 		Group("house_id, status").
 		Scan(&rows).Error

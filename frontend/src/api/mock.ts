@@ -50,27 +50,6 @@ export const mockApi: Api = {
     return delay({ ...a });
   },
 
-  getNeedInfoAppeals: () => {
-    refresh();
-    const m = me();
-    const list = store.appeals.filter((a) => a.authorId === m.id && a.status === "need_info");
-    return delay([...list].sort((a, b) => b.createdAt.localeCompare(a.createdAt)));
-  },
-
-  replyNeedInfo: (id, text) => {
-    refresh();
-    const a = findAppeal(id);
-    const m = me();
-    if (a.authorId !== m.id) throw new Error("Не ваше обращение");
-    if (a.status !== "need_info") throw new Error("Комментарий уже не требуется");
-    const t = text.trim();
-    if (!t) throw new Error("Нужен комментарий");
-    a.status = "in_progress";
-    a.comments.push({ id: nextId(), authorId: m.id, authorName: m.fullName, text: t, createdAt: new Date().toISOString() });
-    save();
-    return delay({ ...a });
-  },
-
   listNotifications: (feed) => {
     refresh();
     const m = me();

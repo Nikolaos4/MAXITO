@@ -5,7 +5,6 @@ import { DISPATCHER_MENU_TEXT, backToDispatcherMenuKeyboard, buildDispatcherMenu
 const STATUS_LABELS: Record<ApiAppealStatus, string> = {
     accepted: "Принято",
     in_progress: "В работе",
-    need_info: "Нужна доп. информация",
     completed: "Выполнено",
     rejected: "Отклонено",
 };
@@ -53,7 +52,7 @@ function formatStatsList(stats: Awaited<ReturnType<typeof api.dispatcher.appeals
     if (stats.length === 0) return "За вами пока не закреплено ни одного дома.";
 
     return stats
-        .map((s) => `${s.address} — всего: ${s.total} (принято: ${s.accepted}, в работе: ${s.in_progress}, нужна инфо: ${s.need_info})`)
+        .map((s) => `${s.address} — всего: ${s.total} (принято: ${s.accepted}, в работе: ${s.in_progress})`)
         .join("\n");
 }
 

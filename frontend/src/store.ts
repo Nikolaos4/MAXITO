@@ -61,14 +61,14 @@ const dispatcherComment = (id: number, text: string, createdAt: string): Comment
 });
 
 // Демо-житель, от лица которого работает мини-апп вне MAX (см. me() в api/mock.ts) —
-// у него намеренно есть и свежее обращение, ждущее ответа («Дополнить»), и уже
-// закрытое в архиве, чтобы сразу было видно обе ветки сценария.
+// у него намеренно есть и свежее обращение в работе, и уже закрытое в архиве,
+// чтобы сразу было видно обе ветки сценария.
 const ME = { id: "me", fullName: "Иванов Иван Иванович" };
 
 const seed = (): Appeal[] => [
   // Дом №3
   {
-    id: 1, createdAt: "2026-09-27T08:20:00", status: "need_info", houseNumber: "3", categoryCode: "lift",
+    id: 1, createdAt: "2026-09-27T08:20:00", status: "in_progress", houseNumber: "3", categoryCode: "lift",
     reason: "Не работает / стоит", comment: "Лифт не работает уже третий день, приходится подниматься пешком на тринадцатый этаж.", entrance: 2,
     authorId: ME.id, authorName: ME.fullName, likes: 6, likedByMe: false, attachments: [],
     comments: [dispatcherComment(1001, "Уточните, пожалуйста, номер кабины (в подъезде их два) и когда именно лифт перестал работать — заявку направим в лифтовую компанию.", "2026-09-27T10:05:00")],
@@ -130,7 +130,7 @@ const seed = (): Appeal[] => [
 
   // Дом №8
   {
-    id: 10, createdAt: "2026-09-27T09:05:00", status: "need_info", houseNumber: "8", categoryCode: "electricity",
+    id: 10, createdAt: "2026-09-27T09:05:00", status: "in_progress", houseNumber: "8", categoryCode: "electricity",
     reason: "Нет света в квартире / подъезде / доме", comment: "С самого утра нет света во всём подъезде, лифт тоже не работает.", entrance: 5,
     authorId: "resident-14", authorName: "Кузнецова Мария Сергеевна", likes: 11, likedByMe: false, attachments: [],
     comments: [dispatcherComment(1010, "Проверяем: подтвердите, пожалуйста, весь ли подъезд без света или только отдельные квартиры — это поможет понять, авария на вводе или локальная проблема.", "2026-09-27T09:40:00")],

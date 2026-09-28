@@ -31,7 +31,7 @@ func parseStatusList(raw []string) []models.AppealStatus {
 
 // ListAppeals — список обращений по своим домам с фильтрами и пагинацией.
 // Query-параметры: house_id, status, entrance_number, problem_type_id
-// (каждый можно повторять — ?status=in_progress&status=need_info),
+// (каждый можно повторять — ?status=in_progress&status=rejected),
 // page, page_size. Сортировка — по числу лайков, затем по дате создания.
 func (h *AppealHandler) ListAppeals(c *gin.Context) {
 	currentUser := middleware.GetCurrentUser(c)
@@ -91,8 +91,8 @@ func (h *AppealHandler) TopAppeals(c *gin.Context) {
 }
 
 // UnprocessedStats — статистика по необработанным обращениям (accepted,
-// in_progress, need_info) по каждому дому диспетчера, отсортировано по
-// убыванию общего числа.
+// in_progress) по каждому дому диспетчера, отсортировано по убыванию
+// общего числа.
 func (h *AppealHandler) UnprocessedStats(c *gin.Context) {
 	currentUser := middleware.GetCurrentUser(c)
 	if currentUser == nil {
