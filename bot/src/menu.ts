@@ -1,6 +1,6 @@
 import { Keyboard } from "@maxhub/max-bot-api";
 import type { AppContext } from "@/context";
-import { miniAppLink } from "@/miniapp";
+import { miniAppButton } from "@/miniapp";
 
 export const MENU_TEXT = "Главное меню представителя. Выберите действие:";
 
@@ -20,17 +20,17 @@ export const cancelKeyboard = Keyboard.inlineKeyboard([[Keyboard.button.callback
 export const DISPATCHER_MENU_TEXT = "Меню диспетчера. Выберите действие:";
 
 export async function buildDispatcherMenuKeyboard(ctx: AppContext) {
-    const [appealsUrl, notificationsUrl] = await Promise.all([
-        miniAppLink(ctx, "dispatcher", "feed"),
-        miniAppLink(ctx, "dispatcher", "notifications"),
+    const [appealsBtn, notificationsBtn] = await Promise.all([
+        miniAppButton(ctx, "Обращения", "dispatcher", "feed"),
+        miniAppButton(ctx, "Уведомления", "dispatcher", "notifications"),
     ]);
 
     return Keyboard.inlineKeyboard([
-        [Keyboard.button.link("Обращения", appealsUrl)],
+        [appealsBtn],
         [Keyboard.button.callback("Горячие обращения", "dispatcher_menu:top_appeals")],
         [Keyboard.button.callback("Статистика по домам", "dispatcher_menu:stats")],
         [Keyboard.button.callback("Мои дома", "dispatcher_menu:houses")],
-        [Keyboard.button.link("Уведомления", notificationsUrl)],
+        [notificationsBtn],
     ]);
 }
 
@@ -41,16 +41,18 @@ export const backToDispatcherMenuKeyboard = Keyboard.inlineKeyboard([
 export const RESIDENT_MENU_TEXT = "Главное меню жителя. Выберите действие:";
 
 export async function buildResidentMenuKeyboard(ctx: AppContext, chatInviteLink?: string | null) {
-    const [appealsUrl, notificationsUrl] = await Promise.all([
-        miniAppLink(ctx, "resident", "feed"),
-        miniAppLink(ctx, "resident", "notifications"),
+    const [appealsBtn, notificationsBtn] = await Promise.all([
+        miniAppButton(ctx, "Все обращения", "resident", "feed"),
+        miniAppButton(ctx, "Объявления", "resident", "notifications"),
     ]);
 
     return Keyboard.inlineKeyboard([
         [Keyboard.button.callback("Сообщить о проблеме", "resident_menu:report")],
-        [Keyboard.button.link("Все обращения", appealsUrl)],
+        [appealsBtn],
+        // Ссылка на чат дома — обычная внешняя ссылка (не мини-апп), поэтому
+        // тут button.link остаётся правильным выбором.
         ...(chatInviteLink ? [[Keyboard.button.link("Перейти в чат дома", chatInviteLink)]] : []),
-        [Keyboard.button.link("Объявления", notificationsUrl)],
+        [notificationsBtn],
     ]);
 }
 
@@ -62,9 +64,7 @@ export const RESIDENT_PROBLEM_TYPE_TEXT = "Выберите тип пробле�
 
 export async function buildResidentProblemTypeKeyboard(ctx: AppContext, problemTypes: { code: string; title: string }[]) {
     const rows = await Promise.all(
-        problemTypes.map(async (pt) => [
-            Keyboard.button.link(pt.title, await miniAppLink(ctx, "resident", "create", pt.code)),
-        ]),
+        problemTypes.map(async (pt) => [await miniAppButton(ctx, pt.title, "resident", "create", pt.code)]),
     );
 
     return Keyboard.inlineKeyboard([...rows, [Keyboard.button.callback("В меню", "resident_menu:show")]]);
