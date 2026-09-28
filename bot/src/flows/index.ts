@@ -1,5 +1,6 @@
 import type { AppContext } from "@/context";
 import type { Bot } from "@maxhub/max-bot-api";
+import { assignmentFlow } from "./assignment";
 import { authorizationFlow } from "./authorization";
 import { dispatcherFlow } from "./dispatcher";
 import { dispatcherMenuFlow } from "./dispatcher-menu";
@@ -18,6 +19,7 @@ const flows: FlowRouter[] = [
     menuFlow,
     houseFlow,
     dispatcherFlow,
+    assignmentFlow,
     dispatcherMenuFlow,
     residentMenuFlow,
 ];

@@ -2,6 +2,7 @@ import { FetchError } from "ofetch";
 import { api, type Auth } from "@/api";
 import { clearFlow, getSession, setData, setStep, type AppContext } from "@/context";
 import { downloadFile, findCsvAttachment, formatImportReport } from "@/csv-import";
+import { startHousesSelect } from "@/flows/assignment";
 import { backToMenuKeyboard, cancelKeyboard } from "@/menu";
 
 function authFor(ctx: AppContext): Auth {
@@ -22,12 +23,9 @@ async function handlePhone(ctx: AppContext, text: string) {
     const session = getSession(ctx.user.user_id);
     const fullName = session.data.fullName as string;
 
+    let dispatcher;
     try {
-        const dispatcher = await api.representative.dispatchers.create(authFor(ctx), { full_name: fullName, phone: text });
-        clearFlow(ctx.user.user_id);
-        await ctx.reply(`Диспетчер добавлен: ${dispatcher.full_name}, ${dispatcher.phone} (id ${dispatcher.id}).`, {
-            attachments: [backToMenuKeyboard],
-        });
+        dispatcher = await api.representative.dispatchers.create(authFor(ctx), { full_name: fullName, phone: text });
     } catch (err) {
         const status = err instanceof FetchError ? err.statusCode : undefined;
         if (status === 400) {
@@ -37,6 +35,18 @@ async function handlePhone(ctx: AppContext, text: string) {
         } else {
             await ctx.reply("Не удалось добавить диспетчера, попробуйте позже.");
         }
+        return;
+    }
+
+    clearFlow(ctx.user.user_id);
+    await ctx.reply(`Диспетчер добавлен: ${dispatcher.full_name}, ${dispatcher.phone} (id ${dispatcher.id}).`);
+
+    try {
+        await startHousesSelect(ctx, dispatcher);
+    } catch {
+        await ctx.reply("Не удалось загрузить список домов. Назначить дома можно позже из меню.", {
+            attachments: [backToMenuKeyboard],
+        });
     }
 }
 

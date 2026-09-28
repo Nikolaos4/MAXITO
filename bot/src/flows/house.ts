@@ -1,18 +1,20 @@
-import { Keyboard } from "@maxhub/max-bot-api";
 import { FetchError } from "ofetch";
 import { api, type Auth } from "@/api";
 import { clearFlow, getSession, setData, setStep, type AppContext } from "@/context";
 import { downloadFile, findCsvAttachment, formatImportReport, sendCsvTemplate } from "@/csv-import";
 import { csvTemplates } from "@/csv-templates";
 import { backToMenuKeyboard, cancelKeyboard } from "@/menu";
+import { PAGE_SIZE, pagedKeyboard } from "@/paged";
 
 function authFor(ctx: AppContext): Auth {
     return { maxUserId: String(ctx.user!.user_id) };
 }
 
-export const HOUSES_PAGE_SIZE = 8;
+export const HOUSES_PAGE_SIZE = PAGE_SIZE;
 
 type HouseOption = { id: number; address: string; number?: string };
+
+export const houseLabel = (h: HouseOption) => `${h.address}${h.number ? ", " + h.number : ""}`;
 
 export function houseSelectText(page: number, totalPages: number): string {
     return totalPages > 1
@@ -21,22 +23,11 @@ export function houseSelectText(page: number, totalPages: number): string {
 }
 
 export function buildHouseSelectKeyboard(houses: HouseOption[], page: number) {
-    const totalPages = Math.max(1, Math.ceil(houses.length / HOUSES_PAGE_SIZE));
-    const clamped = Math.min(Math.max(page, 0), totalPages - 1);
-    const pageHouses = houses.slice(clamped * HOUSES_PAGE_SIZE, (clamped + 1) * HOUSES_PAGE_SIZE);
-
-    const rows = pageHouses.map((h) => [
-        Keyboard.button.callback(`${h.address}${h.number ? ", " + h.number : ""}`, `house_residents_import:${h.id}`),
-    ]);
-
-    const nav = [];
-    if (clamped > 0) nav.push(Keyboard.button.callback("« Назад", `house_residents_page:${clamped - 1}`));
-    if (clamped < totalPages - 1) nav.push(Keyboard.button.callback("Далее »", `house_residents_page:${clamped + 1}`));
-    if (nav.length > 0) rows.push(nav);
-
-    rows.push([Keyboard.button.callback("Отмена", "flow:cancel")]);
-
-    return Keyboard.inlineKeyboard(rows);
+    return pagedKeyboard(houses, page, {
+        label: houseLabel,
+        itemPayload: (h) => `house_residents_import:${h.id}`,
+        pagePayload: (p) => `house_residents_page:${p}`,
+    });
 }
 
 async function handleAddress(ctx: AppContext, text: string) {

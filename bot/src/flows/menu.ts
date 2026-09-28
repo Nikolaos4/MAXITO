@@ -2,6 +2,7 @@ import { api, type Auth } from "@/api";
 import { clearFlow, getSession, setData, setFlow, setStep, type AppContext } from "@/context";
 import { sendCsvTemplate } from "@/csv-import";
 import { csvTemplates } from "@/csv-templates";
+import { startDispatcherSelect } from "@/flows/assignment";
 import { buildHouseSelectKeyboard, houseSelectText, HOUSES_PAGE_SIZE } from "@/flows/house";
 import {
     DISPATCHER_MENU_TEXT,
@@ -41,6 +42,7 @@ export const menuFlow = {
             "menu:import_houses",
             "menu:add_dispatcher",
             "menu:import_dispatchers",
+            "menu:assign_houses",
             "menu:import_residents",
             "menu:show",
         ];
@@ -92,6 +94,11 @@ export const menuFlow = {
                 },
             });
             await sendCsvTemplate(ctx, csvTemplates.dispatchers);
+            return true;
+        }
+
+        if (payload === "menu:assign_houses") {
+            await startDispatcherSelect(ctx);
             return true;
         }
 
