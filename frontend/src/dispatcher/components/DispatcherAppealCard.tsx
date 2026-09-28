@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Chip } from "../../components/Chip";
 import { categoryByCode } from "../../data/categories";
 import { formatDate, formatTime, plural } from "../../format";
@@ -15,21 +14,24 @@ interface Props {
   dispatcherId: string;
   /** Архив: обращение завершено, менять статус и комментировать уже нельзя */
   readOnly?: boolean;
+  /** Открыта ли модалка этой карточки — состояние держит список, чтобы одновременно была открыта только одна */
+  open: boolean;
+  onOpen: () => void;
+  onCloseModal: () => void;
   onComment: (text: string) => Promise<void>;
   onEditComment: (commentId: number, text: string) => Promise<void>;
   onDeleteComment: (commentId: number) => Promise<void>;
   onChangeStatus: (input: ChangeStatusInput) => Promise<void>;
 }
 
-export function DispatcherAppealCard({ appeal, dispatcherId, readOnly, ...rest }: Props) {
-  const [modal, setModal] = useState(false);
+export function DispatcherAppealCard({ appeal, dispatcherId, readOnly, open, onOpen, onCloseModal, ...rest }: Props) {
   const extraComments = appeal.comments.length;
   const isNewReply = isUnseenReply(appeal, dispatcherId);
 
   function openModal() {
     const last = appeal.comments[appeal.comments.length - 1];
     if (last && last.authorId === appeal.authorId) markReplySeen(dispatcherId, appeal.id, last.id);
-    setModal(true);
+    onOpen();
   }
 
   return (
@@ -62,9 +64,9 @@ export function DispatcherAppealCard({ appeal, dispatcherId, readOnly, ...rest }
 
       <button className="link" onClick={openModal}>Подробнее</button>
 
-      {modal && (
+      {open && (
         <DispatcherAppealModal appeal={appeal} dispatcherId={dispatcherId} readOnly={readOnly}
-          onClose={() => setModal(false)} {...rest} />
+          onClose={onCloseModal} {...rest} />
       )}
     </article>
   );

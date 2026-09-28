@@ -286,7 +286,7 @@ p.form__label { white-space: normal; }
 .appeal__actions svg { display: block; }
 
 /* Modal */
-.modal { position: fixed; inset: 0; z-index: 15; background: rgba(20, 22, 50, 0.6); display: flex; align-items: center; justify-content: center; padding: var(--s4); }
+.modal { position: fixed; inset: 0; z-index: 15; background: rgba(20, 22, 50, 0.85); backdrop-filter: blur(3px); display: flex; align-items: center; justify-content: center; padding: var(--s4); }
 .modal__sheet { width: 100%; max-width: 440px; max-height: calc(100vh - 2 * var(--s4)); overflow-y: auto; display: flex; flex-direction: column; gap: var(--s2); border-radius: 16px; box-shadow: 0 12px 40px rgba(20, 22, 50, 0.35); }
 .modal__close { align-self: flex-end; display: inline-flex; color: var(--accent); margin: calc(-1 * var(--s1)) 0 0; }
 .modal__subtitle { font-size: 16px; margin-top: var(--s3); }

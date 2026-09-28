@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { createPortal } from "react-dom";
 import { CloseIcon, UserIcon } from "../../components/Icons";
 import { MediaGallery } from "../../components/MediaGallery";
 import { StatusBadge } from "../../components/StatusBadge";
@@ -42,7 +43,7 @@ export function DispatcherAppealModal({ appeal, dispatcherId, readOnly, onClose,
     };
   }, [onClose]);
 
-  return (
+  return createPortal(
     <div className="modal" role="dialog" aria-modal onClick={onClose}>
       <div className="modal__sheet card" onClick={(e) => e.stopPropagation()}>
         <button className="modal__close" aria-label="Закрыть" onClick={onClose}><CloseIcon width={24} height={24} /></button>
@@ -73,6 +74,7 @@ export function DispatcherAppealModal({ appeal, dispatcherId, readOnly, onClose,
         ))}
         {SUPPORTS_FREE_COMMENTS && !readOnly && <CommentForm onSubmit={onComment} />}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

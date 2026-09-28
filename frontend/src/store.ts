@@ -6,13 +6,10 @@
  */
 import type { Appeal, Attachment, Comment, HouseInfo, Notification, PlannedWorkInput } from "./types";
 
-const KEY = "maxito:mock:v9";
+const KEY = "maxito:mock:v10";
 export const delay = <T>(v: T) => new Promise<T>((r) => setTimeout(() => r(v), 150));
 
 export const DISPATCHER = { id: "dispatcher-1", fullName: "Иванова Ольга Сергеевна", houseNumbers: ["3", "5", "8"] };
-
-const demoText =
-  "Уже три дня работает лифт!! Перед этим лифт издавал странные звуки. Я живу на 13 этаже. Подниматься по лестнице пешком невозможно.";
 
 // Демо-данные домов. Реальные адрес, УК, тарифы, телефоны и число жильцов придут с бэкенда.
 const company = {
@@ -63,52 +60,97 @@ const dispatcherComment = (id: number, text: string, createdAt: string): Comment
   id, authorId: DISPATCHER.id, authorName: DISPATCHER.fullName, text, createdAt,
 });
 
+// Демо-житель, от лица которого работает мини-апп вне MAX (см. me() в api/mock.ts) —
+// у него намеренно есть и свежее обращение, ждущее ответа («Дополнить»), и уже
+// закрытое в архиве, чтобы сразу было видно обе ветки сценария.
+const ME = { id: "me", fullName: "Иванов Иван Иванович" };
+
 const seed = (): Appeal[] => [
+  // Дом №3
   {
-    id: 1, createdAt: "2026-09-29T12:48:00", status: "rejected", houseNumber: "3", categoryCode: "lift",
-    reason: "Не работает / стоит", comment: demoText, entrance: 2,
-    authorId: "demo-1", authorName: "Иванов Иван Иванович", likes: 135, likedByMe: false, attachments: [],
-    comments: [dispatcherComment(1001, "Авария вне зоны ответственности УК — лифт обслуживается сервисной компанией напрямую. Заявка передана им.", "2026-09-29T14:10:00")],
+    id: 1, createdAt: "2026-09-27T08:20:00", status: "need_info", houseNumber: "3", categoryCode: "lift",
+    reason: "Не работает / стоит", comment: "Лифт не работает уже третий день, приходится подниматься пешком на тринадцатый этаж.", entrance: 2,
+    authorId: ME.id, authorName: ME.fullName, likes: 6, likedByMe: false, attachments: [],
+    comments: [dispatcherComment(1001, "Уточните, пожалуйста, номер кабины (в подъезде их два) и когда именно лифт перестал работать — заявку направим в лифтовую компанию.", "2026-09-27T10:05:00")],
   },
   {
-    id: 2, createdAt: "2026-09-29T12:48:00", status: "accepted", houseNumber: "3", categoryCode: "lift",
-    reason: "Сильные рывки / посторонние звуки", comment: demoText, entrance: 1,
-    authorId: "demo-2", authorName: "Иванов Иван Иванович", likes: 135, likedByMe: false, attachments: [], comments: [],
+    id: 2, createdAt: "2026-09-20T09:15:00", status: "completed", houseNumber: "3", categoryCode: "water",
+    reason: "Слабый напор", comment: "На верхних этажах второй день очень слабый напор холодной воды.", entrance: 2,
+    authorId: ME.id, authorName: ME.fullName, likes: 4, likedByMe: false, attachments: [],
+    comments: [
+      dispatcherComment(1002, "Направили заявку в водоканал, ожидаем мастера для проверки давления в стояке.", "2026-09-20T11:30:00"),
+      dispatcherComment(1003, "Давление в стояке восстановлено, напор в норме. Если проблема повторится — сообщите.", "2026-09-21T16:45:00"),
+    ],
   },
   {
-    id: 3, createdAt: "2026-09-27T09:10:00", status: "in_progress", houseNumber: "3", categoryCode: "water",
-    reason: "Слабый напор", comment: "Второй день слабый напор воды, на верхних этажах вода почти не идёт.", entrance: 2,
-    authorId: "demo-3", authorName: "Сидоров Пётр Алексеевич", likes: 12, likedByMe: false, attachments: [],
-    comments: [dispatcherComment(1002, "Направили заявку в водоканал, ожидаем мастера.", "2026-09-27T11:00:00")],
+    id: 3, createdAt: "2026-09-25T19:00:00", status: "accepted", houseNumber: "3", categoryCode: "yard",
+    reason: "Не убран мусор / переполнены контейнеры", comment: "Мусорные контейнеры во дворе переполнены уже несколько дней, мусор разбросан вокруг площадки.", entrance: 0,
+    authorId: "resident-32", authorName: "Смирнова Ольга Викторовна", likes: 14, likedByMe: false, attachments: [], comments: [],
   },
   {
-    id: 4, createdAt: "2026-09-26T18:30:00", status: "completed", houseNumber: "3", categoryCode: "yard",
-    reason: "Не убран мусор / переполнены контейнеры", comment: "Контейнеры переполнены, мусор лежит рядом.", entrance: 3,
-    authorId: "demo-4", authorName: "Кузнецова Мария Сергеевна", likes: 7, likedByMe: false, attachments: [],
-    comments: [dispatcherComment(1003, "Мусор вывезен, контейнерная площадка убрана.", "2026-09-26T20:00:00")],
+    id: 4, createdAt: "2026-09-24T14:40:00", status: "in_progress", houseNumber: "3", categoryCode: "entrance",
+    reason: "Сломан домофон / дверь / доводчик", comment: "Домофон в третьем подъезде не реагирует ни на код, ни на звонок с телефона, дверь приходится придерживать вручную.", entrance: 3,
+    authorId: "resident-14", authorName: "Кузнецова Мария Сергеевна", likes: 8, likedByMe: false, attachments: [],
+    comments: [dispatcherComment(1004, "Заявка передана обслуживающей организации, мастер приедет в течение двух рабочих дней.", "2026-09-24T17:20:00")],
   },
   {
-    id: 5, createdAt: "2026-09-25T08:00:00", status: "accepted", houseNumber: "5", categoryCode: "heating",
-    reason: "Холодные батареи", comment: "В квартире холодно, батареи еле тёплые второй день.", entrance: 1,
-    authorId: "demo-5", authorName: "Петров Алексей Николаевич", likes: 21, likedByMe: false, attachments: [], comments: [],
+    id: 5, createdAt: "2026-09-18T21:10:00", status: "rejected", houseNumber: "3", categoryCode: "electricity",
+    reason: "Мигает свет", comment: "Несколько дней подряд по вечерам в квартире слегка мигает свет.", entrance: 4,
+    authorId: "resident-51", authorName: "Ковалёв Дмитрий Сергеевич", likes: 2, likedByMe: false, attachments: [],
+    comments: [dispatcherComment(1005, "Скачков напряжения по дому не зафиксировано, проверка электрощита нарушений не выявила. Если мигание повторится — уточните, пожалуйста, точное время, чтобы сверить с показаниями счётчика.", "2026-09-19T13:00:00")],
+  },
+
+  // Дом №5
+  {
+    id: 6, createdAt: "2026-09-26T07:50:00", status: "accepted", houseNumber: "5", categoryCode: "heating",
+    reason: "Холодные батареи", comment: "Батареи еле тёплые второй день, в квартире стало заметно холоднее.", entrance: 1,
+    authorId: "resident-52", authorName: "Петров Алексей Николаевич", likes: 19, likedByMe: false, attachments: [], comments: [],
   },
   {
-    id: 6, createdAt: "2026-09-24T16:20:00", status: "in_progress", houseNumber: "5", categoryCode: "entrance",
-    reason: "Сломан домофон / дверь / доводчик", comment: "Домофон не открывает дверь, приходится ждать соседей.", entrance: 2,
-    authorId: "demo-6", authorName: "Смирнова Ольга Викторовна", likes: 9, likedByMe: false, attachments: [],
-    comments: [dispatcherComment(1004, "Мастер записан на завтра.", "2026-09-24T18:00:00")],
+    id: 7, createdAt: "2026-09-22T12:00:00", status: "in_progress", houseNumber: "5", categoryCode: "water",
+    reason: "Протечка (стояк, трубы в подъезде)", comment: "На третьем этаже второго подъезда протекает стояк, на стене и потолке видны мокрые пятна.", entrance: 2,
+    authorId: "resident-53", authorName: "Новикова Анна Павловна", likes: 27, likedByMe: false, attachments: [],
+    comments: [
+      dispatcherComment(1006, "Уточните, пожалуйста, рядом с какой квартирой находится протечка — по стояку нужно понять точное место аварии.", "2026-09-22T13:15:00"),
+      { id: 1007, authorId: "resident-53", authorName: "Новикова Анна Павловна", text: "Протечка у стояка рядом с квартирой 34, третий этаж, второй подъезд.", createdAt: "2026-09-22T14:02:00" },
+    ],
   },
   {
-    id: 7, createdAt: "2026-09-23T10:00:00", status: "need_info", houseNumber: "8", categoryCode: "electricity",
-    reason: "Мигает свет", comment: "Свет периодически мигает в квартире и на этаже.", entrance: 0,
-    authorId: "demo-7", authorName: "Ковалёв Дмитрий Сергеевич", likes: 3, likedByMe: false, attachments: [],
-    comments: [dispatcherComment(1005, "Уточните, пожалуйста, номера квартир, где заметили мигание, и время суток.", "2026-09-23T12:30:00")],
+    id: 8, createdAt: "2026-09-19T08:30:00", status: "completed", houseNumber: "5", categoryCode: "yard",
+    reason: "Не чистят снег / наледь", comment: "Во дворе не убирают наледь у подъездов, очень скользко, уже было несколько падений.", entrance: 0,
+    authorId: "resident-54", authorName: "Соколова Екатерина Игоревна", likes: 22, likedByMe: false, attachments: [],
+    comments: [dispatcherComment(1008, "Двор обработан противогололёдным реагентом, наледь у подъездов убрана.", "2026-09-19T12:00:00")],
   },
   {
-    id: 8, createdAt: "2026-09-20T09:40:00", status: "completed", houseNumber: "8", categoryCode: "yard",
-    reason: "Сломаны детские / спортивные площадки", comment: "Сломана качеля на детской площадке, торчит арматура.", entrance: 0,
-    authorId: "demo-8", authorName: "Новикова Анна Павловна", likes: 18, likedByMe: false, attachments: [],
-    comments: [dispatcherComment(1006, "Качеля демонтирована, заказана новая, установим на этой неделе.", "2026-09-20T15:00:00")],
+    id: 9, createdAt: "2026-09-21T17:25:00", status: "in_progress", houseNumber: "5", categoryCode: "lift",
+    reason: "Долго едет / плохо закрываются двери", comment: "Лифт стал заметно медленнее ехать между этажами, а двери закрываются не с первого раза.", entrance: 3,
+    authorId: "resident-51", authorName: "Ковалёв Дмитрий Сергеевич", likes: 5, likedByMe: false, attachments: [],
+    comments: [dispatcherComment(1009, "Заявка передана в лифтовую компанию, диагностику назначили в течение трёх рабочих дней.", "2026-09-21T18:40:00")],
+  },
+
+  // Дом №8
+  {
+    id: 10, createdAt: "2026-09-27T09:05:00", status: "need_info", houseNumber: "8", categoryCode: "electricity",
+    reason: "Нет света в квартире / подъезде / доме", comment: "С самого утра нет света во всём подъезде, лифт тоже не работает.", entrance: 5,
+    authorId: "resident-14", authorName: "Кузнецова Мария Сергеевна", likes: 11, likedByMe: false, attachments: [],
+    comments: [dispatcherComment(1010, "Проверяем: подтвердите, пожалуйста, весь ли подъезд без света или только отдельные квартиры — это поможет понять, авария на вводе или локальная проблема.", "2026-09-27T09:40:00")],
+  },
+  {
+    id: 11, createdAt: "2026-09-17T13:50:00", status: "completed", houseNumber: "8", categoryCode: "yard",
+    reason: "Сломаны детские / спортивные площадки", comment: "На детской площадке сломана качеля, торчит арматура — опасно для детей.", entrance: 0,
+    authorId: "resident-53", authorName: "Новикова Анна Павловна", likes: 31, likedByMe: false, attachments: [],
+    comments: [dispatcherComment(1011, "Качеля демонтирована, заказана новая секция, установка запланирована на этой неделе.", "2026-09-17T16:30:00")],
+  },
+  {
+    id: 12, createdAt: "2026-09-26T06:40:00", status: "accepted", houseNumber: "8", categoryCode: "water",
+    reason: "Нет горячей воды", comment: "Второй день нет горячей воды во всей квартире, из крана идёт только холодная.", entrance: 6,
+    authorId: "resident-54", authorName: "Соколова Екатерина Игоревна", likes: 16, likedByMe: false, attachments: [], comments: [],
+  },
+  {
+    id: 13, createdAt: "2026-09-16T10:10:00", status: "completed", houseNumber: "8", categoryCode: "entrance",
+    reason: "Грязно / не убирают", comment: "В подъезде давно не убирались, на лестничных площадках пыль и мусор.", entrance: 0,
+    authorId: "resident-52", authorName: "Петров Алексей Николаевич", likes: 6, likedByMe: false, attachments: [],
+    comments: [dispatcherComment(1012, "Проведена внеплановая уборка всех этажей подъезда, соблюдение графика клининга взято на контроль.", "2026-09-16T14:00:00")],
   },
 ];
 
@@ -120,10 +162,28 @@ export interface StoredNotification extends Omit<Notification, "unread"> {
 
 const seedNotifications = (): StoredNotification[] => [
   {
-    id: 1901, createdAt: "2026-09-18T12:48:00", houseNumber: "3", entrance: 0, categoryCode: "water",
-    workType: "Отключение горячей воды", from: "2026-09-10T00:00:00", to: "2026-09-16T23:59:00",
-    comment: "Уважаемые жители, в связи с проведением плановых ремонтных работ, в период с 10.09.26 по 16.09.26 в вашем доме будет отключено горячее водоснабжение. Приносим извинения за неудобства.",
+    id: 1901, createdAt: "2026-09-26T10:00:00", houseNumber: "3", entrance: 0, categoryCode: "water",
+    workType: "Опрессовка системы отопления", from: "2026-09-30T09:00:00", to: "2026-09-30T18:00:00",
+    comment: "Уважаемые жители! 30 сентября с 9:00 до 18:00 будет проводиться опрессовка системы отопления. На это время возможны кратковременные отключения горячей воды и снижение давления. Просим заранее закрыть краны на приборах отопления, если они у вас установлены.",
     readBy: [DISPATCHER.id],
+  },
+  {
+    id: 1902, createdAt: "2026-09-25T15:30:00", houseNumber: "5", entrance: 2, categoryCode: "lift",
+    workType: "Плановое техническое обслуживание лифта", from: "2026-09-29T10:00:00", to: "2026-09-29T14:00:00",
+    comment: "29 сентября со 10:00 до 14:00 лифт во втором подъезде будет остановлен для планового технического обслуживания. Просим заранее спланировать поездки и, при необходимости, пользоваться лестницей.",
+    readBy: [DISPATCHER.id],
+  },
+  {
+    id: 1903, createdAt: "2026-09-24T09:00:00", houseNumber: "8", entrance: 0, categoryCode: "electricity",
+    workType: "Плановые работы на электросети", from: "2026-09-28T11:00:00", to: "2026-09-28T15:00:00",
+    comment: "28 сентября с 11:00 до 15:00 электросетевая компания проводит плановые работы на трансформаторной подстанции, обслуживающей дом. Возможно кратковременное отключение электроэнергии. Приносим извинения за неудобства.",
+    readBy: [DISPATCHER.id],
+  },
+  {
+    id: 1904, createdAt: "2026-09-15T11:20:00", houseNumber: "3", entrance: 0, categoryCode: "water",
+    workType: "Отключение горячей воды на летнюю профилактику", from: "2026-09-10T00:00:00", to: "2026-09-16T23:59:00",
+    comment: "В связи с ежегодной гидравлической промывкой и опрессовкой сетей теплоснабжения в период с 10 по 16 сентября в доме будет отключено горячее водоснабжение. Приносим извинения за временные неудобства.",
+    readBy: [DISPATCHER.id, ME.id],
   },
 ];
 

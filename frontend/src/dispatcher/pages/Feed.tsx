@@ -16,6 +16,9 @@ export function Feed() {
   const [appeals, setAppeals] = useState<Appeal[] | null>(null);
   const [failed, setFailed] = useState(false);
   const [archive, setArchive] = useState(false);
+  // Одна открытая модалка на весь список — иначе два быстрых клика по разным
+  // карточкам открывают по своей модалке одновременно, и они рисуются друг на друге.
+  const [openId, setOpenId] = useState<number | null>(null);
 
   useEffect(() => {
     api.getMe().then(setMe).catch(() => setFailed(true));
@@ -60,6 +63,7 @@ export function Feed() {
 
       {me && sorted?.map((a) => (
         <DispatcherAppealCard key={a.id} appeal={a} dispatcherId={me.id} readOnly={archive}
+          open={openId === a.id} onOpen={() => setOpenId(a.id)} onCloseModal={() => setOpenId(null)}
           onComment={(text) => api.addComment(a.id, text).then(replace)}
           onEditComment={(cid, text) => api.editComment(a.id, cid, text).then(replace)}
           onDeleteComment={(cid) => api.deleteComment(a.id, cid).then(replace)}

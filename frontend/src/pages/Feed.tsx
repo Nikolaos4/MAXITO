@@ -16,6 +16,9 @@ export function Feed({ me, initialFeed = "house" }: { me: Me; initialFeed?: Feed
   const [appeals, setAppeals] = useState<Appeal[] | null>(null);
   const [failed, setFailed] = useState(false);
   const [archive, setArchive] = useState(false);
+  // Одна открытая модалка на весь список — иначе два быстрых клика по разным
+  // карточкам открывают по своей модалке одновременно, и они рисуются друг на друге.
+  const [openId, setOpenId] = useState<number | null>(null);
 
   const load = useCallback(() => {
     setAppeals(null);
@@ -57,6 +60,7 @@ export function Feed({ me, initialFeed = "house" }: { me: Me; initialFeed?: Feed
 
       {visible?.map((a) => (
         <AppealCard key={a.id} appeal={a} meId={me.id} readOnly={archive}
+          open={openId === a.id} onOpen={() => setOpenId(a.id)} onCloseModal={() => setOpenId(null)}
           onLike={() => api.toggleLike(a.id).then(replace)} />
       ))}
     </>

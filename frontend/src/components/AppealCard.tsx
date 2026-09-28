@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { categoryByCode } from "../data/categories";
 import { formatDate, formatTime } from "../format";
 import type { Appeal } from "../types";
@@ -13,10 +12,13 @@ interface Props extends AppealHandlers {
   meId: string;
   /** Архивное обращение: без лайков */
   readOnly?: boolean;
+  /** Открыта ли модалка этой карточки — состояние держит список, чтобы одновременно была открыта только одна */
+  open: boolean;
+  onOpen: () => void;
+  onCloseModal: () => void;
 }
 
-export function AppealCard({ appeal, meId, readOnly, ...handlers }: Props) {
-  const [modal, setModal] = useState(false);
+export function AppealCard({ appeal, meId, readOnly, open, onOpen, onCloseModal, ...handlers }: Props) {
   const isOwn = appeal.authorId === meId;
 
   return (
@@ -43,9 +45,9 @@ export function AppealCard({ appeal, meId, readOnly, ...handlers }: Props) {
         </span>
       </footer>
 
-      <button className="link" onClick={() => setModal(true)}>Подробнее</button>
+      <button className="link" onClick={onOpen}>Подробнее</button>
 
-      {modal && <AppealModal appeal={appeal} meId={meId} readOnly={readOnly} onClose={() => setModal(false)} {...handlers} />}
+      {open && <AppealModal appeal={appeal} meId={meId} readOnly={readOnly} onClose={onCloseModal} {...handlers} />}
     </article>
   );
 }

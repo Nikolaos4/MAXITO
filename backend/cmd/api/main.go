@@ -37,9 +37,7 @@ func main() {
 		&models.Resident{},
 		&models.ProblemType{},
 		&models.Reason{},
-		&models.Reason{},
 		&models.Appeal{},
-		&models.AppealStatusChange{},
 		&models.AppealStatusChange{},
 		&models.AppealSubscription{},
 		&models.AppealAttachment{},
@@ -49,11 +47,6 @@ func main() {
 		log.Fatalf("auto migrate failed: %v", err)
 	}
 	log.Println("AutoMigrate completed successfully")
-
-	if err := database.SeedReferenceData(db); err != nil {
-		log.Fatalf("failed to seed reference data: %v", err)
-	}
-	log.Println("Reference data (problem types, reasons) seeded successfully")
 
 	if err := database.SeedReferenceData(db); err != nil {
 		log.Fatalf("failed to seed reference data: %v", err)
@@ -85,7 +78,6 @@ func main() {
 		notificationRepo, notifReadRepo, houseRepo, problemTypeRepo, reasonRepo,
 	)
 
-	// Handlers — Представитель
 	// Handlers — Представитель
 	houseHandler := representative.NewHouseHandler(houseRepo, repSvc)
 	dispatcherMgmtHandler := representative.NewDispatcherHandler(repSvc, userRepo)
@@ -189,6 +181,7 @@ func main() {
 			res.GET("/appeals/:id", residentAppealHandler.GetAppeal)
 			res.POST("/appeals/:id/like", residentAppealHandler.Like)
 			res.DELETE("/appeals/:id/like", residentAppealHandler.Unlike)
+			res.POST("/appeals/:id/reply", residentAppealHandler.ReplyNeedInfo)
 
 			// Уведомления
 			res.GET("/notifications", residentNotificationHandler.ListNotifications)
