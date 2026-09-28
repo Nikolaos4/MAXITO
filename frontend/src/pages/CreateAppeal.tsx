@@ -56,12 +56,14 @@ const todayIso = () => {
 };
 
 /**
- * Если бот уже передал код темы, выбор темы пропускаем. ?category=lift — при
- * переходе по обычной ссылке; startTab — третий сегмент start_param диплинка
- * ("resident:create:lift"), см. parseStartPayload() в page.ts.
+ * Если бот уже передал код темы, выбор темы пропускаем. startTab — третий
+ * сегмент start_param диплинка ("resident:create:elevator", см.
+ * parseStartPayload() в page.ts) — в приоритете; ?category=elevator — запасной
+ * вариант при переходе по обычной ссылке вне MAX (см. ту же причину
+ * приоритета, что и в resolveInitialTab).
  */
 export function resolveCategoryCode(startTab?: string): string | null {
-  return new URLSearchParams(window.location.search).get("category") ?? startTab ?? null;
+  return startTab ?? new URLSearchParams(window.location.search).get("category") ?? null;
 }
 
 function AppealForm({ category, me, onBack, onDone, onViewExisting }: {
@@ -107,7 +109,14 @@ function AppealForm({ category, me, onBack, onDone, onViewExisting }: {
         const now = new Date().toISOString();
         return n.from <= now && now <= n.to;
       });
-  const errors = { entrance: !entrance, date: !date, time: !time, reason: category.freeText ? !customReason.trim() : !reason };
+  const errors = {
+    entrance: !entrance, date: !date, time: !time,
+    reason: category.freeText ? !customReason.trim() : !reason,
+    // Бэкенд требует description (см. CreateAppealRequest в resident/appeal.go) —
+    // без этой проверки форма позволяла отправить пустой комментарий и падала
+    // с ошибкой валидации только после запроса на сервер.
+    comment: !comment.trim(),
+  };
   const invalid = Object.values(errors).some(Boolean) || duplicate || !!blockingNotification;
   const show = (k: keyof typeof errors) => tried && errors[k];
 
@@ -193,8 +202,9 @@ function AppealForm({ category, me, onBack, onDone, onViewExisting }: {
         )}
 
         <p className="form__label">Комментарий</p>
-        <textarea className="field field--textarea" placeholder="Введите текст" value={comment}
+        <textarea className={`field field--textarea${show("comment") ? " is-error" : ""}`} placeholder="Введите текст" value={comment}
           maxLength={1000} onChange={(e) => setComment(e.target.value)} />
+        {show("comment") && <p className="form__error">Опишите проблему</p>}
 
         {SUPPORTS_ATTACHMENTS && (
           <>

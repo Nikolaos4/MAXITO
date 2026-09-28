@@ -30,14 +30,21 @@ export function parseStartPayload(): { role?: StartRole; tab?: string; extra?: s
 }
 
 /**
- * Определяет, с какой вкладки открыть мини-апп — по ?page=... в ссылке или,
- * если приложение открыто изнутри MAX, по вкладке из start_param бота. Так
+ * Определяет, с какой вкладки открыть мини-апп — по вкладке из start_param
+ * бота (если приложение открыто изнутри MAX) или по ?page=... в ссылке. Так
  * бот может прислать житителю/диспетчеру прямую ссылку на нужный раздел, а
  * не всегда открывать его с первой вкладки.
+ *
+ * start_param в приоритете: он приходит из подписанного диплинка конкретно
+ * для этого запуска, а ?page=... в адресной строке — это то, что записал
+ * syncTabToUrl при предыдущем открытии (или зашито в базовый URL мини-аппа
+ * при регистрации в MAX) — без приоритета start_param диплинк на другую
+ * вкладку молча перебивался бы этим старым/статическим значением, и
+ * приложение всегда открывалось бы на одной и той же вкладке.
  */
 export function resolveInitialTab<T extends string>(validTabs: readonly T[], fallback: T, startTab?: string): T {
   const fromUrl = new URLSearchParams(window.location.search).get("page");
-  const candidate = fromUrl ?? startTab;
+  const candidate = startTab ?? fromUrl;
   return (validTabs as readonly string[]).includes(candidate ?? "") ? (candidate as T) : fallback;
 }
 
