@@ -263,6 +263,10 @@ export const api = {
     },
 
     dispatcher: {
+        houses: {
+            list: (auth: Auth) => request<ApiHouse[]>("/dispatcher/houses", auth),
+        },
+
         reference: {
             problemTypes: (auth: Auth) => request<ApiProblemType[]>("/dispatcher/problem-types", auth),
 
