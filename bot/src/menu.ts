@@ -11,6 +11,9 @@ export const mainMenuKeyboard = Keyboard.inlineKeyboard([
     [Keyboard.button.callback("Загрузить диспетчеров из CSV", "menu:import_dispatchers")],
     [Keyboard.button.callback("Назначить дома диспетчерам", "menu:assign_houses")],
     [Keyboard.button.callback("Загрузить жителей из CSV", "menu:import_residents")],
+    [Keyboard.button.callback("Реквизиты УК", "menu:edit_company")],
+    [Keyboard.button.callback("Аварийные службы: список", "menu:show_emergency")],
+    [Keyboard.button.callback("Загрузить аварийные службы из CSV", "menu:import_emergency")],
 ]);
 
 export const backToMenuKeyboard = Keyboard.inlineKeyboard([[Keyboard.button.callback("В главное меню", "menu:show")]]);

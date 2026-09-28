@@ -64,7 +64,11 @@ async function handleEntrancesCount(ctx: AppContext, text: string) {
     const number = session.data.number as string;
 
     try {
-        const house = await api.representative.houses.create(authFor(ctx), { address, number, entrances_count: entrancesCount });
+        const house = await api.representative.houses.create(authFor(ctx), {
+            address,
+            number,
+            entrances_count: entrancesCount,
+        });
         clearFlow(ctx.user.user_id);
         await ctx.reply(`Дом добавлен: ${house.address}${house.number ? ", " + house.number : ""} (id ${house.id}).`, {
             attachments: [backToMenuKeyboard],
@@ -96,7 +100,9 @@ async function handleImportCsv(ctx: AppContext) {
     } catch (err) {
         const status = err instanceof FetchError ? err.statusCode : undefined;
         if (status === 400) {
-            await ctx.reply('Не удалось разобрать файл: проверьте формат и колонки "address", "entrances_count".');
+            await ctx.reply(
+                'Не удалось разобрать файл: проверьте формат и колонки "address", "entrances_count" (необязательные — "floors_count", "construction_year").',
+            );
         } else {
             await ctx.reply("Не удалось загрузить дома, попробуйте позже.");
         }
@@ -117,7 +123,10 @@ async function handleImportResidentsCsv(ctx: AppContext) {
 
     try {
         const data = await downloadFile(file.payload.url);
-        const report = await api.representative.residents.importCsv(authFor(ctx), houseId, { data, filename: file.filename });
+        const report = await api.representative.residents.importCsv(authFor(ctx), houseId, {
+            data,
+            filename: file.filename,
+        });
         clearFlow(ctx.user.user_id);
         await ctx.reply(formatImportReport(report), { attachments: [backToMenuKeyboard] });
     } catch (err) {
@@ -144,7 +153,10 @@ export const houseFlow = {
             const page = Number(payload.slice("house_residents_page:".length));
             const totalPages = Math.max(1, Math.ceil(houses.length / HOUSES_PAGE_SIZE));
             await ctx.answerOnCallback({
-                message: { text: houseSelectText(page, totalPages), attachments: [buildHouseSelectKeyboard(houses, page)] },
+                message: {
+                    text: houseSelectText(page, totalPages),
+                    attachments: [buildHouseSelectKeyboard(houses, page)],
+                },
             });
             return true;
         }
