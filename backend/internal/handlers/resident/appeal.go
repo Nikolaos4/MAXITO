@@ -13,7 +13,6 @@ import (
 	"maxito/internal/util"
 
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 )
 
 // parseStatusList — та же логика, что в handlers/dispatcher/appeal.go;
@@ -176,45 +175,6 @@ func (h *AppealHandler) Like(c *gin.Context) {
 		return
 	}
 	c.Status(http.StatusNoContent)
-}
-
-type ReplyNeedInfoRequest struct {
-	Comment string `json:"comment" binding:"required"`
-}
-
-// ReplyNeedInfo — житель отвечает на запрос диспетчера "нужна доп. информация"
-// по своему обращению (статус need_info); статус автоматически переходит
-// обратно в "in_progress".
-func (h *AppealHandler) ReplyNeedInfo(c *gin.Context) {
-	currentUser := middleware.GetCurrentUser(c)
-	if currentUser == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
-		return
-	}
-
-	appealID, err := strconv.ParseUint(c.Param("id"), 10, 64)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid appeal id"})
-		return
-	}
-
-	var req ReplyNeedInfoRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	change, err := h.svc.ReplyNeedInfo(currentUser.ID, uint(appealID), req.Comment)
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			c.JSON(http.StatusNotFound, gin.H{"error": "appeal not found"})
-			return
-		}
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, change)
 }
 
 // Unlike — снять лайк.

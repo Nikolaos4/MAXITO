@@ -110,7 +110,6 @@ type Resident struct {
 }
 
 // ProblemType — тема обращения/уведомления (Лифт, Вода, Подъезд и т.д.)
-// ProblemType — тема обращения/уведомления (Лифт, Вода, Подъезд и т.д.)
 type ProblemType struct {
 	ID         uint      `gorm:"primaryKey" json:"id"`
 	Code       string    `gorm:"uniqueIndex;size:50;not null" json:"code"` // код нужен для простоты определения проблемы
@@ -134,8 +133,6 @@ type Reason struct {
 	CreatedAt     time.Time `json:"created_at"`
 
 	ProblemType ProblemType `gorm:"foreignKey:ProblemTypeID" json:"-"`
-
-	Reasons []Reason `gorm:"foreignKey:ProblemTypeID" json:"reasons,omitempty"`
 }
 
 // Appeal
@@ -210,10 +207,6 @@ type AppealSubscription struct {
 	User   *User  `gorm:"foreignKey:UserID" json:"user,omitempty"`
 }
 
-// Notification — плановое уведомление диспетчера. Пока действует
-// (StartsAt..EndsAt) и покрывает дом/подъезд, оно блокирует создание новых
-// обращений жителей по той же теме и причине (кроме случая, когда тема
-// или причина — "Другое", см. ProblemTypeCodeOther и Reason.IsOther).
 // Notification — плановое уведомление диспетчера. Пока действует
 // (StartsAt..EndsAt) и покрывает дом/подъезд, оно блокирует создание новых
 // обращений жителей по той же теме и причине (кроме случая, когда тема

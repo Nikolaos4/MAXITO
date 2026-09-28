@@ -3,7 +3,7 @@ import { env } from "@/env";
 
 export type ApiRole = "representative" | "dispatcher" | "resident";
 
-export type Auth = { maxUserId: string; phone?: string };
+export type Auth = { maxUserId: string };
 
 type ApiUser = {
     id: number;
@@ -61,17 +61,25 @@ export type ImportReport = {
     rows: ImportRowResult[];
 };
 
-function authHeaders(auth: Auth): Record<string, string> {
-    const headers: Record<string, string> = { "X-Max-User-Id": auth.maxUserId };
-    if (auth.phone) headers["X-Max-User-Phone"] = auth.phone;
-    return headers;
-}
+const baseURL = `${env.API_BASE_URL}/api/v1`;
+const internalHeaders = { "X-Internal-Key": env.INTERNAL_API_KEY };
 
+// Бот — доверенная сторона: общий INTERNAL_API_KEY + id пользователя MAX, без JWT.
 function request<T>(path: string, auth: Auth, opts?: Parameters<typeof ofetch<T>>[1]) {
     return ofetch<T>(path, {
-        baseURL: `${env.API_BASE_URL}/api/v1`,
+        baseURL,
         ...opts,
-        headers: { ...authHeaders(auth), ...opts?.headers },
+        headers: { ...internalHeaders, "X-Max-User-Id": auth.maxUserId, ...opts?.headers },
+    });
+}
+
+// Привязка аккаунта MAX к пользователю по телефону (после «поделиться контактом»).
+function bind(maxUserId: string, phone: string) {
+    return ofetch("/internal/bind", {
+        baseURL,
+        method: "POST",
+        headers: internalHeaders,
+        body: { phone, max_user_id: maxUserId },
     });
 }
 
@@ -192,6 +200,8 @@ type ApiNotification = {
 };
 
 export const api = {
+    bind,
+
     me: (auth: Auth) => request<ApiMe>("/me", auth),
 
     representative: {
