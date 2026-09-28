@@ -1,3 +1,4 @@
+import { categoryByCode } from "../data/categories";
 import { formatDate, formatShortDate, formatTime } from "../format";
 import type { Notification } from "../types";
 
@@ -14,8 +15,9 @@ export function NotificationCard({ n, location }: { n: Notification; location?: 
       </header>
 
       {location && <p className="appeal__house">{location}</p>}
-      <h3 className="appeal__title">{n.workType}</h3>
-      <p className="appeal__reason">С {formatShortDate(n.from)} по {formatShortDate(n.to)}</p>
+      <h3 className="appeal__title">{categoryByCode(n.categoryCode).title}</h3>
+      <p className="appeal__reason">{n.workType}</p>
+      <p className="notification__period">С {formatShortDate(n.from)} по {formatShortDate(n.to)}</p>
       {n.comment && <p className="appeal__text">{n.comment}</p>}
     </article>
   );
