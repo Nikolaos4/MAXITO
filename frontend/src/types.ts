@@ -33,6 +33,8 @@ export interface Appeal {
   /** Номер дома — обращения разных домов видит только диспетчер */
   houseNumber: string;
   categoryCode: string;
+  /** Название темы — всегда берём отсюда, а не по categoryCode локальным словарём (коды фронта и бэкенда могут не совпадать) */
+  categoryTitle: string;
   reason: string;
   comment: string;
   /** 0 — весь дом */
@@ -142,6 +144,8 @@ export interface Notification {
   /** 0 — весь дом */
   entrance: number;
   categoryCode: string;
+  /** Название темы — так же, как у Appeal.categoryTitle */
+  categoryTitle: string;
   workType: string;
   comment: string;
   /** ISO, начало работ */

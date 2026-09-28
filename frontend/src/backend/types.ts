@@ -92,6 +92,8 @@ export interface BackendAppeal {
   problem_type?: BackendProblemType;
   reason?: BackendReason;
   likes_count?: number;
+  /** Лайкнул ли обращение сам текущий пользователь — считает бэкенд, не клиент (см. AppealListItem/ResidentAppealDetail) */
+  liked_by_me?: boolean;
   history?: BackendAppealStatusChange[];
 }
 

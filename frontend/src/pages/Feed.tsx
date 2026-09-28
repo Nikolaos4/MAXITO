@@ -61,7 +61,7 @@ export function Feed({ me, initialFeed = "house" }: { me: Me; initialFeed?: Feed
       {visible?.map((a) => (
         <AppealCard key={a.id} appeal={a} meId={me.id} readOnly={archive}
           open={openId === a.id} onOpen={() => setOpenId(a.id)} onCloseModal={() => setOpenId(null)}
-          onLike={() => api.toggleLike(a.id).then(replace)} />
+          onLike={() => api.toggleLike(a.id, a.likedByMe).then(replace)} />
       ))}
     </>
   );

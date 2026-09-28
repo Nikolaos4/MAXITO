@@ -1,6 +1,6 @@
 import { getMaxUser } from "../max";
 import { countUnread, delay, findAppeal, houseByNumber, markNotificationsRead, nextId, notificationView, refresh, save, sortNotifications, store, toAttachment } from "../store";
-import { CATEGORIES } from "../data/categories";
+import { CATEGORIES, categoryByCode } from "../data/categories";
 import type { HouseInfo, Me } from "../types";
 import type { Api } from "./types";
 
@@ -33,7 +33,8 @@ export const mockApi: Api = {
     const attachments = await Promise.all(input.files.map(toAttachment));
     const appeal = {
       id: nextId(), createdAt: new Date().toISOString(), status: "accepted" as const, houseNumber: m.houseNumber,
-      categoryCode: input.categoryCode, reason: input.reason, comment: input.comment,
+      categoryCode: input.categoryCode, categoryTitle: categoryByCode(input.categoryCode).title,
+      reason: input.reason, comment: input.comment,
       entrance: input.entrance, authorId: m.id, authorName: m.fullName, likes: 0, likedByMe: false, attachments, comments: [],
     };
     store.appeals.unshift(appeal);
@@ -42,6 +43,8 @@ export const mockApi: Api = {
   },
 
   toggleLike: (id) => {
+    // currentlyLiked (второй параметр интерфейса) моку не нужен — здесь
+    // единственный источник истины уже сам store, а не локальный флаг.
     const a = findAppeal(id);
     if (a.authorId === me().id) throw new Error("Нельзя лайкать своё обращение");
     a.likedByMe = !a.likedByMe;

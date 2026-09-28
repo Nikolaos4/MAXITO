@@ -1,6 +1,5 @@
 import { useEffect } from "react";
 import { createPortal } from "react-dom";
-import { categoryByCode } from "../data/categories";
 import { formatDate, formatTime } from "../format";
 import type { Appeal } from "../types";
 import { LikeButton } from "./Comments";
@@ -46,7 +45,7 @@ export function AppealModal({ appeal, meId, readOnly, onClose, onLike }: Props) 
           <StatusBadge status={appeal.status} />
         </header>
 
-        <h3 className="appeal__title">{categoryByCode(appeal.categoryCode).title}</h3>
+        <h3 className="appeal__title">{appeal.categoryTitle}</h3>
         <div className="appeal__subtitle"><span className="appeal__reason">{appeal.reason}</span></div>
         {appeal.comment && <p className="appeal__text">{appeal.comment}</p>}
         {appeal.attachments.length > 0 && <MediaGallery items={appeal.attachments} />}
