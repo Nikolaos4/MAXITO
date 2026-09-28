@@ -3,6 +3,24 @@ import { getStartParam } from "./max";
 export type StartRole = "resident" | "dispatcher";
 
 /**
+ * MAX проверяет payload open_app-кнопки регуляркой и не пропускает ":" (см.
+ * miniAppButton в bot/src/miniapp.ts), поэтому бот кодирует "role:tab[:extra]"
+ * в base64url перед отправкой кнопки — здесь декодируем обратно. Если строка
+ * не декодируется (например, локальный тест с ?category=... без бота), просто
+ * возвращаем её как есть — тогда ниже indexOf(":") не найдёт разделителей и
+ * parseStartPayload корректно отдаст {}.
+ */
+function decodeStartPayload(raw: string): string {
+  try {
+    let base64 = raw.replace(/-/g, "+").replace(/_/g, "/");
+    while (base64.length % 4) base64 += "=";
+    return atob(base64);
+  } catch {
+    return raw;
+  }
+}
+
+/**
  * Бот кодирует в start_param диплинка роль, вкладку и опционально доп. данные
  * одной строкой — "resident:feed" / "resident:create:elevator" — так фронт
  * может выбрать нужное приложение сразу, без похода в бэк за ролью (см.
@@ -10,8 +28,9 @@ export type StartRole = "resident" | "dispatcher";
  * чтобы сам код темы (или что угодно ещё) мог включать двоеточие.
  */
 export function parseStartPayload(): { role?: StartRole; tab?: string; extra?: string } {
-  const raw = getStartParam();
-  if (!raw) return {};
+  const rawParam = getStartParam();
+  if (!rawParam) return {};
+  const raw = decodeStartPayload(rawParam);
 
   const roleSep = raw.indexOf(":");
   if (roleSep === -1) return {};
