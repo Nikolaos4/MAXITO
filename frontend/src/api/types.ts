@@ -7,8 +7,8 @@ export interface Api {
   getCategories(): Promise<Category[]>;
   listAppeals(feed: Feed): Promise<Appeal[]>;
   createAppeal(input: CreateAppealInput): Promise<Appeal>;
-  /** Возвращает обновлённое обращение */
-  toggleLike(appealId: number): Promise<Appeal>;
+  /** Возвращает обновлённое обращение. currentlyLiked — текущее Appeal.likedByMe, определяет лайк это или снятие лайка */
+  toggleLike(appealId: number, currentlyLiked: boolean): Promise<Appeal>;
   listNotifications(feed: NotificationFeed): Promise<Notification[]>;
   getUnreadNotificationsCount(): Promise<number>;
   markNotificationsRead(ids: number[]): Promise<void>;

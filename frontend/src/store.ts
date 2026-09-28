@@ -4,6 +4,7 @@
  * поэтому обе роли читают и пишут один и тот же ключ localStorage, как будто
  * это общий бэкенд. Реальный бэкенд должен заменить этот файл целиком.
  */
+import { categoryByCode } from "./data/categories";
 import type { Appeal, Attachment, Comment, HouseInfo, Notification, PlannedWorkInput } from "./types";
 
 const KEY = "maxito:mock:v10";
@@ -65,7 +66,8 @@ const dispatcherComment = (id: number, text: string, createdAt: string): Comment
 // чтобы сразу было видно обе ветки сценария.
 const ME = { id: "me", fullName: "Иванов Иван Иванович" };
 
-const seed = (): Appeal[] => [
+const seed = (): Appeal[] => (
+  [
   // Дом №3
   {
     id: 1, createdAt: "2026-09-27T08:20:00", status: "in_progress", houseNumber: "3", categoryCode: "lift",
@@ -152,7 +154,8 @@ const seed = (): Appeal[] => [
     authorId: "resident-52", authorName: "Петров Алексей Николаевич", likes: 6, likedByMe: false, attachments: [],
     comments: [dispatcherComment(1012, "Проведена внеплановая уборка всех этажей подъезда, соблюдение графика клининга взято на контроль.", "2026-09-16T14:00:00")],
   },
-];
+  ] as Omit<Appeal, "categoryTitle">[]
+).map((a) => ({ ...a, categoryTitle: categoryByCode(a.categoryCode).title }));
 
 /** Внутреннее хранимое уведомление: readBy не отдаётся клиенту напрямую, из него считается Notification.unread. */
 export interface StoredNotification extends Omit<Notification, "unread"> {
@@ -160,7 +163,8 @@ export interface StoredNotification extends Omit<Notification, "unread"> {
   readBy: string[];
 }
 
-const seedNotifications = (): StoredNotification[] => [
+const seedNotifications = (): StoredNotification[] => (
+  [
   {
     id: 1901, createdAt: "2026-09-26T10:00:00", houseNumber: "3", entrance: 0, categoryCode: "water",
     workType: "Опрессовка системы отопления", reason: "Опрессовка системы отопления", from: "2026-09-30T09:00:00", to: "2026-09-30T18:00:00",
@@ -185,7 +189,8 @@ const seedNotifications = (): StoredNotification[] => [
     comment: "В связи с ежегодной гидравлической промывкой и опрессовкой сетей теплоснабжения в период с 10 по 16 сентября в доме будет отключено горячее водоснабжение. Приносим извинения за временные неудобства.",
     readBy: [DISPATCHER.id, ME.id],
   },
-];
+  ] as Omit<StoredNotification, "categoryTitle">[]
+).map((n) => ({ ...n, categoryTitle: categoryByCode(n.categoryCode).title }));
 
 export interface Store { appeals: Appeal[]; notifications: StoredNotification[]; nextId: number }
 
@@ -272,6 +277,7 @@ export function createNotification(input: PlannedWorkInput): StoredNotification 
   const n: StoredNotification = {
     id: nextId(), createdAt: new Date().toISOString(),
     houseNumber: input.houseNumber, entrance: input.entrance, categoryCode: input.categoryCode,
+    categoryTitle: categoryByCode(input.categoryCode).title,
     workType: input.workType, reason: input.workType, comment: input.comment, from: input.from, to: input.to,
     readBy: [DISPATCHER.id],
   };

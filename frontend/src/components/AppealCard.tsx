@@ -1,4 +1,3 @@
-import { categoryByCode } from "../data/categories";
 import { formatDate, formatTime } from "../format";
 import type { Appeal } from "../types";
 import { AppealModal, type AppealHandlers } from "./AppealModal";
@@ -28,7 +27,7 @@ export function AppealCard({ appeal, meId, readOnly, open, onOpen, onCloseModal,
         <StatusBadge status={appeal.status} />
       </header>
 
-      <h3 className="appeal__title">{categoryByCode(appeal.categoryCode).title}</h3>
+      <h3 className="appeal__title">{appeal.categoryTitle}</h3>
 
       <div className="appeal__subtitle">
         <span className="appeal__reason">{appeal.reason}</span>

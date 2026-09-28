@@ -3,7 +3,6 @@ import { createPortal } from "react-dom";
 import { CloseIcon, UserIcon } from "../../components/Icons";
 import { MediaGallery } from "../../components/MediaGallery";
 import { StatusBadge } from "../../components/StatusBadge";
-import { categoryByCode } from "../../data/categories";
 import { isTerminalStatus } from "../../data/status";
 import { formatDate, formatTime } from "../../format";
 import type { Appeal, ChangeStatusInput } from "../../types";
@@ -54,7 +53,7 @@ export function DispatcherAppealModal({ appeal, dispatcherId, readOnly, onClose,
         </header>
 
         <p className="appeal__house">Дом №{appeal.houseNumber}{appeal.entrance > 0 && ` · подъезд ${appeal.entrance}`}</p>
-        <h3 className="appeal__title">{categoryByCode(appeal.categoryCode).title}</h3>
+        <h3 className="appeal__title">{appeal.categoryTitle}</h3>
         <div className="appeal__subtitle"><span className="appeal__reason">{appeal.reason}</span></div>
         {appeal.comment && <p className="appeal__text">{appeal.comment}</p>}
         {appeal.attachments.length > 0 && <MediaGallery items={appeal.attachments} />}

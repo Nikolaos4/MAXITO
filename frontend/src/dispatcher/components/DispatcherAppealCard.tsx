@@ -1,5 +1,4 @@
 import { Chip } from "../../components/Chip";
-import { categoryByCode } from "../../data/categories";
 import { formatDate, formatTime, plural } from "../../format";
 import { MediaGallery } from "../../components/MediaGallery";
 import { StatusBadge } from "../../components/StatusBadge";
@@ -45,7 +44,7 @@ export function DispatcherAppealCard({ appeal, dispatcherId, readOnly, open, onO
       </header>
 
       <p className="appeal__house">Дом №{appeal.houseNumber}{appeal.entrance > 0 && ` · подъезд ${appeal.entrance}`}</p>
-      <h3 className="appeal__title">{categoryByCode(appeal.categoryCode).title}</h3>
+      <h3 className="appeal__title">{appeal.categoryTitle}</h3>
 
       <div className="appeal__subtitle">
         <span className="appeal__reason">{appeal.reason}</span>

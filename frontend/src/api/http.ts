@@ -1,5 +1,5 @@
 import { loadCategories, type ResolvedCategories } from "../backend/categories";
-import { isMarked, mark, unmark } from "../backend/localFlags";
+import { isMarked, mark } from "../backend/localFlags";
 import { backendRequest, BackendError } from "../backend/request";
 import type { BackendAppeal, BackendMe, BackendNotification } from "../backend/types";
 import { getMaxUser } from "../max";
@@ -7,7 +7,6 @@ import type { Appeal, Comment, HouseInfo, Me, Notification } from "../types";
 import type { Api } from "./types";
 
 const userId = () => getMaxUser()?.id ?? "me";
-const likedFlagKey = (uid: string) => `maxito:liked:${uid}`;
 const seenNotifKey = (uid: string) => `maxito:seen-notif:${uid}`;
 
 // Темы/причины запрашиваются один раз за сессию и переиспользуются —
@@ -27,13 +26,18 @@ function adaptAppeal(a: BackendAppeal): Appeal {
     status: a.status,
     houseNumber: String(a.house_id),
     categoryCode: a.problem_type?.code ?? "",
+    categoryTitle: a.problem_type?.title ?? "",
     reason: a.reason?.title ?? "",
     comment: a.description,
     entrance: a.entrance_number ?? 0,
     authorId: String(a.author_id),
     authorName: a.author?.full_name ?? "",
     likes: a.likes_count ?? 0,
-    likedByMe: isMarked(likedFlagKey(userId()), a.id),
+    // Бэкенд сам знает, лайкал ли это обращение текущий авторизованный
+    // пользователь (liked_by_me в ответе) — раньше здесь спрашивали локальный
+    // флаг в браузере, из-за чего сердечко могло быть закрашено не для того,
+    // кто реально лайкнул (или наоборот) на любом другом устройстве/вкладке.
+    likedByMe: a.liked_by_me ?? false,
     // Бэкенд не хранит фото/видео жителя и свободные комментарии диспетчера
     // отдельно от истории смены статуса — жителю их и не показывали.
     attachments: [],
@@ -50,6 +54,7 @@ async function adaptNotification(n: BackendNotification): Promise<Notification> 
     houseNumber: String(n.house_id),
     entrance: n.scope_type === "entrance" ? (n.entrance_number ?? 0) : 0,
     categoryCode: info?.categoryCode ?? "",
+    categoryTitle: info?.categoryTitle ?? "",
     workType: n.title || info?.reasonTitle || info?.categoryTitle || "Уведомление",
     reason: info?.reasonTitle ?? "",
     comment: n.body,
@@ -124,24 +129,25 @@ export const httpApi: Api = {
       ...created,
       house_id: created.house_id ?? Number(m.houseNumber),
       author: { id: Number(m.id), phone: "", full_name: m.fullName, role: "resident", is_active: true },
-      problem_type: { id: cats.problemTypeId(input.categoryCode) ?? 0, code: input.categoryCode, title: "", is_critical: false },
+      problem_type: {
+        id: cats.problemTypeId(input.categoryCode) ?? 0,
+        code: input.categoryCode,
+        title: cats.categories.find((c) => c.code === input.categoryCode)?.title ?? "",
+        is_critical: false,
+      },
       reason: { id: 0, problem_type_id: 0, code: "", title: isFreeText ? input.reason : input.reason, is_other: !!isFreeText },
     });
   },
 
-  toggleLike: async (id) => {
-    const uid = userId();
-    const key = likedFlagKey(uid);
-    if (isMarked(key, id)) {
+  toggleLike: async (id, currentlyLiked) => {
+    if (currentlyLiked) {
       await backendRequest(`/resident/appeals/${id}/like`, { method: "DELETE" });
-      unmark(key, id);
     } else {
       try {
         await backendRequest(`/resident/appeals/${id}/like`, { method: "POST" });
       } catch (e) {
         if (!(e instanceof BackendError)) throw e;
       }
-      mark(key, [id]);
     }
     const detail = await backendRequest<BackendAppeal>(`/resident/appeals/${id}`);
     return adaptAppeal(detail);
