@@ -56,6 +56,7 @@ async function adaptNotification(n: BackendNotification): Promise<Notification> 
     categoryCode: info?.categoryCode ?? "",
     categoryTitle: info?.categoryTitle ?? "",
     workType: n.title || info?.reasonTitle || info?.categoryTitle || "Уведомление",
+    reason: info?.reasonTitle ?? "",
     comment: n.body,
     from: n.starts_at,
     to: n.ends_at,

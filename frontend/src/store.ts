@@ -167,25 +167,25 @@ const seedNotifications = (): StoredNotification[] => (
   [
   {
     id: 1901, createdAt: "2026-09-26T10:00:00", houseNumber: "3", entrance: 0, categoryCode: "water",
-    workType: "Опрессовка системы отопления", from: "2026-09-30T09:00:00", to: "2026-09-30T18:00:00",
+    workType: "Опрессовка системы отопления", reason: "Опрессовка системы отопления", from: "2026-09-30T09:00:00", to: "2026-09-30T18:00:00",
     comment: "Уважаемые жители! 30 сентября с 9:00 до 18:00 будет проводиться опрессовка системы отопления. На это время возможны кратковременные отключения горячей воды и снижение давления. Просим заранее закрыть краны на приборах отопления, если они у вас установлены.",
     readBy: [DISPATCHER.id],
   },
   {
     id: 1902, createdAt: "2026-09-25T15:30:00", houseNumber: "5", entrance: 2, categoryCode: "lift",
-    workType: "Плановое техническое обслуживание лифта", from: "2026-09-29T10:00:00", to: "2026-09-29T14:00:00",
+    workType: "Плановое техническое обслуживание лифта", reason: "Плановое техническое обслуживание лифта", from: "2026-09-29T10:00:00", to: "2026-09-29T14:00:00",
     comment: "29 сентября со 10:00 до 14:00 лифт во втором подъезде будет остановлен для планового технического обслуживания. Просим заранее спланировать поездки и, при необходимости, пользоваться лестницей.",
     readBy: [DISPATCHER.id],
   },
   {
     id: 1903, createdAt: "2026-09-24T09:00:00", houseNumber: "8", entrance: 0, categoryCode: "electricity",
-    workType: "Плановые работы на электросети", from: "2026-09-28T11:00:00", to: "2026-09-28T15:00:00",
+    workType: "Плановые работы на электросети", reason: "Плановые работы на электросети", from: "2026-09-28T11:00:00", to: "2026-09-28T15:00:00",
     comment: "28 сентября с 11:00 до 15:00 электросетевая компания проводит плановые работы на трансформаторной подстанции, обслуживающей дом. Возможно кратковременное отключение электроэнергии. Приносим извинения за неудобства.",
     readBy: [DISPATCHER.id],
   },
   {
     id: 1904, createdAt: "2026-09-15T11:20:00", houseNumber: "3", entrance: 0, categoryCode: "water",
-    workType: "Отключение горячей воды на летнюю профилактику", from: "2026-09-10T00:00:00", to: "2026-09-16T23:59:00",
+    workType: "Отключение горячей воды на летнюю профилактику", reason: "Отключение горячей воды на летнюю профилактику", from: "2026-09-10T00:00:00", to: "2026-09-16T23:59:00",
     comment: "В связи с ежегодной гидравлической промывкой и опрессовкой сетей теплоснабжения в период с 10 по 16 сентября в доме будет отключено горячее водоснабжение. Приносим извинения за временные неудобства.",
     readBy: [DISPATCHER.id, ME.id],
   },
@@ -278,7 +278,7 @@ export function createNotification(input: PlannedWorkInput): StoredNotification 
     id: nextId(), createdAt: new Date().toISOString(),
     houseNumber: input.houseNumber, entrance: input.entrance, categoryCode: input.categoryCode,
     categoryTitle: categoryByCode(input.categoryCode).title,
-    workType: input.workType, comment: input.comment, from: input.from, to: input.to,
+    workType: input.workType, reason: input.workType, comment: input.comment, from: input.from, to: input.to,
     readBy: [DISPATCHER.id],
   };
   store.notifications.unshift(n);

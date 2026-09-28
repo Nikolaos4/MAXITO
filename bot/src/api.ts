@@ -20,6 +20,7 @@ type ApiHouse = {
     id: number;
     address: string;
     number: string;
+    entrances_count: number;
     chat_invite_link?: string | null;
     created_at: string;
     updated_at: string;
@@ -263,6 +264,10 @@ export const api = {
     },
 
     dispatcher: {
+        houses: {
+            list: (auth: Auth) => request<ApiHouse[]>("/dispatcher/houses", auth),
+        },
+
         reference: {
             problemTypes: (auth: Auth) => request<ApiProblemType[]>("/dispatcher/problem-types", auth),
 

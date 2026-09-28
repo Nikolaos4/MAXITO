@@ -29,6 +29,7 @@ export async function buildDispatcherMenuKeyboard(ctx: AppContext) {
         [Keyboard.button.link("Обращения", appealsUrl)],
         [Keyboard.button.callback("Горячие обращения", "dispatcher_menu:top_appeals")],
         [Keyboard.button.callback("Статистика по домам", "dispatcher_menu:stats")],
+        [Keyboard.button.callback("Мои дома", "dispatcher_menu:houses")],
         [Keyboard.button.link("Уведомления", notificationsUrl)],
     ]);
 }
