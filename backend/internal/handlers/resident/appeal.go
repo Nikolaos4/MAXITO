@@ -34,12 +34,12 @@ func NewAppealHandler(svc *services.ResidentService) *AppealHandler {
 }
 
 type CreateAppealRequest struct {
-	ProblemTypeID      uint   `json:"problem_type_id" binding:"required"`
-	ReasonID           *uint  `json:"reason_id"` // не нужен, если тема — "Другое"
-	EntranceNumber     *int   `json:"entrance_number"`
-	Description        string `json:"description" binding:"required"`
-	Importance         string `json:"importance"`
-	WantsRecalculation bool   `json:"wants_recalculation"`
+	ProblemTypeID      uint     `json:"problem_type_id" binding:"required"`
+	ReasonID           *uint    `json:"reason_id"` // не нужен, если тема — "Другое"
+	EntranceNumber     *int     `json:"entrance_number"`
+	Description        string   `json:"description" binding:"required"`
+	Importance         string   `json:"importance"`
+	WantsRecalculation bool     `json:"wants_recalculation"`
 	DiscoveredAt       string   `json:"discovered_at"` // необязательно, RFC3339
 	PhotoURLs          []string `json:"photo_urls"`    // ссылки, полученные заранее через POST /upload
 }
@@ -85,6 +85,15 @@ func (h *AppealHandler) CreateAppeal(c *gin.Context) {
 			c.JSON(http.StatusConflict, gin.H{
 				"error":              err.Error(),
 				"existing_appeal_id": dupErr.ExistingAppealID,
+			})
+			return
+		}
+		var blockErr *services.NotificationBlockError
+		if errors.As(err, &blockErr) {
+			c.JSON(http.StatusConflict, gin.H{
+				"error":                 err.Error(),
+				"code":                  "blocked_by_notification",
+				"blocking_notification": blockErr.Notification,
 			})
 			return
 		}

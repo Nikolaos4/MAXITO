@@ -143,6 +143,8 @@ export interface Notification {
   entrance: number;
   categoryCode: string;
   workType: string;
+  /** Точная причина (как в Appeal.reason) — используется для сверки с темой создаваемого обращения; может не совпадать с workType, если диспетчер задал уведомлению своё название */
+  reason: string;
   comment: string;
   /** ISO, начало работ */
   from: string;
