@@ -99,7 +99,12 @@ export const httpApi: DispatcherApi = {
         entrance_number: input.entrance === 0 ? undefined : input.entrance,
         problem_type_id: cats.problemTypeId(input.categoryCode),
         reason_id: isFreeText ? undefined : cats.reasonId(input.categoryCode, input.workType),
-        title: isFreeText ? input.workType : undefined,
+        // Всегда шлём выбранный в форме вид работ как заголовок уведомления —
+        // иначе для обычных тем (не «Другое») бэкенд сам подставляет вместо
+        // него название темы (см. CreateNotification в dispatcher_service.go),
+        // и то, что реально выбрал диспетчер, нигде не сохраняется и не видно
+        // ни диспетчеру, ни жителю в карточке уведомления.
+        title: input.workType,
         body: input.comment || input.workType,
         starts_at: input.from,
         ends_at: input.to,
