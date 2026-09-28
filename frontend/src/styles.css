@@ -138,6 +138,7 @@ p.form__label { white-space: normal; }
 .appeal__subtitle { display: flex; align-items: center; gap: var(--s2); flex-wrap: wrap; }
 .appeal__reason { font-size: 16px; font-weight: 600; color: var(--accent); }
 .appeal__text { font-size: 14px; overflow-wrap: anywhere; }
+.notification__period { font-size: 13px; color: var(--text-soft); }
 .appeal__text.is-clamped { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 .appeal__footer { display: flex; justify-content: space-between; align-items: center; margin-top: var(--s2); }
 .appeal__author { display: inline-flex; align-items: center; gap: var(--s2); color: var(--accent); font-size: 13px; min-width: 0; }
