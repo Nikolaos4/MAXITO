@@ -99,7 +99,7 @@ func main() {
 	authSvc := services.NewAuthService(
 		userRepo, tokenSvc, initDataSecret, time.Duration(cfg.InitDataMaxAgeSecond)*time.Second,
 	)
-	authMW := middleware.Authenticate(db, tokenSvc, cfg.AllowDevHeaders)
+	authMW := middleware.Authenticate(db, tokenSvc, cfg.InternalAPIKey, cfg.AllowDevHeaders)
 
 	// Handlers — Представитель
 	houseHandler := representative.NewHouseHandler(houseRepo, repSvc)

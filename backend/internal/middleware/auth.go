@@ -16,16 +16,24 @@ import (
 
 const ContextUserKey = "currentUser"
 
-// Authenticate — основная авторизация: заголовок "Authorization: Bearer <JWT>",
-// выданный POST /auth/max. Пользователь на каждый запрос заново берётся из
-// БД, поэтому отключение пользователя и смена роли действуют сразу, а не
-// только после истечения токена.
+// Authenticate — авторизация запроса. Три способа, проверяются в этом порядке:
+//
+//  1. "Authorization: Bearer <JWT>" — мини-приложение, токен выдан POST /auth/max.
+//  2. "X-Internal-Key" + "X-Max-User-Id" — сервер бота действует от имени
+//     пользователя (действия в чате). Ключ доказывает, что запрос пришёл от
+//     бота, а max_id бот получает от MAX напрямую. Ключ — общий секрет:
+//     он должен храниться только на сервере бота и бэкенда.
+//  3. Только при allowDevHeaders — отладочная схема, см. ниже.
+//
+// Пользователь на каждый запрос заново берётся из БД, поэтому отключение
+// пользователя и смена роли действуют сразу, а не только после истечения токена.
 //
 // Если allowDevHeaders=true (ALLOW_DEV_HEADERS в .env), дополнительно
 // принимается старая схема X-Max-User-Id / X-Max-User-Phone — ТОЛЬКО для
 // отладки в Postman. В боевом окружении флаг должен быть выключен: эти
 // заголовки ничем не подтверждены, любой может подставить чужие.
-func Authenticate(db *gorm.DB, tokens *auth.TokenService, allowDevHeaders bool) gin.HandlerFunc {
+func Authenticate(db *gorm.DB, tokens *auth.TokenService, internalKey string, allowDevHeaders bool) gin.HandlerFunc {
+	expectedKey := []byte(internalKey)
 	return func(c *gin.Context) {
 		var (
 			user *models.User
@@ -35,6 +43,8 @@ func Authenticate(db *gorm.DB, tokens *auth.TokenService, allowDevHeaders bool) 
 		switch {
 		case c.GetHeader("Authorization") != "":
 			user, ok = authenticateBearer(c, db, tokens)
+		case c.GetHeader("X-Internal-Key") != "":
+			user, ok = authenticateBot(c, db, expectedKey)
 		case allowDevHeaders && c.GetHeader("X-Max-User-Id") != "":
 			user, ok = authenticateDevHeaders(c, db)
 		default:
@@ -75,6 +85,51 @@ func authenticateBearer(c *gin.Context, db *gorm.DB, tokens *auth.TokenService) 
 		return nil, false
 	}
 	return &user, true
+}
+
+// authenticateBot — запрос от сервера бота от имени пользователя. Сначала
+// проверяем ключ, и только после этого доверяем X-Max-User-Id. Если ключ
+// указан, но неверный, запрос отклоняется — на другие способы мы не
+// переключаемся, чтобы неверный ключ не превращался в "попробуем иначе".
+func authenticateBot(c *gin.Context, db *gorm.DB, expectedKey []byte) (*models.User, bool) {
+	if !internalKeyMatches(c, expectedKey) {
+		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid internal key"})
+		return nil, false
+	}
+
+	maxUserID := strings.TrimSpace(c.GetHeader("X-Max-User-Id"))
+	if maxUserID == "" {
+		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "X-Max-User-Id is required together with X-Internal-Key"})
+		return nil, false
+	}
+
+	var user models.User
+	err := db.Where("max_user_id = ?", maxUserID).First(&user).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
+				"error": "this MAX account is not linked to a user: ask the user to share their contact first",
+				"code":  "not_bound",
+			})
+			return nil, false
+		}
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "database error"})
+		return nil, false
+	}
+	if !user.IsActive {
+		c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "user is deactivated", "code": "inactive"})
+		return nil, false
+	}
+	return &user, true
+}
+
+// internalKeyMatches сравнивает X-Internal-Key с ожидаемым в постоянное
+// время. Пустой ожидаемый ключ не совпадает никогда.
+func internalKeyMatches(c *gin.Context, expected []byte) bool {
+	if len(expected) == 0 {
+		return false
+	}
+	return subtle.ConstantTimeCompare([]byte(c.GetHeader("X-Internal-Key")), expected) == 1
 }
 
 // authenticateDevHeaders — прежняя схема для отладки: ищет пользователя по
@@ -157,8 +212,7 @@ func RequireInternalKey(key string) gin.HandlerFunc {
 			c.AbortWithStatusJSON(http.StatusServiceUnavailable, gin.H{"error": "internal API is not configured"})
 			return
 		}
-		got := []byte(c.GetHeader("X-Internal-Key"))
-		if subtle.ConstantTimeCompare(got, expected) != 1 {
+		if !internalKeyMatches(c, expected) {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid internal key"})
 			return
 		}
