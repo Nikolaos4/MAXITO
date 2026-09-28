@@ -1,4 +1,4 @@
-import { getMaxUser } from "../max";
+import { ensureAuthToken, getMaxUser } from "../max";
 import type { BackendErrorBody } from "./types";
 
 const BASE = import.meta.env.VITE_API_BASE_URL ?? "/api/v1";
@@ -28,12 +28,16 @@ export async function backendRequest<T>(
   init?: RequestInit & { query?: Record<string, string | number | (string | number)[] | undefined> },
 ): Promise<T> {
   const { query, ...rest } = init ?? {};
+  const token = await ensureAuthToken();
   const user = getMaxUser();
   const res = await fetch(BASE + path + buildQuery(query), {
     ...rest,
     headers: {
       "Content-Type": "application/json",
-      "X-Max-User-Id": user?.id ?? "",
+      // Внутри MAX initData уже обменяли на JWT (см. max.ts) — шлём его.
+      // Вне MAX без JWT остаётся старая схема для отладки (см. ALLOW_DEV_HEADERS
+      // на бэкенде): X-Max-User-Id + X-Max-User-Phone для первой привязки.
+      ...(token ? { Authorization: `Bearer ${token}` } : { "X-Max-User-Id": user?.id ?? "" }),
       ...(DEV_PHONE ? { "X-Max-User-Phone": DEV_PHONE } : {}),
       ...rest.headers,
     },
