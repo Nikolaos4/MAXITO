@@ -43,6 +43,18 @@ func (r *DispatcherHouseRepository) Delete(dispatcherID, houseID uint) error {
 }
 
 // ListHousesByDispatcher — дома, закреплённые за конкретным диспетчером.
+// ListDispatcherMaxUserIDsByHouse — max_user_id диспетчеров, закреплённых
+// за домом, для рассылки уведомлений о новых обращениях. Диспетчеры без
+// привязанного max_user_id в выборку не попадают.
+func (r *DispatcherHouseRepository) ListDispatcherMaxUserIDsByHouse(houseID uint) ([]string, error) {
+	var ids []string
+	err := r.db.Table("dispatcher_houses").
+		Joins("JOIN users ON users.id = dispatcher_houses.dispatcher_id").
+		Where("dispatcher_houses.house_id = ? AND users.max_user_id IS NOT NULL", houseID).
+		Pluck("users.max_user_id", &ids).Error
+	return ids, err
+}
+
 func (r *DispatcherHouseRepository) ListHousesByDispatcher(dispatcherID uint) ([]models.House, error) {
 	var houses []models.House
 	err := r.db.

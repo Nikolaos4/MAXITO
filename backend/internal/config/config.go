@@ -34,6 +34,11 @@ type Config struct {
 	// InternalAPIKey — общий секрет между ботом и бэкендом для /internal/*.
 	InternalAPIKey string
 
+	// NotifyURL — адрес /notify у бота (docker-сеть). Пустая строка отключает
+	// отправку уведомлений вместо падения — недоступность бота не должна
+	// ронять бэкенд.
+	NotifyURL string
+
 	// AllowDevHeaders включает старую авторизацию по заголовкам
 	// X-Max-User-Id / X-Max-User-Phone. Только для локальной отладки в Postman.
 	AllowDevHeaders bool
@@ -73,6 +78,7 @@ func Load() (*Config, error) {
 		InitDataMaxAgeSecond: maxAge,
 		InternalAPIKey:       getEnv("INTERNAL_API_KEY", ""),
 		AllowDevHeaders:      allowDev,
+		NotifyURL:            getEnv("NOTIFY_URL", "http://bot:3001/notify"),
 	}
 
 	if err := cfg.validate(); err != nil {

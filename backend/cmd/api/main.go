@@ -15,6 +15,7 @@ import (
 	"maxito/internal/handlers/resident"
 	"maxito/internal/middleware"
 	"maxito/internal/models"
+	"maxito/internal/notify"
 	"maxito/internal/repository"
 	"maxito/internal/services"
 
@@ -78,13 +79,17 @@ func main() {
 	repSvc := services.NewRepresentativeService(
 		db, userRepo, houseRepo, residentRepo, dispHouseRepo, companyRepo, emergencyServiceRepo,
 	)
+	if cfg.NotifyURL == "" {
+		log.Println("WARNING: NOTIFY_URL is empty — bot notifications are disabled")
+	}
+	notifyClient := notify.NewClient(cfg.NotifyURL, cfg.InternalAPIKey)
 	dispatcherSvc := services.NewDispatcherService(
 		db, dispHouseRepo, appealRepo, statusChangeRepo, subscriptionRepo, attachmentRepo,
-		notificationRepo, houseRepo, problemTypeRepo, reasonRepo,
+		notificationRepo, residentRepo, houseRepo, problemTypeRepo, reasonRepo, notifyClient,
 	)
 	residentSvc := services.NewResidentService(
 		db, residentRepo, appealRepo, statusChangeRepo, subscriptionRepo, attachmentRepo,
-		notificationRepo, notifReadRepo, houseRepo, problemTypeRepo, reasonRepo,
+		notificationRepo, notifReadRepo, dispHouseRepo, houseRepo, problemTypeRepo, reasonRepo, notifyClient,
 	)
 
 	// Авторизация: JWT + проверка подписи initData от MAX.
