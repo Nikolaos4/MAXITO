@@ -22,7 +22,7 @@ func (r *NotificationRepository) Create(n *models.Notification) error {
 
 func (r *NotificationRepository) GetByID(id uint) (*models.Notification, error) {
 	var n models.Notification
-	err := r.db.First(&n, id).Error
+	err := r.db.Preload("Reason").First(&n, id).Error
 	if err != nil {
 		return nil, err
 	}
