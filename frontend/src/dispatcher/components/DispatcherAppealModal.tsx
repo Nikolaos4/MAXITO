@@ -63,7 +63,12 @@ export function DispatcherAppealModal({ appeal, dispatcherId, readOnly, onClose,
           <span className="appeal__actions"><LikeCount appeal={appeal} /></span>
         </div>
 
-        {!readOnly && !isTerminalStatus(appeal.status) && <StatusChangeForm current={appeal.status} onSubmit={onChangeStatus} />}
+        {!readOnly && !isTerminalStatus(appeal.status) && (
+          // Карточка в списке уже обновится сама (onChangeStatus меняет appeals
+          // в Feed.tsx) — модалку после успешной смены статуса закрываем, иначе
+          // она так и остаётся открытой поверх уже изменившегося списка.
+          <StatusChangeForm current={appeal.status} onSubmit={(input) => onChangeStatus(input).then(onClose)} />
+        )}
 
         <h4 className="modal__subtitle">Комментарии ({appeal.comments.length})</h4>
         {appeal.comments.length === 0 && <p className="muted">Комментариев пока нет</p>}

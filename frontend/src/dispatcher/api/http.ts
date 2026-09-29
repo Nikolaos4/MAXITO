@@ -143,12 +143,19 @@ export const httpApi: DispatcherApi = {
     // И это ровно одна ссылка (photo_url), не массив, в отличие от обращения
     // жителя (photo_urls) — на форме тут в принципе не выбрать больше 1 файла.
     const photoUrl = fields.status === "completed" && files[0] ? await uploadFile(files[0]) : undefined;
-    const updated = await backendRequest<BackendAppeal>(`/dispatcher/appeals/${id}/status`, {
+    // POST .../status отдаёт саму запись смены статуса (AppealStatusChange —
+    // id, from_status, to_status, ...), а не обновлённое обращение. Раньше
+    // её ошибочно подмешивали в detail через {...detail, ...updated} — id
+    // записи истории перезаписывал id обращения, из-за чего Feed.tsx не мог
+    // найти строку по id и карточка не обновлялась без перезагрузки страницы.
+    // Ответ POST нам не нужен — просто дожидаемся его и перечитываем свежую
+    // карточку целиком.
+    await backendRequest(`/dispatcher/appeals/${id}/status`, {
       method: "POST",
       body: JSON.stringify({ status: fields.status, comment: fields.comment, photo_url: photoUrl }),
     });
     const detail = await backendRequest<BackendAppeal>(`/dispatcher/appeals/${id}`);
-    return adaptAppeal({ ...detail, ...updated });
+    return adaptAppeal(detail);
   },
 
   // Свободных комментариев вне смены статуса на бэкенде нет — методы оставлены
