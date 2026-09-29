@@ -1,5 +1,4 @@
-import { Chip } from "../../components/Chip";
-import { formatDate, formatTime, plural } from "../../format";
+import { formatDate, formatTime } from "../../format";
 import { MediaGallery } from "../../components/MediaGallery";
 import { StatusBadge } from "../../components/StatusBadge";
 import { UserIcon } from "../../components/Icons";
@@ -24,7 +23,6 @@ interface Props {
 }
 
 export function DispatcherAppealCard({ appeal, dispatcherId, readOnly, open, onOpen, onCloseModal, ...rest }: Props) {
-  const extraComments = appeal.comments.length;
   const isNewReply = isUnseenReply(appeal, dispatcherId);
 
   function openModal() {
@@ -56,7 +54,6 @@ export function DispatcherAppealCard({ appeal, dispatcherId, readOnly, open, onO
       <footer className="appeal__footer">
         <span className="appeal__author"><UserIcon width={20} height={20} />{appeal.authorName}</span>
         <span className="appeal__actions">
-          {extraComments > 0 && <Chip>{extraComments} {plural(extraComments, "комментарий", "комментария", "комментариев")}</Chip>}
           <LikeCount appeal={appeal} />
         </span>
       </footer>
