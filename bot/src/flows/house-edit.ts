@@ -127,21 +127,16 @@ async function handleChatLink(ctx: AppContext, text: string) {
         constructionYear?: number;
     };
 
-    const body: { address?: string; number?: string; floors_count?: number; construction_year?: number } = {};
+    const body: Parameters<typeof api.representative.houses.update>[2] = {};
     if (address !== undefined) body.address = address;
     if (number !== undefined) body.number = number;
     if (floorsCount !== undefined) body.floors_count = floorsCount;
     if (constructionYear !== undefined) body.construction_year = constructionYear;
 
-    try {
-        let house = await api.representative.houses.update(authFor(ctx), houseId, body);
+    if (text !== "-") body.chat_invite_link = text;
 
-        // Ссылка на чат хранится и обновляется отдельным эндпоинтом
-        // (SetChatLink требует непустое значение — "очистить" им нельзя).
-        if (text !== "-") {
-            await api.representative.houses.setChatLink(authFor(ctx), houseId, text);
-            house = { ...house, chat_invite_link: text };
-        }
+    try {
+        const house = await api.representative.houses.update(authFor(ctx), houseId, body);
 
         clearFlow(userId);
         await ctx.reply(`Дом обновлён.\n${formatHouse(house)}`, { attachments: [backToMenuKeyboard] });
