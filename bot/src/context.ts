@@ -6,9 +6,6 @@ type FlowName = "authorization" | "house" | "house_edit" | "dispatcher" | "assig
 
 type Step =
     | "authorization/phone"
-    | "house/address"
-    | "house/number"
-    | "house/entrances_count"
     | "house/import_csv"
     | "house/import_residents_select"
     | "house/import_residents_csv"

@@ -5,7 +5,6 @@ import { miniAppButton } from "@/miniapp";
 export const MENU_TEXT = "Главное меню представителя. Выберите действие:";
 
 export const mainMenuKeyboard = Keyboard.inlineKeyboard([
-    [Keyboard.button.callback("Добавить дом", "menu:add_house")],
     [Keyboard.button.callback("Загрузить дома из CSV", "menu:import_houses")],
     [Keyboard.button.callback("Изменить дом", "menu:edit_house")],
     [Keyboard.button.callback("Добавить диспетчера", "menu:add_dispatcher")],

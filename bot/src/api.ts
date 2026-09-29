@@ -225,17 +225,6 @@ export const api = {
 
     representative: {
         houses: {
-            create: (
-                auth: Auth,
-                body: {
-                    address: string;
-                    number?: string;
-                    entrances_count: number;
-                    floors_count?: number;
-                    construction_year?: number;
-                },
-            ) => request<ApiHouse>("/representative/houses", auth, { method: "POST", body }),
-
             list: (auth: Auth) => request<ApiHouse[]>("/representative/houses", auth),
 
             listUnassigned: (auth: Auth) => request<ApiHouse[]>("/representative/houses/unassigned", auth),
