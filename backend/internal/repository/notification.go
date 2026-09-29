@@ -22,7 +22,7 @@ func (r *NotificationRepository) Create(n *models.Notification) error {
 
 func (r *NotificationRepository) GetByID(id uint) (*models.Notification, error) {
 	var n models.Notification
-	err := r.db.Preload("Reason").First(&n, id).Error
+	err := r.db.First(&n, id).Error
 	if err != nil {
 		return nil, err
 	}
@@ -66,19 +66,18 @@ func (r *NotificationRepository) List(filter NotificationFilter) ([]models.Notif
 	return list, err
 }
 
-// FindActiveBlock ищет активное (не отозванное, в пределах срока действия)
-// уведомление по той же теме и причине, которое блокирует создание
-// обращения на момент at. Возвращает gorm.ErrRecordNotFound, если такого
-// уведомления нет.
+// HasActiveBlock проверяет, есть ли активное (не отозванное, в пределах
+// срока действия) уведомление по той же теме и причине, которое блокирует
+// создание обращения на момент at.
 //
 // Уведомление на весь дом (scope_type=house) блокирует обращения и по
 // всему дому, и по любому конкретному подъезду. Уведомление на подъезд
 // (scope_type=entrance) блокирует только обращения с тем же номером
 // подъезда — обращение "по всему дому" (entranceNumber == nil) им не
 // блокируется.
-func (r *NotificationRepository) FindActiveBlock(
+func (r *NotificationRepository) HasActiveBlock(
 	houseID, reasonID uint, entranceNumber *int, at time.Time,
-) (*models.Notification, error) {
+) (bool, error) {
 	q := r.db.Model(&models.Notification{}).
 		Where("house_id = ? AND reason_id = ?", houseID, reasonID).
 		Where("revoked_at IS NULL").
@@ -91,12 +90,9 @@ func (r *NotificationRepository) FindActiveBlock(
 		q = q.Where("scope_type = ?", models.ScopeHouse)
 	}
 
-	var notification models.Notification
-	err := q.Order("ends_at ASC").First(&notification).Error
-	if err != nil {
-		return nil, err
-	}
-	return &notification, nil
+	var count int64
+	err := q.Count(&count).Error
+	return count > 0, err
 }
 
 // ListActiveForResident возвращает уведомления, актуальные конкретно для

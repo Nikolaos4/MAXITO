@@ -197,9 +197,7 @@ func (r *AppealRepository) CountUnprocessedByHouse(houseIDs []uint) ([]HouseStat
 	err := r.db.Model(&models.Appeal{}).
 		Select("house_id, status, COUNT(*) as count").
 		Where("house_id IN ?", houseIDs).
-		Where("status IN ?", []models.AppealStatus{
-			models.StatusAccepted, models.StatusInProgress,
-		}).
+		Where("status IN ?", openStatuses).
 		Group("house_id, status").
 		Scan(&rows).Error
 	return rows, err

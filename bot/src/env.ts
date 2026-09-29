@@ -4,6 +4,7 @@ const envSchema = z.object({
     BOT_TOKEN: z.string(),
     INTERNAL_API_KEY: z.string().min(1),
     API_BASE_URL: z.string().default("http://localhost:8080"),
+    NOTIFY_PORT: z.coerce.number().int().positive().default(3001),
 });
 
 type Env = z.infer<typeof envSchema>;
