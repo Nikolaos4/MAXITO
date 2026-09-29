@@ -34,10 +34,10 @@ func isTransitionAllowed(from, to models.AppealStatus) bool {
 // вложениями и полной историей смены статусов.
 type AppealDetail struct {
 	models.Appeal
-	LikesCount  int64                        `json:"likes_count"`
-	LikedByMe   bool                         `json:"liked_by_me"`
-	Attachments []models.AppealAttachment    `json:"attachments"`
-	History     []models.AppealStatusChange  `json:"history"`
+	LikesCount  int64                       `json:"likes_count"`
+	LikedByMe   bool                        `json:"liked_by_me"`
+	Attachments []models.AppealAttachment   `json:"attachments"`
+	History     []models.AppealStatusChange `json:"history"`
 }
 
 // ChangeStatusInput — вход для смены статуса обращения диспетчером.
@@ -97,6 +97,14 @@ func NewDispatcherService(
 		problemTypeRepo:  problemTypeRepo,
 		reasonRepo:       reasonRepo,
 	}
+}
+
+// GetHouse — карточка одного дома (только если он закреплён за этим диспетчером).
+func (s *DispatcherService) GetHouse(dispatcherID, houseID uint) (*models.House, error) {
+	if err := s.ensureOwnsHouse(dispatcherID, houseID); err != nil {
+		return nil, err
+	}
+	return s.houseRepo.GetByID(houseID)
 }
 
 // ListHouses — дома, закреплённые за диспетчером (для простого селектора на

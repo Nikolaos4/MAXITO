@@ -62,16 +62,44 @@ type User struct {
 	DispatcherHouses []DispatcherHouse `gorm:"foreignKey:DispatcherID" json:"dispatcher_houses,omitempty"`
 }
 
+// Company — управляющая компания. Одна запись на весь инстанс (один
+// продукт = одна УК, см. описание проекта), поэтому у неё нет house_id —
+// это не свойство дома, а общие реквизиты, показываются в карточке любого
+// дома одинаково.
+type Company struct {
+	ID              uint      `gorm:"primaryKey" json:"id"`
+	FullName        string    `gorm:"size:500" json:"full_name"`
+	ShortName       string    `gorm:"size:255" json:"short_name"`
+	DispatcherPhone string    `gorm:"size:50" json:"dispatcher_phone"`
+	ContactPhone    string    `gorm:"size:50" json:"contact_phone"`
+	Email           string    `gorm:"size:255" json:"email"`
+	Website         string    `gorm:"size:255" json:"website"`
+	UpdatedAt       time.Time `json:"updated_at"`
+}
+
+// EmergencyService — аварийная служба (одна на всю систему, не привязана
+// к дому — так решили, раз в вашем случае аварийки общие на всю УК).
+// Показывается жителю при выборе критичной темы обращения (см.
+// ProblemType.IsCritical) вместо формы — дальше человек сам решает, куда звонить.
+type EmergencyService struct {
+	ID        uint      `gorm:"primaryKey" json:"id"`
+	Name      string    `gorm:"size:255;not null" json:"name"`
+	Phone     string    `gorm:"size:50;not null" json:"phone"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
 // House
 type House struct {
-	ID             uint           `gorm:"primaryKey" json:"id"`
-	Address        string         `gorm:"size:500;not null;uniqueIndex:idx_house_address_number" json:"address"`
-	Number         string         `gorm:"size:50;uniqueIndex:idx_house_address_number" json:"number"`
-	EntrancesCount int            `gorm:"not null" json:"entrances_count"`
-	ChatInviteLink *string        `gorm:"size:500" json:"chat_invite_link,omitempty"`
-	CreatedAt      time.Time      `json:"created_at"`
-	UpdatedAt      time.Time      `json:"updated_at"`
-	DeletedAt      gorm.DeletedAt `gorm:"index" json:"-"`
+	ID               uint           `gorm:"primaryKey" json:"id"`
+	Address          string         `gorm:"size:500;not null;uniqueIndex:idx_house_address_number" json:"address"`
+	Number           string         `gorm:"size:50;uniqueIndex:idx_house_address_number" json:"number"`
+	EntrancesCount   int            `gorm:"not null" json:"entrances_count"`
+	FloorsCount      *int           `json:"floors_count,omitempty"`      // необязательно
+	ConstructionYear *int           `json:"construction_year,omitempty"` // необязательно
+	ChatInviteLink   *string        `gorm:"size:500" json:"chat_invite_link,omitempty"`
+	CreatedAt        time.Time      `json:"created_at"`
+	UpdatedAt        time.Time      `json:"updated_at"`
+	DeletedAt        gorm.DeletedAt `gorm:"index" json:"-"`
 
 	// Relations
 	Appeals       []Appeal          `gorm:"foreignKey:HouseID" json:"appeals,omitempty"`
@@ -142,7 +170,7 @@ type Appeal struct {
 	ProblemTypeID      uint           `gorm:"not null;index" json:"problem_type_id"`
 	ReasonID           uint           `gorm:"not null;index" json:"reason_id"`
 	EntranceNumber     *int           `gorm:"index" json:"entrance_number,omitempty"` // null = весь дом
-	DiscoveredAt       *time.Time     `json:"discovered_at,omitempty"` // когда житель заметил проблему (необязательно)
+	DiscoveredAt       *time.Time     `json:"discovered_at,omitempty"`                // когда житель заметил проблему (необязательно)
 	Description        string         `gorm:"type:text;not null" json:"description"`
 	Importance         Importance     `gorm:"size:20;default:'normal'" json:"importance"`
 	Status             AppealStatus   `gorm:"size:20;default:'accepted';index" json:"status"`
@@ -151,13 +179,13 @@ type Appeal struct {
 	UpdatedAt          time.Time      `json:"updated_at"`
 	DeletedAt          gorm.DeletedAt `gorm:"index" json:"-"`
 
-	House         *House                `gorm:"foreignKey:HouseID" json:"house,omitempty"`
-	Author        *User                 `gorm:"foreignKey:AuthorID" json:"author,omitempty"`
-	ProblemType   *ProblemType          `gorm:"foreignKey:ProblemTypeID" json:"problem_type,omitempty"`
-	Reason        *Reason               `gorm:"foreignKey:ReasonID" json:"reason,omitempty"`
-	Subscriptions []AppealSubscription  `gorm:"foreignKey:AppealID" json:"subscriptions,omitempty"`
-	StatusChanges []AppealStatusChange  `gorm:"foreignKey:AppealID" json:"status_changes,omitempty"`
-	Attachments   []AppealAttachment    `gorm:"foreignKey:AppealID" json:"attachments,omitempty"`
+	House         *House               `gorm:"foreignKey:HouseID" json:"house,omitempty"`
+	Author        *User                `gorm:"foreignKey:AuthorID" json:"author,omitempty"`
+	ProblemType   *ProblemType         `gorm:"foreignKey:ProblemTypeID" json:"problem_type,omitempty"`
+	Reason        *Reason              `gorm:"foreignKey:ReasonID" json:"reason,omitempty"`
+	Subscriptions []AppealSubscription `gorm:"foreignKey:AppealID" json:"subscriptions,omitempty"`
+	StatusChanges []AppealStatusChange `gorm:"foreignKey:AppealID" json:"status_changes,omitempty"`
+	Attachments   []AppealAttachment   `gorm:"foreignKey:AppealID" json:"attachments,omitempty"`
 }
 
 // AppealStatusChange — история смены статуса обращения. Одна запись = один

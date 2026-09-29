@@ -22,8 +22,8 @@ type Config struct {
 	UploadDir  string
 
 	// Авторизация.
-	JWTSecret string // подпись наших JWT
-	JWTTTLHours int  // срок жизни JWT
+	JWTSecret   string // подпись наших JWT
+	JWTTTLHours int    // срок жизни JWT
 
 	// MaxInitDataSecret — НЕ токен бота, а производный ключ
 	// HMAC_SHA256("WebAppData", BOT_TOKEN) в hex (получить: go run ./cmd/derivekey).
@@ -116,7 +116,7 @@ func (c *Config) InitDataSecretBytes() ([]byte, error) {
 	return key, nil
 }
 
-//логирование
+// логирование
 func (c *Config) DSN() string {
 	return fmt.Sprintf(
 		"host=%s user=%s password=%s dbname=%s port=%s sslmode=%s",

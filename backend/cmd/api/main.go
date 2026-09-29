@@ -46,6 +46,8 @@ func main() {
 		&models.AppealAttachment{},
 		&models.NotificationRead{},
 		&models.Notification{},
+		&models.Company{},
+		&models.EmergencyService{},
 	); err != nil {
 		log.Fatalf("auto migrate failed: %v", err)
 	}
@@ -69,9 +71,13 @@ func main() {
 	attachmentRepo := repository.NewAppealAttachmentRepository(db)
 	notificationRepo := repository.NewNotificationRepository(db)
 	notifReadRepo := repository.NewNotificationReadRepository(db)
+	companyRepo := repository.NewCompanyRepository(db)
+	emergencyServiceRepo := repository.NewEmergencyServiceRepository(db)
 
 	// Services
-	repSvc := services.NewRepresentativeService(db, userRepo, houseRepo, residentRepo, dispHouseRepo)
+	repSvc := services.NewRepresentativeService(
+		db, userRepo, houseRepo, residentRepo, dispHouseRepo, companyRepo, emergencyServiceRepo,
+	)
 	dispatcherSvc := services.NewDispatcherService(
 		db, dispHouseRepo, appealRepo, statusChangeRepo, subscriptionRepo, attachmentRepo,
 		notificationRepo, houseRepo, problemTypeRepo, reasonRepo,
@@ -103,6 +109,8 @@ func main() {
 
 	// Handlers — Представитель
 	houseHandler := representative.NewHouseHandler(houseRepo, repSvc)
+	companyHandler := representative.NewCompanyHandler(repSvc)
+	emergencyHandler := representative.NewEmergencyHandler(repSvc)
 	dispatcherMgmtHandler := representative.NewDispatcherHandler(repSvc, userRepo)
 	residentMgmtHandler := representative.NewResidentHandler(repSvc, residentRepo)
 	assignmentHandler := representative.NewAssignmentHandler(repSvc)
@@ -119,6 +127,7 @@ func main() {
 	residentHouseHandler := resident.NewHouseHandler(residentSvc)
 
 	// Handlers — общий
+	commonReferenceHandler := common.NewReferenceHandler(companyRepo, emergencyServiceRepo)
 	authHandler := common.NewAuthHandler(authSvc)
 	botHandler := bot.NewHandler(authSvc)
 	meHandler := common.NewMeHandler(residentRepo, dispHouseRepo)
@@ -163,7 +172,14 @@ func main() {
 			rep.GET("/houses", houseHandler.ListHouses)
 			rep.POST("/houses/csv", houseHandler.ImportHousesCSV)
 			rep.GET("/houses/unassigned", assignmentHandler.ListUnassignedHouses)
+			rep.PUT("/houses/:house_id", houseHandler.UpdateHouse)
 			rep.PUT("/houses/:house_id/chat-link", houseHandler.SetChatLink)
+
+			// Компания и аварийные службы
+			rep.GET("/company", commonReferenceHandler.GetCompany)
+			rep.PUT("/company", companyHandler.UpdateCompany)
+			rep.GET("/emergency-services", commonReferenceHandler.ListEmergencyServices)
+			rep.POST("/emergency-services/csv", emergencyHandler.ImportEmergencyServicesCSV)
 
 			// Жители конкретного дома
 			rep.GET("/houses/:house_id/residents", residentMgmtHandler.ListResidents)
@@ -204,7 +220,12 @@ func main() {
 
 			// Дома диспетчера
 			disp.GET("/houses", dispatcherHouseHandler.ListHouses)
+			disp.GET("/houses/:house_id", dispatcherHouseHandler.GetHouse)
 			disp.GET("/houses/:house_id/entrances", dispatcherHouseHandler.ListEntrances)
+
+			// Компания и аварийные службы
+			disp.GET("/company", commonReferenceHandler.GetCompany)
+			disp.GET("/emergency-services", commonReferenceHandler.ListEmergencyServices)
 		}
 
 		res := api.Group("/resident")
@@ -226,6 +247,10 @@ func main() {
 			res.GET("/house", residentHouseHandler.GetHouse)
 			res.GET("/house/chat-link", residentHouseHandler.ChatLink)
 			res.GET("/house/entrances", residentHouseHandler.ListEntrances)
+
+			// Компания и аварийные службы
+			res.GET("/company", commonReferenceHandler.GetCompany)
+			res.GET("/emergency-services", commonReferenceHandler.ListEmergencyServices)
 
 			// Справочники (те же темы/причины, что у диспетчера — нужны
 			// для формы создания обращения)

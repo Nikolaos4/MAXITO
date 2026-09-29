@@ -11,6 +11,9 @@ export const mainMenuKeyboard = Keyboard.inlineKeyboard([
     [Keyboard.button.callback("Загрузить диспетчеров из CSV", "menu:import_dispatchers")],
     [Keyboard.button.callback("Назначить дома диспетчерам", "menu:assign_houses")],
     [Keyboard.button.callback("Загрузить жителей из CSV", "menu:import_residents")],
+    [Keyboard.button.callback("Реквизиты УК", "menu:edit_company")],
+    [Keyboard.button.callback("Аварийные службы: список", "menu:show_emergency")],
+    [Keyboard.button.callback("Загрузить аварийные службы из CSV", "menu:import_emergency")],
 ]);
 
 export const backToMenuKeyboard = Keyboard.inlineKeyboard([[Keyboard.button.callback("В главное меню", "menu:show")]]);
@@ -31,6 +34,7 @@ export async function buildDispatcherMenuKeyboard(ctx: AppContext) {
         [Keyboard.button.callback("Статистика по домам", "dispatcher_menu:stats")],
         [Keyboard.button.callback("Мои дома", "dispatcher_menu:houses")],
         [notificationsBtn],
+        [Keyboard.button.callback("Информация и контакты", "dispatcher_menu:info")],
     ]);
 }
 
@@ -53,6 +57,7 @@ export async function buildResidentMenuKeyboard(ctx: AppContext, chatInviteLink?
         // тут button.link остаётся правильным выбором.
         ...(chatInviteLink ? [[Keyboard.button.link("Перейти в чат дома", chatInviteLink)]] : []),
         [notificationsBtn],
+        [Keyboard.button.callback("Информация и контакты", "resident_menu:info")],
     ]);
 }
 
