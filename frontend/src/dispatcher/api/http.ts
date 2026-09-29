@@ -1,27 +1,26 @@
 import { loadCategories, type ResolvedCategories } from "../../backend/categories";
+import { adaptHouseInfo } from "../../backend/houseInfo";
 import { backendRequest } from "../../backend/request";
-import type { BackendAppeal, BackendMe, BackendNotification } from "../../backend/types";
+import type { BackendAppeal, BackendCompany, BackendEmergencyService, BackendHouse, BackendMe, BackendNotification } from "../../backend/types";
 import type { Appeal, Comment, DispatcherMe, HouseInfo, Notification } from "../../types";
 import type { DispatcherApi } from "./types";
 
 let categoriesPromise: Promise<ResolvedCategories> | null = null;
 const categories = () => (categoriesPromise ??= loadCategories("/dispatcher"));
 
-// GET /dispatcher/houses не существует — единственная ручка, которая отдаёт
-// ПОЛНЫЙ список домов диспетчера (включая дома без единого обращения),
-// это статистика по необработанным обращениям: она перечисляет все дома
-// диспетчера с house_id и адресом, даже с нулями. Используем её как список
-// домов и на каждый дом отдельно спрашиваем число подъездов.
+// Реквизиты УК и аварийные службы одни на всю систему, не на дом — спрашиваем
+// один раз за сессию и подмешиваем в карточку любого из домов диспетчера.
+let referencePromise: Promise<{ company: BackendCompany; emergencyServices: BackendEmergencyService[] }> | null = null;
+const reference = () =>
+  (referencePromise ??= Promise.all([
+    backendRequest<BackendCompany>("/dispatcher/company"),
+    backendRequest<BackendEmergencyService[]>("/dispatcher/emergency-services"),
+  ]).then(([company, emergencyServices]) => ({ company, emergencyServices })));
+
 let housesPromise: Promise<HouseInfo[]> | null = null;
 async function loadHouses(): Promise<HouseInfo[]> {
-  const stats = await backendRequest<{ house_id: number; address: string }[]>("/dispatcher/appeals/stats");
-  return Promise.all(
-    stats.map(async (s) => {
-      const entrances = await backendRequest<number[]>(`/dispatcher/houses/${s.house_id}/entrances`);
-      const info: HouseInfo = { number: String(s.house_id), entrances: entrances.length, address: s.address };
-      return info;
-    }),
-  );
+  const [list, ref] = await Promise.all([backendRequest<BackendHouse[]>("/dispatcher/houses"), reference()]);
+  return list.map((h) => adaptHouseInfo(h, ref.company, ref.emergencyServices));
 }
 const houses = () => (housesPromise ??= loadHouses());
 

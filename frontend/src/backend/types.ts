@@ -42,7 +42,31 @@ export interface BackendHouse {
   address: string;
   number: string;
   entrances_count: number;
+  floors_count?: number | null;
+  construction_year?: number | null;
   chat_invite_link?: string | null;
+}
+
+// Одна запись на весь инстанс (одна УК — см. модель Company на бэкенде), не
+// привязана к дому. Если Представитель её ещё не заполнил, GET .../company
+// отдаёт "{}" — тогда все поля будут undefined.
+export interface BackendCompany {
+  id?: number;
+  full_name?: string;
+  short_name?: string;
+  dispatcher_phone?: string;
+  contact_phone?: string;
+  email?: string;
+  website?: string;
+  updated_at?: string;
+}
+
+// Тоже одна на всю систему, не привязана к дому.
+export interface BackendEmergencyService {
+  id: number;
+  name: string;
+  phone: string;
+  created_at: string;
 }
 
 export interface BackendReason {
