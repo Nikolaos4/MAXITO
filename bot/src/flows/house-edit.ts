@@ -16,6 +16,7 @@ function formatHouse(h: House): string {
         `Адрес: ${houseLabel(h)}`,
         h.floors_count != null && `Этажей: ${h.floors_count}`,
         h.construction_year != null && `Год постройки: ${h.construction_year}`,
+        h.chat_invite_link && `Ссылка на чат: ${h.chat_invite_link}`,
     ]
         .filter(Boolean)
         .join("\n");
@@ -108,22 +109,35 @@ async function handleConstructionYear(ctx: AppContext, text: string) {
         constructionYear = n;
     }
 
+    setData(userId, { constructionYear });
+    setStep(userId, "house_edit/chat_link");
+    await ctx.reply('Ссылка на чат дома (или "-", чтобы оставить как есть).', { attachments: [cancelKeyboard] });
+}
+
+async function handleChatLink(ctx: AppContext, text: string) {
+    if (!ctx.user) return;
+    const userId = ctx.user.user_id;
+
     const session = getSession(userId);
     const houseId = session.data.houseId as number;
-    const { address, number, floorsCount } = session.data as {
+    const { address, number, floorsCount, constructionYear } = session.data as {
         address?: string;
         number?: string;
         floorsCount?: number;
+        constructionYear?: number;
     };
 
-    const body: { address?: string; number?: string; floors_count?: number; construction_year?: number } = {};
+    const body: Parameters<typeof api.representative.houses.update>[2] = {};
     if (address !== undefined) body.address = address;
     if (number !== undefined) body.number = number;
     if (floorsCount !== undefined) body.floors_count = floorsCount;
     if (constructionYear !== undefined) body.construction_year = constructionYear;
 
+    if (text !== "-") body.chat_invite_link = text;
+
     try {
         const house = await api.representative.houses.update(authFor(ctx), houseId, body);
+
         clearFlow(userId);
         await ctx.reply(`Дом обновлён.\n${formatHouse(house)}`, { attachments: [backToMenuKeyboard] });
     } catch (err) {
@@ -185,6 +199,9 @@ export const houseEditFlow = {
                 return true;
             case "house_edit/construction_year":
                 await handleConstructionYear(ctx, text);
+                return true;
+            case "house_edit/chat_link":
+                await handleChatLink(ctx, text);
                 return true;
             default:
                 return false;

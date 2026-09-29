@@ -238,7 +238,13 @@ export const api = {
             update: (
                 auth: Auth,
                 houseId: number,
-                body: { address?: string; number?: string; floors_count?: number; construction_year?: number },
+                body: {
+                    address?: string;
+                    number?: string;
+                    floors_count?: number;
+                    construction_year?: number;
+                    chat_invite_link?: string;
+                },
             ) => request<ApiHouse>(`/representative/houses/${houseId}`, auth, { method: "PUT", body }),
         },
 

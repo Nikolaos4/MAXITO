@@ -167,12 +167,15 @@ func (s *RepresentativeService) ListEmergencyServices() ([]models.EmergencyServi
 // ---------- Дом: дозаполнение необязательных полей ----------
 
 // UpdateHouseInput — частичное обновление: любое поле можно не передавать
-// (nil), тогда значение в базе не меняется.
+// (nil), тогда значение в базе не меняется. Один эндпоинт на все
+// редактируемые поля дома — не только "дозаполнение" необязательных.
 type UpdateHouseInput struct {
 	Address          *string
 	Number           *string
+	EntrancesCount   *int
 	FloorsCount      *int
 	ConstructionYear *int
+	ChatInviteLink   *string
 }
 
 func (s *RepresentativeService) UpdateHouseDetails(houseID uint, in UpdateHouseInput) (*models.House, error) {
@@ -190,11 +193,23 @@ func (s *RepresentativeService) UpdateHouseDetails(houseID uint, in UpdateHouseI
 	if in.Number != nil {
 		house.Number = *in.Number
 	}
+	if in.EntrancesCount != nil {
+		if *in.EntrancesCount < 1 {
+			return nil, errors.New("entrances_count must be at least 1")
+		}
+		house.EntrancesCount = *in.EntrancesCount
+	}
 	if in.FloorsCount != nil {
 		house.FloorsCount = in.FloorsCount
 	}
 	if in.ConstructionYear != nil {
 		house.ConstructionYear = in.ConstructionYear
+	}
+	if in.ChatInviteLink != nil {
+		if *in.ChatInviteLink == "" {
+			return nil, errors.New("chat_invite_link cannot be empty")
+		}
+		house.ChatInviteLink = in.ChatInviteLink
 	}
 
 	if err := s.houseRepo.Update(house); err != nil {
@@ -263,9 +278,10 @@ func (s *RepresentativeService) ImportDispatchersCSV(file multipart.File) (*Impo
 // ==================== Дома ====================
 
 // ImportHousesCSV построчно создаёт дома из CSV. Обязательные колонки:
-// address, entrances_count; необязательная: number. Повторяющаяся пара
-// address+number пропускается — это делает повторную загрузку того же
-// файла безопасной (догрузка новых строк).
+// address, entrances_count; необязательные: number, floors_count,
+// construction_year, chat_invite_link (ссылка на уже заранее созданный
+// чат жителей дома). Повторяющаяся пара address+number пропускается —
+// это делает повторную загрузку того же файла безопасной (догрузка новых строк).
 func (s *RepresentativeService) ImportHousesCSV(file multipart.File) (*ImportReport, error) {
 	parsed, err := util.ParseCSV(file, []string{"address", "entrances_count"})
 	if err != nil {
@@ -310,6 +326,13 @@ func (s *RepresentativeService) ImportHousesCSV(file multipart.File) (*ImportRep
 			constructionYear = &n
 		}
 
+		// chat_invite_link — необязательная колонка: ссылка на уже
+		// заранее созданный чат жителей дома.
+		var chatInviteLink *string
+		if raw := parsed.Get(record, "chat_invite_link"); raw != "" {
+			chatInviteLink = &raw
+		}
+
 		var existing models.House
 		err = s.db.Where("address = ? AND number = ?", address, number).First(&existing).Error
 		if err == nil {
@@ -324,6 +347,7 @@ func (s *RepresentativeService) ImportHousesCSV(file multipart.File) (*ImportRep
 		house := &models.House{
 			Address: address, Number: number, EntrancesCount: entrancesCount,
 			FloorsCount: floorsCount, ConstructionYear: constructionYear,
+			ChatInviteLink: chatInviteLink,
 		}
 		if err := s.houseRepo.Create(house); err != nil {
 			report.add(rowNum, "error", err.Error(), nil)

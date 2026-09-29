@@ -4,7 +4,7 @@ export const csvTemplates = {
     houses: {
         fileName: "houses_template.csv",
         content:
-            "address;number;entrances_count;floors_count;construction_year\nул. Ленина, 25;к2;4;9;1985\n",
+            "address;number;entrances_count;floors_count;construction_year;chat_invite_link\nул. Ленина, 25;к2;4;9;1985;https://max.ru/join/example\n",
     },
     dispatchers: {
         fileName: "dispatchers_template.csv",

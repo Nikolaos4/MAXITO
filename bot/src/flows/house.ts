@@ -48,7 +48,7 @@ async function handleImportCsv(ctx: AppContext) {
         const status = err instanceof FetchError ? err.statusCode : undefined;
         if (status === 400) {
             await ctx.reply(
-                'Не удалось разобрать файл: проверьте формат и колонки "address", "entrances_count" (необязательные — "floors_count", "construction_year").',
+                'Не удалось разобрать файл: проверьте формат и колонки "address", "entrances_count" (необязательные — "number", "floors_count", "construction_year", "chat_invite_link").',
             );
         } else {
             await ctx.reply("Не удалось загрузить дома, попробуйте позже.");
