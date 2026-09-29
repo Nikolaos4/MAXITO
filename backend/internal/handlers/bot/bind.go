@@ -28,9 +28,32 @@ type bindRequest struct {
 	MaxUserID json.Number `json:"max_user_id" binding:"required"`
 }
 
+// bindResponse — успешный ответ POST /internal/bind.
+type bindResponse struct {
+	ID       uint   `json:"id"`
+	FullName string `json:"full_name"`
+	Role     string `json:"role" example:"resident"`
+}
+
 // Bind привязывает аккаунт MAX к пользователю по телефону. Бот вызывает его
 // один раз — когда человек поделился контактом. Дальше вход в мини-приложение
 // идёт по подписанному initData, телефон больше не нужен.
+//
+// @ID botBind
+// @Summary Привязать max_user_id к пользователю по телефону
+// @Description Только для сервера бота, требует X-Internal-Key вместо обычного JWT.
+// @Tags internal
+// @Accept json
+// @Produce json
+// @Security InternalKey
+// @Param body body bindRequest true "Телефон + max_user_id"
+// @Success 200 {object} bindResponse
+// @Failure 400 {object} apidoc.ErrorResponse
+// @Failure 401 {object} apidoc.ErrorResponse "неверный или отсутствующий X-Internal-Key"
+// @Failure 403 {object} apidoc.ErrorResponse "code: inactive"
+// @Failure 404 {object} apidoc.ErrorResponse "code: phone_not_registered"
+// @Failure 409 {object} apidoc.ErrorResponse "code: conflict — телефон/max_user_id уже привязаны к другому аккаунту"
+// @Router /internal/bind [post]
 func (h *Handler) Bind(c *gin.Context) {
 	var req bindRequest
 	if err := c.ShouldBindJSON(&req); err != nil {

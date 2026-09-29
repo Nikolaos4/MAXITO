@@ -23,6 +23,19 @@ type loginRequest struct {
 	InitData string `json:"init_data" binding:"required"`
 }
 
+// loginResponse — успешный ответ POST /auth/max.
+type loginResponse struct {
+	Token     string    `json:"token"`
+	ExpiresAt string    `json:"expires_at"`
+	User      loginUser `json:"user"`
+}
+
+type loginUser struct {
+	ID       uint   `json:"id"`
+	FullName string `json:"full_name"`
+	Role     string `json:"role" example:"resident"`
+}
+
 // LoginByMax — вход из мини-приложения: меняет подписанный MAX'ом initData на наш JWT.
 // Поле "code" в ошибке нужно фронту, чтобы показать правильное сообщение:
 //
@@ -31,6 +44,19 @@ type loginRequest struct {
 //	not_bound         — человек не делился контактом в боте (403)
 //	inactive          — пользователь отключён Представителем (403)
 //	auth_not_configured — на сервере не задан ключ проверки подписи (503)
+//
+// @ID authLoginByMax
+// @Summary Вход из мини-приложения (initData -> JWT)
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param body body loginRequest true "initData из window.WebApp.initData, как есть"
+// @Success 200 {object} loginResponse
+// @Failure 400 {object} apidoc.ErrorResponse
+// @Failure 401 {object} apidoc.ErrorResponse "invalid_init_data | init_data_expired"
+// @Failure 403 {object} apidoc.ErrorResponse "not_bound | inactive"
+// @Failure 503 {object} apidoc.ErrorResponse "auth_not_configured"
+// @Router /auth/max [post]
 func (h *AuthHandler) LoginByMax(c *gin.Context) {
 	var req loginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {

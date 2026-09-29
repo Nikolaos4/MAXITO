@@ -30,6 +30,19 @@ type CreateHouseRequest struct {
 }
 
 // CreateHouse — создать дом (единичное добавление).
+//
+// @ID representativeCreateHouse
+// @Summary Добавить дом
+// @Tags representative-houses
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param body body CreateHouseRequest true "Адрес, число подъездов; этажность/год/ссылка на чат — необязательно"
+// @Success 201 {object} models.House
+// @Failure 400 {object} apidoc.ErrorResponse
+// @Failure 401 {object} apidoc.ErrorResponse
+// @Failure 409 {object} apidoc.ErrorResponse "дом с таким адресом и номером уже есть"
+// @Router /representative/houses [post]
 func (h *HouseHandler) CreateHouse(c *gin.Context) {
 	var req CreateHouseRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -65,6 +78,16 @@ func (h *HouseHandler) CreateHouse(c *gin.Context) {
 }
 
 // ListHouses — список всех домов.
+//
+// @ID representativeListHouses
+// @Summary Список всех домов УК
+// @Tags representative-houses
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {array} models.House
+// @Failure 401 {object} apidoc.ErrorResponse
+// @Failure 500 {object} apidoc.ErrorResponse
+// @Router /representative/houses [get]
 func (h *HouseHandler) ListHouses(c *gin.Context) {
 	houses, err := h.houseRepo.GetAll()
 	if err != nil {
@@ -89,6 +112,19 @@ type UpdateHouseRequest struct {
 // дозаполнение необязательных полей (floors_count/construction_year), и
 // ссылку на чат, и адрес/число подъездов — отдельного эндпоинта под
 // какое-то одно поле больше нет.
+// @ID representativeUpdateHouse
+// @Summary Редактировать дом
+// @Description Любое поле можно не передавать — останется как было.
+// @Tags representative-houses
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param house_id path int true "ID дома"
+// @Param body body UpdateHouseRequest true "Только те поля, что нужно поменять"
+// @Success 200 {object} models.House
+// @Failure 400 {object} apidoc.ErrorResponse
+// @Failure 401 {object} apidoc.ErrorResponse
+// @Router /representative/houses/{house_id} [put]
 func (h *HouseHandler) UpdateHouse(c *gin.Context) {
 	houseID, err := strconv.ParseUint(c.Param("house_id"), 10, 64)
 	if err != nil {
@@ -120,6 +156,19 @@ func (h *HouseHandler) UpdateHouse(c *gin.Context) {
 // ImportHousesCSV — массовое добавление домов через CSV.
 // Обязательные колонки: address, entrances_count.
 // Необязательные: number, floors_count, construction_year, chat_invite_link.
+//
+// @ID representativeImportHousesCSV
+// @Summary Массово добавить дома из CSV
+// @Description Обязательные колонки: address, entrances_count. Необязательные: number, floors_count, construction_year, chat_invite_link.
+// @Tags representative-houses
+// @Accept mpfd
+// @Produce json
+// @Security BearerAuth
+// @Param file formData file true "CSV-файл"
+// @Success 200 {object} services.ImportReport
+// @Failure 400 {object} apidoc.ErrorResponse
+// @Failure 401 {object} apidoc.ErrorResponse
+// @Router /representative/houses/csv [post]
 func (h *HouseHandler) ImportHousesCSV(c *gin.Context) {
 	fileHeader, err := c.FormFile("file")
 	if err != nil {

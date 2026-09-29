@@ -20,6 +20,16 @@ func NewReferenceHandler(problemTypeRepo *repository.ProblemTypeRepository, reas
 }
 
 // ListProblemTypes — список тем (Лифт, Вода, ..., Другое).
+//
+// @Summary Список тем обращений/уведомлений
+// @Tags reference
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {array} models.ProblemType
+// @Failure 401 {object} apidoc.ErrorResponse
+// @Failure 500 {object} apidoc.ErrorResponse
+// @Router /dispatcher/problem-types [get]
+// @Router /resident/problem-types [get]
 func (h *ReferenceHandler) ListProblemTypes(c *gin.Context) {
 	types, err := h.problemTypeRepo.List()
 	if err != nil {
@@ -33,6 +43,19 @@ func (h *ReferenceHandler) ListProblemTypes(c *gin.Context) {
 // ?for=notification — только причины, годные для формы создания
 // уведомления (грязь/шум/жалобы на текущее состояние сюда не попадают,
 // только то, что можно заранее анонсировать: отключение, неработоспособность).
+//
+// @Summary Список причин для темы
+// @Tags reference
+// @Produce json
+// @Security BearerAuth
+// @Param id path int true "ID темы (problem_type_id)"
+// @Param for query string false "notification — только причины, годные для уведомления"
+// @Success 200 {array} models.Reason
+// @Failure 400 {object} apidoc.ErrorResponse
+// @Failure 401 {object} apidoc.ErrorResponse
+// @Failure 500 {object} apidoc.ErrorResponse
+// @Router /dispatcher/problem-types/{id}/reasons [get]
+// @Router /resident/problem-types/{id}/reasons [get]
 func (h *ReferenceHandler) ListReasons(c *gin.Context) {
 	problemTypeID, err := strconv.ParseUint(c.Param("id"), 10, 64)
 	if err != nil {

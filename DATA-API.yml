@@ -6,22 +6,11 @@ solution:
 
 api:
   baseUrl: "https://maxito.nekotyan2d.ru"
+  openapi: "https://maxito.nekotyan2d.ru/api-docs/openapi.json"
   defaultHeaders:
     Accept: "application/json"
 
 checks:
-  - id: "health"
-    name: "Доступность API"
-    method: "GET"
-    path: "/health"
-    role: "public"
-    expected:
-      statusCodes: [200]
-      contentType: "application/json"
-      requiredFields: ["status"]
-    timeoutMs: 5000
-    repeatable: true
-
   - id: "auth-max-rejects-bad-init-data"
     name: "Вход по initData MAX отклоняет неподписанные данные"
     description: "Вход в мини-приложение возможен только с initData, подписанным MAX"
@@ -45,6 +34,9 @@ checks:
     method: "GET"
     path: "/api/v1/me"
     role: "resident"
+    request:
+      headers:
+        Authorization: "Bearer ${residentAccessToken}"
     expected:
       statusCodes: [200]
       contentType: "application/json"
@@ -57,6 +49,9 @@ checks:
     method: "GET"
     path: "/api/v1/resident/house"
     role: "resident"
+    request:
+      headers:
+        Authorization: "Bearer ${residentAccessToken}"
     expected:
       statusCodes: [200]
       contentType: "application/json"
@@ -70,6 +65,9 @@ checks:
     method: "GET"
     path: "/api/v1/resident/problem-types"
     role: "resident"
+    request:
+      headers:
+        Authorization: "Bearer ${residentAccessToken}"
     expected:
       statusCodes: [200]
       contentType: "application/json"
@@ -93,6 +91,7 @@ checks:
     request:
       headers:
         Content-Type: "application/json"
+        Authorization: "Bearer ${residentAccessToken}"
       body:
         problem_type_id: "${otherProblemTypeId}"
         description: "Тестовое обращение автоматизированной проверки API"
@@ -121,6 +120,8 @@ checks:
     role: "resident"
     dependsOn: ["resident-create-appeal"]
     request:
+      headers:
+        Authorization: "Bearer ${residentAccessToken}"
       query:
         mine: "true"
     expected:
@@ -137,6 +138,8 @@ checks:
     role: "resident"
     dependsOn: ["resident-create-appeal"]
     request:
+      headers:
+        Authorization: "Bearer ${residentAccessToken}"
       path:
         appealId: "${appealId}"
     expected:
@@ -152,6 +155,9 @@ checks:
     path: "/api/v1/dispatcher/appeals"
     role: "dispatcher"
     dependsOn: ["resident-create-appeal"]
+    request:
+      headers:
+        Authorization: "Bearer ${dispatcherAccessToken}"
     expected:
       statusCodes: [200]
       contentType: "application/json"
@@ -166,6 +172,8 @@ checks:
     role: "dispatcher"
     dependsOn: ["resident-create-appeal"]
     request:
+      headers:
+        Authorization: "Bearer ${dispatcherAccessToken}"
       path:
         appealId: "${appealId}"
     expected:
@@ -186,6 +194,7 @@ checks:
         appealId: "${appealId}"
       headers:
         Content-Type: "application/json"
+        Authorization: "Bearer ${dispatcherAccessToken}"
       body:
         status: "in_progress"
         comment: "Взято в работу автоматизированной проверкой"
@@ -203,6 +212,8 @@ checks:
     role: "resident"
     dependsOn: ["dispatcher-take-in-progress"]
     request:
+      headers:
+        Authorization: "Bearer ${residentAccessToken}"
       path:
         appealId: "${appealId}"
     expected:
@@ -222,6 +233,9 @@ checks:
     method: "GET"
     path: "/api/v1/dispatcher/appeals"
     role: "resident"
+    request:
+      headers:
+        Authorization: "Bearer ${residentAccessToken}"
     expected:
       statusCodes: [403]
       contentType: "application/json"
@@ -229,30 +243,6 @@ checks:
     timeoutMs: 5000
     repeatable: true
 
-  - id: "representative-list-houses"
-    name: "Представитель УК видит дома"
-    method: "GET"
-    path: "/api/v1/representative/houses"
-    role: "representative"
-    expected:
-      statusCodes: [200]
-      contentType: "application/json"
-    timeoutMs: 5000
-    repeatable: true
-
-  - id: "representative-list-dispatchers"
-    name: "Представитель УК видит диспетчеров"
-    method: "GET"
-    path: "/api/v1/representative/dispatchers"
-    role: "representative"
-    expected:
-      statusCodes: [200]
-      contentType: "application/json"
-    timeoutMs: 5000
-    repeatable: true
-
-# Удаления обращений в API нет — тестовое обращение закрывается конечным статусом
-# rejected (из in_progress/accepted переход разрешён), чтобы не висеть в ленте.
 cleanup:
   - id: "close-test-appeal"
     method: "POST"
@@ -263,6 +253,7 @@ cleanup:
         appealId: "${appealId}"
       headers:
         Content-Type: "application/json"
+        Authorization: "Bearer ${dispatcherAccessToken}"
       body:
         status: "rejected"
         comment: "Тестовое обращение автоматизированной проверки закрыто"

@@ -1,0 +1,3935 @@
+{
+    "schemes": [
+        "http",
+        "https"
+    ],
+    "swagger": "2.0",
+    "info": {
+        "description": "Бэкенд «Умного города» — обращения жителей МКД к управляющей компании, плановые работы, справочники домов/УК/аварийных служб. Один инстанс = одна УК.\n\nРоли: representative (представитель УК), dispatcher (диспетчер), resident (житель). Роль определяется самим пользователем на бэкенде — в запросах отдельно не передаётся.",
+        "title": "MAXITO API",
+        "contact": {
+            "name": "MAXITO"
+        },
+        "license": {
+            "name": "MIT"
+        },
+        "version": "1.0"
+    },
+    "host": "localhost:8080",
+    "basePath": "/api/v1",
+    "paths": {
+        "/auth/max": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Вход из мини-приложения (initData -\u003e JWT)",
+                "operationId": "authLoginByMax",
+                "parameters": [
+                    {
+                        "description": "initData из window.WebApp.initData, как есть",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_handlers_common.loginRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handlers_common.loginResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "invalid_init_data | init_data_expired",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "not_bound | inactive",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    },
+                    "503": {
+                        "description": "auth_not_configured",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/dispatcher/appeals": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "dispatcher-appeals"
+                ],
+                "summary": "Список обращений по своим домам",
+                "operationId": "dispatcherListAppeals",
+                "parameters": [
+                    {
+                        "type": "array",
+                        "items": {
+                            "type": "integer"
+                        },
+                        "collectionFormat": "multi",
+                        "description": "ID домов, можно повторять",
+                        "name": "house_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "collectionFormat": "multi",
+                        "description": "accepted|in_progress|completed|rejected, можно повторять",
+                        "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "array",
+                        "items": {
+                            "type": "integer"
+                        },
+                        "collectionFormat": "csv",
+                        "description": "можно повторять",
+                        "name": "entrance_number",
+                        "in": "query"
+                    },
+                    {
+                        "type": "array",
+                        "items": {
+                            "type": "integer"
+                        },
+                        "collectionFormat": "csv",
+                        "description": "можно повторять",
+                        "name": "problem_type_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "по умолчанию 1",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "по умолчанию 20, максимум 100",
+                        "name": "page_size",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handlers_dispatcher.appealListResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/dispatcher/appeals/stats": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "dispatcher-appeals"
+                ],
+                "summary": "Статистика необработанных обращений по домам",
+                "operationId": "dispatcherUnprocessedStats",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/maxito_internal_services.HouseAppealStats"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/dispatcher/appeals/top": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "dispatcher-appeals"
+                ],
+                "summary": "Топ обращений по лайкам",
+                "operationId": "dispatcherTopAppeals",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "по умолчанию 5, максимум 100",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/maxito_internal_services.AppealListItem"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/dispatcher/appeals/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "dispatcher-appeals"
+                ],
+                "summary": "Карточка обращения",
+                "operationId": "dispatcherGetAppeal",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID обращения",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/maxito_internal_services.AppealDetail"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "чужой дом или обращение не найдено",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/dispatcher/appeals/{id}/status": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Разрешённые переходы: accepted-\u003ein_progress|rejected, in_progress-\u003ecompleted|rejected. completed/rejected — конечные. photo_url принимается только при переходе в completed, иначе 400.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "dispatcher-appeals"
+                ],
+                "summary": "Сменить статус обращения",
+                "operationId": "dispatcherChangeStatus",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID обращения",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Новый статус, комментарий (обязателен), фото — только для completed",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_handlers_dispatcher.ChangeStatusRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/maxito_internal_models.AppealStatusChange"
+                        }
+                    },
+                    "400": {
+                        "description": "недопустимый переход | нет комментария | photo_url не при completed",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/dispatcher/company": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Одна запись на весь инстанс, не привязана к дому. Если Представитель ещё не заполнил — пустой объект \"{}\", не ошибка.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "company-emergency"
+                ],
+                "summary": "Реквизиты управляющей компании",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/maxito_internal_models.Company"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/dispatcher/emergency-services": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Общий на всю систему список, не привязан к дому.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "company-emergency"
+                ],
+                "summary": "Список аварийных служб",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/maxito_internal_models.EmergencyService"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/dispatcher/houses": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "dispatcher-houses"
+                ],
+                "summary": "Дома диспетчера",
+                "operationId": "dispatcherListHouses",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/maxito_internal_models.House"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/dispatcher/houses/{house_id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "dispatcher-houses"
+                ],
+                "summary": "Карточка одного дома",
+                "operationId": "dispatcherGetHouse",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID дома",
+                        "name": "house_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/maxito_internal_models.House"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "не найден или чужой дом",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/dispatcher/houses/{house_id}/entrances": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "dispatcher-houses"
+                ],
+                "summary": "Номера подъездов дома",
+                "operationId": "dispatcherListEntrances",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID дома",
+                        "name": "house_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "type": "integer"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/dispatcher/notifications": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "dispatcher-notifications"
+                ],
+                "summary": "Уведомления (плановые работы) по своим домам",
+                "operationId": "dispatcherListNotifications",
+                "parameters": [
+                    {
+                        "type": "array",
+                        "items": {
+                            "type": "integer"
+                        },
+                        "collectionFormat": "csv",
+                        "description": "можно повторять",
+                        "name": "house_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "active | expired | revoked, не указан — все",
+                        "name": "status",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/maxito_internal_models.Notification"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "reason_id обязателен, если тема не \"Другое\". Причина должна быть годной для уведомления (allows_notification=true у неё) — см. GET .../problem-types/{id}/reasons?for=notification.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "dispatcher-notifications"
+                ],
+                "summary": "Опубликовать плановые работы (уведомление)",
+                "operationId": "dispatcherCreateNotification",
+                "parameters": [
+                    {
+                        "description": "Дом/подъезд, тема+причина, текст, период действия",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_handlers_dispatcher.CreateNotificationRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/maxito_internal_models.Notification"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/dispatcher/notifications/{id}/revoke": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "dispatcher-notifications"
+                ],
+                "summary": "Досрочно отозвать уведомление",
+                "operationId": "dispatcherRevokeNotification",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID уведомления",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "нет содержимого"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/dispatcher/problem-types": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "reference"
+                ],
+                "summary": "Список тем обращений/уведомлений",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/maxito_internal_models.ProblemType"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/dispatcher/problem-types/{id}/reasons": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "reference"
+                ],
+                "summary": "Список причин для темы",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID темы (problem_type_id)",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "notification — только причины, годные для уведомления",
+                        "name": "for",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/maxito_internal_models.Reason"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/internal/bind": {
+            "post": {
+                "security": [
+                    {
+                        "InternalKey": []
+                    }
+                ],
+                "description": "Только для сервера бота, требует X-Internal-Key вместо обычного JWT.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "internal"
+                ],
+                "summary": "Привязать max_user_id к пользователю по телефону",
+                "operationId": "botBind",
+                "parameters": [
+                    {
+                        "description": "Телефон + max_user_id",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_handlers_bot.bindRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handlers_bot.bindResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "неверный или отсутствующий X-Internal-Key",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "code: inactive",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "code: phone_not_registered",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "code: conflict — телефон/max_user_id уже привязаны к другому аккаунту",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/internal/issue-token": {
+            "post": {
+                "security": [
+                    {
+                        "InternalKey": []
+                    }
+                ],
+                "description": "Только для сервера бота/администратора, требует X-Internal-Key вместо обычного JWT. Не для обычных пользователей.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "internal"
+                ],
+                "summary": "Выпустить JWT по телефону, минуя вход через MAX",
+                "operationId": "botIssueToken",
+                "parameters": [
+                    {
+                        "description": "Телефон пользователя",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_handlers_bot.issueTokenRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handlers_bot.issueTokenResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "неверный или отсутствующий X-Internal-Key",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "code: inactive",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "code: phone_not_registered",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/me": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "me"
+                ],
+                "summary": "Текущий пользователь",
+                "operationId": "commonMe",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handlers_common.MeResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/representative/assignments": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "representative-assignments"
+                ],
+                "summary": "Все назначения диспетчер-дом",
+                "operationId": "representativeListAssignments",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/maxito_internal_models.DispatcherHouse"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/representative/company": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Одна запись на весь инстанс, не привязана к дому. Если Представитель ещё не заполнил — пустой объект \"{}\", не ошибка.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "company-emergency"
+                ],
+                "summary": "Реквизиты управляющей компании",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/maxito_internal_models.Company"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "representative-company"
+                ],
+                "summary": "Задать/поправить реквизиты УК",
+                "operationId": "representativeUpdateCompany",
+                "parameters": [
+                    {
+                        "description": "Реквизиты; full_name обязателен, остальное — нет",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_handlers_representative.UpdateCompanyRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/maxito_internal_models.Company"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/representative/dispatchers": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "representative-dispatchers"
+                ],
+                "summary": "Список диспетчеров",
+                "operationId": "representativeListDispatchers",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/maxito_internal_models.User"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "representative-dispatchers"
+                ],
+                "summary": "Добавить диспетчера",
+                "operationId": "representativeCreateDispatcher",
+                "parameters": [
+                    {
+                        "description": "ФИО и телефон",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_handlers_representative.CreateDispatcherRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/maxito_internal_models.User"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/representative/dispatchers/csv": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Обязательные колонки: full_name, phone.",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "representative-dispatchers"
+                ],
+                "summary": "Массово добавить диспетчеров из CSV",
+                "operationId": "representativeImportDispatchersCSV",
+                "parameters": [
+                    {
+                        "type": "file",
+                        "description": "CSV-файл",
+                        "name": "file",
+                        "in": "formData",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/maxito_internal_services.ImportReport"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/representative/dispatchers/{dispatcher_id}/houses": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "representative-assignments"
+                ],
+                "summary": "Дома конкретного диспетчера",
+                "operationId": "representativeListDispatcherHouses",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID диспетчера",
+                        "name": "dispatcher_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/maxito_internal_models.House"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "representative-assignments"
+                ],
+                "summary": "Назначить диспетчеру дома",
+                "operationId": "representativeAssignHouses",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID диспетчера",
+                        "name": "dispatcher_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Список ID домов",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_handlers_representative.AssignHousesRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/maxito_internal_services.ImportReport"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/representative/dispatchers/{dispatcher_id}/houses/{house_id}": {
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "representative-assignments"
+                ],
+                "summary": "Снять с диспетчера дом",
+                "operationId": "representativeUnassignHouse",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID диспетчера",
+                        "name": "dispatcher_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "ID дома",
+                        "name": "house_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "нет содержимого"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "назначение не найдено",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/representative/emergency-services": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Общий на всю систему список, не привязан к дому.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "company-emergency"
+                ],
+                "summary": "Список аварийных служб",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/maxito_internal_models.EmergencyService"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/representative/emergency-services/csv": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Обязательные колонки: name, phone. Общий список на всю систему, не по домам. Строки с уже существующим телефоном пропускаются (skipped), не дублируются.",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "representative-emergency"
+                ],
+                "summary": "Массово загрузить аварийные службы из CSV",
+                "operationId": "representativeImportEmergencyServicesCSV",
+                "parameters": [
+                    {
+                        "type": "file",
+                        "description": "CSV-файл",
+                        "name": "file",
+                        "in": "formData",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/maxito_internal_services.ImportReport"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/representative/houses": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "representative-houses"
+                ],
+                "summary": "Список всех домов УК",
+                "operationId": "representativeListHouses",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/maxito_internal_models.House"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "representative-houses"
+                ],
+                "summary": "Добавить дом",
+                "operationId": "representativeCreateHouse",
+                "parameters": [
+                    {
+                        "description": "Адрес, число подъездов; этажность/год/ссылка на чат — необязательно",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_handlers_representative.CreateHouseRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/maxito_internal_models.House"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "дом с таким адресом и номером уже есть",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/representative/houses/csv": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Обязательные колонки: address, entrances_count. Необязательные: number, floors_count, construction_year, chat_invite_link.",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "representative-houses"
+                ],
+                "summary": "Массово добавить дома из CSV",
+                "operationId": "representativeImportHousesCSV",
+                "parameters": [
+                    {
+                        "type": "file",
+                        "description": "CSV-файл",
+                        "name": "file",
+                        "in": "formData",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/maxito_internal_services.ImportReport"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/representative/houses/unassigned": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "representative-assignments"
+                ],
+                "summary": "Дома без закреплённого диспетчера",
+                "operationId": "representativeListUnassignedHouses",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/maxito_internal_models.House"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/representative/houses/{house_id}": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Любое поле можно не передавать — останется как было.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "representative-houses"
+                ],
+                "summary": "Редактировать дом",
+                "operationId": "representativeUpdateHouse",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID дома",
+                        "name": "house_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Только те поля, что нужно поменять",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_handlers_representative.UpdateHouseRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/maxito_internal_models.House"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/representative/houses/{house_id}/residents": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "representative-residents"
+                ],
+                "summary": "Список жителей дома",
+                "operationId": "representativeListResidents",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID дома",
+                        "name": "house_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/maxito_internal_models.Resident"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/representative/houses/{house_id}/residents/csv": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Обязательные колонки: full_name, phone, apartment. Необязательная: entrance_number.",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "representative-residents"
+                ],
+                "summary": "Массово добавить жителей дома из CSV",
+                "operationId": "representativeImportResidentsCSV",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID дома",
+                        "name": "house_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "file",
+                        "description": "CSV-файл",
+                        "name": "file",
+                        "in": "formData",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/maxito_internal_services.ImportReport"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/resident/appeals": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "resident-appeals"
+                ],
+                "summary": "Обращения по своему дому",
+                "operationId": "residentListAppeals",
+                "parameters": [
+                    {
+                        "type": "boolean",
+                        "description": "только свои обращения",
+                        "name": "mine",
+                        "in": "query"
+                    },
+                    {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "collectionFormat": "csv",
+                        "description": "accepted|in_progress|completed|rejected, можно повторять",
+                        "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "array",
+                        "items": {
+                            "type": "integer"
+                        },
+                        "collectionFormat": "csv",
+                        "description": "можно повторять",
+                        "name": "problem_type_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "array",
+                        "items": {
+                            "type": "integer"
+                        },
+                        "collectionFormat": "csv",
+                        "description": "можно повторять",
+                        "name": "entrance_number",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "по умолчанию 1",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "по умолчанию 20, максимум 100",
+                        "name": "page_size",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handlers_resident.residentAppealListResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "reason_id обязателен, если тема не \"Другое\". photo_urls — ссылки, заранее полученные через POST /upload.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "resident-appeals"
+                ],
+                "summary": "Создать обращение",
+                "operationId": "residentCreateAppeal",
+                "parameters": [
+                    {
+                        "description": "Тема+причина, описание, место/время обнаружения, фото",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_handlers_resident.CreateAppealRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/maxito_internal_models.Appeal"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "уже есть открытое обращение по этой же причине",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handlers_resident.duplicateAppealErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/resident/appeals/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "resident-appeals"
+                ],
+                "summary": "Карточка обращения",
+                "operationId": "residentGetAppeal",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID обращения",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/maxito_internal_services.ResidentAppealDetail"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "чужой дом или обращение не найдено",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/resident/appeals/{id}/like": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Нельзя лайкнуть своё же обращение.",
+                "tags": [
+                    "resident-appeals"
+                ],
+                "summary": "Лайкнуть обращение",
+                "operationId": "residentLike",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID обращения",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "нет содержимого"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "resident-appeals"
+                ],
+                "summary": "Снять лайк",
+                "operationId": "residentUnlike",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID обращения",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "нет содержимого"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "лайк не найден",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/resident/company": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Одна запись на весь инстанс, не привязана к дому. Если Представитель ещё не заполнил — пустой объект \"{}\", не ошибка.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "company-emergency"
+                ],
+                "summary": "Реквизиты управляющей компании",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/maxito_internal_models.Company"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/resident/emergency-services": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Общий на всю систему список, не привязан к дому.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "company-emergency"
+                ],
+                "summary": "Список аварийных служб",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/maxito_internal_models.EmergencyService"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/resident/house": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "resident-house"
+                ],
+                "summary": "Информация о своём доме",
+                "operationId": "residentGetHouse",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/maxito_internal_models.House"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/resident/house/chat-link": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "resident-house"
+                ],
+                "summary": "Ссылка на общий чат дома",
+                "operationId": "residentChatLink",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handlers_resident.chatLinkResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/resident/house/entrances": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "resident-house"
+                ],
+                "summary": "Номера подъездов своего дома",
+                "operationId": "residentListEntrances",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "type": "integer"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/resident/notifications": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "resident-notifications"
+                ],
+                "summary": "Актуальные уведомления (плановые работы)",
+                "operationId": "residentListNotifications",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/maxito_internal_services.NotificationListItem"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/resident/notifications/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Открытие карточки автоматически отмечает уведомление прочитанным.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "resident-notifications"
+                ],
+                "summary": "Подробности уведомления",
+                "operationId": "residentGetNotification",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID уведомления",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/maxito_internal_services.NotificationListItem"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/resident/problem-types": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "reference"
+                ],
+                "summary": "Список тем обращений/уведомлений",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/maxito_internal_models.ProblemType"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/resident/problem-types/{id}/reasons": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "reference"
+                ],
+                "summary": "Список причин для темы",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID темы (problem_type_id)",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "notification — только причины, годные для уведомления",
+                        "name": "for",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/maxito_internal_models.Reason"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/upload": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "До 10 МБ, только jpg/jpeg/png/webp/gif (проверяется по расширению имени файла). Дальше ссылку из ответа передают как есть в photo_url/photo_urls — сам бэкенд файлы через другие эндпоинты не принимает.",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "upload"
+                ],
+                "summary": "Загрузить файл (фото)",
+                "operationId": "commonUpload",
+                "parameters": [
+                    {
+                        "type": "file",
+                        "description": "Файл, поле формы — ровно 'file'",
+                        "name": "file",
+                        "in": "formData",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handlers_common.uploadResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "file is required | file is too large (max 10MB) | unsupported file type",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "apidoc.ErrorResponse": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "description": "Code — машиночитаемый код ошибки; присутствует только у части\nэндпоинтов (см. описание конкретного эндпоинта), у остальных отсутствует.",
+                    "type": "string",
+                    "example": "bad_request"
+                },
+                "error": {
+                    "type": "string",
+                    "example": "invalid request"
+                }
+            }
+        },
+        "internal_handlers_bot.bindRequest": {
+            "type": "object",
+            "required": [
+                "max_user_id",
+                "phone"
+            ],
+            "properties": {
+                "max_user_id": {
+                    "description": "json.Number принимает и число, и строку с числом — бот может прислать\nmax_user_id любым из способов, результат один и тот же.",
+                    "type": "string"
+                },
+                "phone": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_handlers_bot.bindResponse": {
+            "type": "object",
+            "properties": {
+                "full_name": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "role": {
+                    "type": "string",
+                    "example": "resident"
+                }
+            }
+        },
+        "internal_handlers_bot.issueTokenRequest": {
+            "type": "object",
+            "required": [
+                "phone"
+            ],
+            "properties": {
+                "phone": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_handlers_bot.issueTokenResponse": {
+            "type": "object",
+            "properties": {
+                "access_token": {
+                    "type": "string"
+                },
+                "expires_at": {
+                    "type": "string"
+                },
+                "role": {
+                    "type": "string",
+                    "example": "resident"
+                }
+            }
+        },
+        "internal_handlers_common.DispatcherInfo": {
+            "type": "object",
+            "properties": {
+                "houses_count": {
+                    "type": "integer"
+                }
+            }
+        },
+        "internal_handlers_common.MeResponse": {
+            "type": "object",
+            "properties": {
+                "dispatcher": {
+                    "$ref": "#/definitions/internal_handlers_common.DispatcherInfo"
+                },
+                "full_name": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "is_active": {
+                    "type": "boolean"
+                },
+                "phone": {
+                    "type": "string"
+                },
+                "resident": {
+                    "description": "Заполняется только для соответствующей роли, у остальных отсутствует в JSON.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/internal_handlers_common.ResidentInfo"
+                        }
+                    ]
+                },
+                "role": {
+                    "$ref": "#/definitions/maxito_internal_models.Role"
+                }
+            }
+        },
+        "internal_handlers_common.ResidentInfo": {
+            "type": "object",
+            "properties": {
+                "apartment": {
+                    "type": "string"
+                },
+                "entrance_number": {
+                    "type": "integer"
+                },
+                "house_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "internal_handlers_common.loginRequest": {
+            "type": "object",
+            "required": [
+                "init_data"
+            ],
+            "properties": {
+                "init_data": {
+                    "description": "InitData — значение window.WebApp.initData, строка целиком, без изменений.",
+                    "type": "string"
+                }
+            }
+        },
+        "internal_handlers_common.loginResponse": {
+            "type": "object",
+            "properties": {
+                "expires_at": {
+                    "type": "string"
+                },
+                "token": {
+                    "type": "string"
+                },
+                "user": {
+                    "$ref": "#/definitions/internal_handlers_common.loginUser"
+                }
+            }
+        },
+        "internal_handlers_common.loginUser": {
+            "type": "object",
+            "properties": {
+                "full_name": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "role": {
+                    "type": "string",
+                    "example": "resident"
+                }
+            }
+        },
+        "internal_handlers_common.uploadResponse": {
+            "type": "object",
+            "properties": {
+                "url": {
+                    "type": "string",
+                    "example": "https://host/uploads/ab12cd34.jpg"
+                }
+            }
+        },
+        "internal_handlers_dispatcher.ChangeStatusRequest": {
+            "type": "object",
+            "required": [
+                "comment",
+                "status"
+            ],
+            "properties": {
+                "comment": {
+                    "type": "string"
+                },
+                "photo_url": {
+                    "type": "string"
+                },
+                "status": {
+                    "$ref": "#/definitions/maxito_internal_models.AppealStatus"
+                }
+            }
+        },
+        "internal_handlers_dispatcher.CreateNotificationRequest": {
+            "type": "object",
+            "required": [
+                "body",
+                "ends_at",
+                "house_id",
+                "problem_type_id",
+                "scope",
+                "starts_at"
+            ],
+            "properties": {
+                "body": {
+                    "type": "string"
+                },
+                "ends_at": {
+                    "description": "RFC3339",
+                    "type": "string"
+                },
+                "entrance_number": {
+                    "type": "integer"
+                },
+                "house_id": {
+                    "type": "integer"
+                },
+                "problem_type_id": {
+                    "type": "integer"
+                },
+                "reason_id": {
+                    "description": "не нужен, если тема — \"Другое\"",
+                    "type": "integer"
+                },
+                "scope": {
+                    "description": "\"house\" | \"entrance\"",
+                    "type": "string"
+                },
+                "starts_at": {
+                    "description": "RFC3339",
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_handlers_dispatcher.appealListResponse": {
+            "type": "object",
+            "properties": {
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/maxito_internal_services.AppealListItem"
+                    }
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "page_size": {
+                    "type": "integer"
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
+        "internal_handlers_representative.AssignHousesRequest": {
+            "type": "object",
+            "required": [
+                "house_ids"
+            ],
+            "properties": {
+                "house_ids": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                        "type": "integer"
+                    }
+                }
+            }
+        },
+        "internal_handlers_representative.CreateDispatcherRequest": {
+            "type": "object",
+            "required": [
+                "full_name",
+                "phone"
+            ],
+            "properties": {
+                "full_name": {
+                    "type": "string"
+                },
+                "phone": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_handlers_representative.CreateHouseRequest": {
+            "type": "object",
+            "required": [
+                "address",
+                "entrances_count"
+            ],
+            "properties": {
+                "address": {
+                    "type": "string"
+                },
+                "chat_invite_link": {
+                    "description": "необязательно",
+                    "type": "string"
+                },
+                "construction_year": {
+                    "description": "необязательно",
+                    "type": "integer"
+                },
+                "entrances_count": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "floors_count": {
+                    "description": "необязательно",
+                    "type": "integer"
+                },
+                "number": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_handlers_representative.UpdateCompanyRequest": {
+            "type": "object",
+            "required": [
+                "full_name"
+            ],
+            "properties": {
+                "contact_phone": {
+                    "type": "string"
+                },
+                "dispatcher_phone": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "full_name": {
+                    "type": "string"
+                },
+                "short_name": {
+                    "type": "string"
+                },
+                "website": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_handlers_representative.UpdateHouseRequest": {
+            "type": "object",
+            "properties": {
+                "address": {
+                    "type": "string"
+                },
+                "chat_invite_link": {
+                    "type": "string"
+                },
+                "construction_year": {
+                    "type": "integer"
+                },
+                "entrances_count": {
+                    "type": "integer"
+                },
+                "floors_count": {
+                    "type": "integer"
+                },
+                "number": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_handlers_resident.CreateAppealRequest": {
+            "type": "object",
+            "required": [
+                "description",
+                "problem_type_id"
+            ],
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "discovered_at": {
+                    "description": "необязательно, RFC3339",
+                    "type": "string"
+                },
+                "entrance_number": {
+                    "type": "integer"
+                },
+                "importance": {
+                    "type": "string"
+                },
+                "photo_urls": {
+                    "description": "ссылки, полученные заранее через POST /upload",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "problem_type_id": {
+                    "type": "integer"
+                },
+                "reason_id": {
+                    "description": "не нужен, если тема — \"Другое\"",
+                    "type": "integer"
+                },
+                "wants_recalculation": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "internal_handlers_resident.chatLinkResponse": {
+            "type": "object",
+            "properties": {
+                "chat_invite_link": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_handlers_resident.duplicateAppealErrorResponse": {
+            "type": "object",
+            "properties": {
+                "error": {
+                    "type": "string"
+                },
+                "existing_appeal_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "internal_handlers_resident.residentAppealListResponse": {
+            "type": "object",
+            "properties": {
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/maxito_internal_services.AppealListItem"
+                    }
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "page_size": {
+                    "type": "integer"
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
+        "maxito_internal_models.Appeal": {
+            "type": "object",
+            "properties": {
+                "attachments": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/maxito_internal_models.AppealAttachment"
+                    }
+                },
+                "author": {
+                    "$ref": "#/definitions/maxito_internal_models.User"
+                },
+                "author_id": {
+                    "type": "integer"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "discovered_at": {
+                    "description": "когда житель заметил проблему (необязательно)",
+                    "type": "string"
+                },
+                "entrance_number": {
+                    "description": "null = весь дом",
+                    "type": "integer"
+                },
+                "house": {
+                    "$ref": "#/definitions/maxito_internal_models.House"
+                },
+                "house_id": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "importance": {
+                    "$ref": "#/definitions/maxito_internal_models.Importance"
+                },
+                "problem_type": {
+                    "$ref": "#/definitions/maxito_internal_models.ProblemType"
+                },
+                "problem_type_id": {
+                    "type": "integer"
+                },
+                "reason": {
+                    "$ref": "#/definitions/maxito_internal_models.Reason"
+                },
+                "reason_id": {
+                    "type": "integer"
+                },
+                "status": {
+                    "$ref": "#/definitions/maxito_internal_models.AppealStatus"
+                },
+                "status_changes": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/maxito_internal_models.AppealStatusChange"
+                    }
+                },
+                "subscriptions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/maxito_internal_models.AppealSubscription"
+                    }
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "wants_recalculation": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "maxito_internal_models.AppealAttachment": {
+            "type": "object",
+            "properties": {
+                "appeal_id": {
+                    "type": "integer"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "url": {
+                    "type": "string"
+                }
+            }
+        },
+        "maxito_internal_models.AppealStatus": {
+            "type": "string",
+            "enum": [
+                "accepted",
+                "in_progress",
+                "completed",
+                "rejected"
+            ],
+            "x-enum-varnames": [
+                "StatusAccepted",
+                "StatusInProgress",
+                "StatusCompleted",
+                "StatusRejected"
+            ]
+        },
+        "maxito_internal_models.AppealStatusChange": {
+            "type": "object",
+            "properties": {
+                "appeal_id": {
+                    "type": "integer"
+                },
+                "changed_by": {
+                    "description": "диспетчер",
+                    "type": "integer"
+                },
+                "changed_by_user": {
+                    "$ref": "#/definitions/maxito_internal_models.User"
+                },
+                "comment": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "from_status": {
+                    "$ref": "#/definitions/maxito_internal_models.AppealStatus"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "photo_url": {
+                    "type": "string"
+                },
+                "to_status": {
+                    "$ref": "#/definitions/maxito_internal_models.AppealStatus"
+                }
+            }
+        },
+        "maxito_internal_models.AppealSubscription": {
+            "type": "object",
+            "properties": {
+                "appeal_id": {
+                    "type": "integer"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "user": {
+                    "$ref": "#/definitions/maxito_internal_models.User"
+                },
+                "user_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "maxito_internal_models.Company": {
+            "type": "object",
+            "properties": {
+                "contact_phone": {
+                    "type": "string"
+                },
+                "dispatcher_phone": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "full_name": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "short_name": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "website": {
+                    "type": "string"
+                }
+            }
+        },
+        "maxito_internal_models.DispatcherHouse": {
+            "type": "object",
+            "properties": {
+                "assigned_at": {
+                    "type": "string"
+                },
+                "assigned_by": {
+                    "description": "Representative who assigned",
+                    "type": "integer"
+                },
+                "assigner": {
+                    "$ref": "#/definitions/maxito_internal_models.User"
+                },
+                "dispatcher": {
+                    "$ref": "#/definitions/maxito_internal_models.User"
+                },
+                "dispatcher_id": {
+                    "type": "integer"
+                },
+                "house": {
+                    "$ref": "#/definitions/maxito_internal_models.House"
+                },
+                "house_id": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "maxito_internal_models.EmergencyService": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "phone": {
+                    "type": "string"
+                }
+            }
+        },
+        "maxito_internal_models.House": {
+            "type": "object",
+            "properties": {
+                "address": {
+                    "type": "string"
+                },
+                "appeals": {
+                    "description": "Relations",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/maxito_internal_models.Appeal"
+                    }
+                },
+                "chat_invite_link": {
+                    "type": "string"
+                },
+                "construction_year": {
+                    "description": "необязательно",
+                    "type": "integer"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "dispatchers": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/maxito_internal_models.DispatcherHouse"
+                    }
+                },
+                "entrances_count": {
+                    "type": "integer"
+                },
+                "floors_count": {
+                    "description": "необязательно",
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "notifications": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/maxito_internal_models.Notification"
+                    }
+                },
+                "number": {
+                    "type": "string"
+                },
+                "residents": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/maxito_internal_models.Resident"
+                    }
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "maxito_internal_models.Importance": {
+            "type": "string",
+            "enum": [
+                "normal",
+                "important"
+            ],
+            "x-enum-varnames": [
+                "ImportanceNormal",
+                "ImportanceImportant"
+            ]
+        },
+        "maxito_internal_models.Notification": {
+            "type": "object",
+            "properties": {
+                "author": {
+                    "$ref": "#/definitions/maxito_internal_models.User"
+                },
+                "author_id": {
+                    "type": "integer"
+                },
+                "body": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "ends_at": {
+                    "type": "string"
+                },
+                "entrance_number": {
+                    "description": "обязателен при scope_type = entrance",
+                    "type": "integer"
+                },
+                "house": {
+                    "$ref": "#/definitions/maxito_internal_models.House"
+                },
+                "house_id": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "reason": {
+                    "$ref": "#/definitions/maxito_internal_models.Reason"
+                },
+                "reason_id": {
+                    "type": "integer"
+                },
+                "revoked_at": {
+                    "description": "досрочная отмена",
+                    "type": "string"
+                },
+                "scope_type": {
+                    "$ref": "#/definitions/maxito_internal_models.NotificationScope"
+                },
+                "starts_at": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                }
+            }
+        },
+        "maxito_internal_models.NotificationScope": {
+            "type": "string",
+            "enum": [
+                "house",
+                "entrance"
+            ],
+            "x-enum-varnames": [
+                "ScopeHouse",
+                "ScopeEntrance"
+            ]
+        },
+        "maxito_internal_models.ProblemType": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "description": "код нужен для простоты определения проблемы",
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "is_critical": {
+                    "description": "маркер того, что проблему надо решать срочно и через звонок",
+                    "type": "boolean"
+                },
+                "reasons": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/maxito_internal_models.Reason"
+                    }
+                },
+                "title": {
+                    "type": "string"
+                }
+            }
+        },
+        "maxito_internal_models.Reason": {
+            "type": "object",
+            "properties": {
+                "allows_notification": {
+                    "description": "AllowsNotification — можно ли использовать эту причину при создании\nуведомления диспетчером (не при создании обращения жителем — там\nограничений нет). Отсекает абсурдные для планового уведомления\nпричины вроде \"грязный лифт\" — уведомление должно быть про то, что\nможно заранее анонсировать (отключение, неработоспособность), а не\nпро жалобу на текущее состояние.",
+                    "type": "boolean"
+                },
+                "code": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "is_other": {
+                    "type": "boolean"
+                },
+                "problem_type_id": {
+                    "type": "integer"
+                },
+                "title": {
+                    "type": "string"
+                }
+            }
+        },
+        "maxito_internal_models.Resident": {
+            "type": "object",
+            "properties": {
+                "apartment": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "entrance_number": {
+                    "type": "integer"
+                },
+                "house": {
+                    "$ref": "#/definitions/maxito_internal_models.House"
+                },
+                "house_id": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "user": {
+                    "$ref": "#/definitions/maxito_internal_models.User"
+                },
+                "user_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "maxito_internal_models.Role": {
+            "type": "string",
+            "enum": [
+                "representative",
+                "dispatcher",
+                "resident"
+            ],
+            "x-enum-varnames": [
+                "RoleRepresentative",
+                "RoleDispatcher",
+                "RoleResident"
+            ]
+        },
+        "maxito_internal_models.User": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "dispatcher_houses": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/maxito_internal_models.DispatcherHouse"
+                    }
+                },
+                "full_name": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "is_active": {
+                    "type": "boolean"
+                },
+                "max_user_id": {
+                    "type": "string"
+                },
+                "phone": {
+                    "type": "string"
+                },
+                "resident_profile": {
+                    "description": "Relations",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/maxito_internal_models.Resident"
+                        }
+                    ]
+                },
+                "role": {
+                    "$ref": "#/definitions/maxito_internal_models.Role"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "maxito_internal_services.AppealDetail": {
+            "type": "object",
+            "properties": {
+                "attachments": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/maxito_internal_models.AppealAttachment"
+                    }
+                },
+                "author": {
+                    "$ref": "#/definitions/maxito_internal_models.User"
+                },
+                "author_id": {
+                    "type": "integer"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "discovered_at": {
+                    "description": "когда житель заметил проблему (необязательно)",
+                    "type": "string"
+                },
+                "entrance_number": {
+                    "description": "null = весь дом",
+                    "type": "integer"
+                },
+                "history": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/maxito_internal_models.AppealStatusChange"
+                    }
+                },
+                "house": {
+                    "$ref": "#/definitions/maxito_internal_models.House"
+                },
+                "house_id": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "importance": {
+                    "$ref": "#/definitions/maxito_internal_models.Importance"
+                },
+                "liked_by_me": {
+                    "type": "boolean"
+                },
+                "likes_count": {
+                    "type": "integer"
+                },
+                "problem_type": {
+                    "$ref": "#/definitions/maxito_internal_models.ProblemType"
+                },
+                "problem_type_id": {
+                    "type": "integer"
+                },
+                "reason": {
+                    "$ref": "#/definitions/maxito_internal_models.Reason"
+                },
+                "reason_id": {
+                    "type": "integer"
+                },
+                "status": {
+                    "$ref": "#/definitions/maxito_internal_models.AppealStatus"
+                },
+                "status_changes": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/maxito_internal_models.AppealStatusChange"
+                    }
+                },
+                "subscriptions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/maxito_internal_models.AppealSubscription"
+                    }
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "wants_recalculation": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "maxito_internal_services.AppealListItem": {
+            "type": "object",
+            "properties": {
+                "attachments": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/maxito_internal_models.AppealAttachment"
+                    }
+                },
+                "author": {
+                    "$ref": "#/definitions/maxito_internal_models.User"
+                },
+                "author_id": {
+                    "type": "integer"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "discovered_at": {
+                    "description": "когда житель заметил проблему (необязательно)",
+                    "type": "string"
+                },
+                "entrance_number": {
+                    "description": "null = весь дом",
+                    "type": "integer"
+                },
+                "house": {
+                    "$ref": "#/definitions/maxito_internal_models.House"
+                },
+                "house_id": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "importance": {
+                    "$ref": "#/definitions/maxito_internal_models.Importance"
+                },
+                "liked_by_me": {
+                    "type": "boolean"
+                },
+                "likes_count": {
+                    "type": "integer"
+                },
+                "problem_type": {
+                    "$ref": "#/definitions/maxito_internal_models.ProblemType"
+                },
+                "problem_type_id": {
+                    "type": "integer"
+                },
+                "reason": {
+                    "$ref": "#/definitions/maxito_internal_models.Reason"
+                },
+                "reason_id": {
+                    "type": "integer"
+                },
+                "status": {
+                    "$ref": "#/definitions/maxito_internal_models.AppealStatus"
+                },
+                "status_changes": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/maxito_internal_models.AppealStatusChange"
+                    }
+                },
+                "subscriptions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/maxito_internal_models.AppealSubscription"
+                    }
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "wants_recalculation": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "maxito_internal_services.HouseAppealStats": {
+            "type": "object",
+            "properties": {
+                "accepted": {
+                    "type": "integer"
+                },
+                "address": {
+                    "type": "string"
+                },
+                "house_id": {
+                    "type": "integer"
+                },
+                "in_progress": {
+                    "type": "integer"
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
+        "maxito_internal_services.ImportReport": {
+            "type": "object",
+            "properties": {
+                "created": {
+                    "type": "integer"
+                },
+                "failed": {
+                    "type": "integer"
+                },
+                "rows": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/maxito_internal_services.RowResult"
+                    }
+                },
+                "skipped": {
+                    "type": "integer"
+                },
+                "total_rows": {
+                    "type": "integer"
+                }
+            }
+        },
+        "maxito_internal_services.NotificationListItem": {
+            "type": "object",
+            "properties": {
+                "author": {
+                    "$ref": "#/definitions/maxito_internal_models.User"
+                },
+                "author_id": {
+                    "type": "integer"
+                },
+                "body": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "ends_at": {
+                    "type": "string"
+                },
+                "entrance_number": {
+                    "description": "обязателен при scope_type = entrance",
+                    "type": "integer"
+                },
+                "house": {
+                    "$ref": "#/definitions/maxito_internal_models.House"
+                },
+                "house_id": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "is_read": {
+                    "type": "boolean"
+                },
+                "reason": {
+                    "$ref": "#/definitions/maxito_internal_models.Reason"
+                },
+                "reason_id": {
+                    "type": "integer"
+                },
+                "revoked_at": {
+                    "description": "досрочная отмена",
+                    "type": "string"
+                },
+                "scope_type": {
+                    "$ref": "#/definitions/maxito_internal_models.NotificationScope"
+                },
+                "starts_at": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                }
+            }
+        },
+        "maxito_internal_services.ResidentAppealDetail": {
+            "type": "object",
+            "properties": {
+                "attachments": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/maxito_internal_models.AppealAttachment"
+                    }
+                },
+                "author": {
+                    "$ref": "#/definitions/maxito_internal_models.User"
+                },
+                "author_id": {
+                    "type": "integer"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "discovered_at": {
+                    "description": "когда житель заметил проблему (необязательно)",
+                    "type": "string"
+                },
+                "entrance_number": {
+                    "description": "null = весь дом",
+                    "type": "integer"
+                },
+                "history": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/maxito_internal_models.AppealStatusChange"
+                    }
+                },
+                "house": {
+                    "$ref": "#/definitions/maxito_internal_models.House"
+                },
+                "house_id": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "importance": {
+                    "$ref": "#/definitions/maxito_internal_models.Importance"
+                },
+                "liked_by_me": {
+                    "type": "boolean"
+                },
+                "likes_count": {
+                    "type": "integer"
+                },
+                "problem_type": {
+                    "$ref": "#/definitions/maxito_internal_models.ProblemType"
+                },
+                "problem_type_id": {
+                    "type": "integer"
+                },
+                "reason": {
+                    "$ref": "#/definitions/maxito_internal_models.Reason"
+                },
+                "reason_id": {
+                    "type": "integer"
+                },
+                "status": {
+                    "$ref": "#/definitions/maxito_internal_models.AppealStatus"
+                },
+                "status_changes": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/maxito_internal_models.AppealStatusChange"
+                    }
+                },
+                "subscriptions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/maxito_internal_models.AppealSubscription"
+                    }
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "wants_recalculation": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "maxito_internal_services.RowResult": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "row": {
+                    "type": "integer"
+                },
+                "status": {
+                    "description": "created | skipped | error",
+                    "type": "string"
+                }
+            }
+        }
+    },
+    "securityDefinitions": {
+        "BearerAuth": {
+            "description": "JWT, полученный через POST /auth/max. Передавать как \"Bearer \u0026lt;token\u0026gt;\". Для локальной отладки без MAX бэкенд также принимает X-Max-User-Id (+X-Max-User-Phone при первой привязке), если на сервере включён ALLOW_DEV_HEADERS.",
+            "type": "apiKey",
+            "name": "Authorization",
+            "in": "header"
+        },
+        "InternalKey": {
+            "description": "Общий секрет между сервером бота и бэкендом — только для /internal/*.",
+            "type": "apiKey",
+            "name": "X-Internal-Key",
+            "in": "header"
+        }
+    }
+}

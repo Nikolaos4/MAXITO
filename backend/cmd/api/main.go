@@ -22,6 +22,44 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// redocPage — статическая HTML-страница с Redoc, читает спеку с /api-docs/openapi.json.
+const redocPage = `<!DOCTYPE html>
+<html>
+<head>
+	<title>MAXITO API</title>
+	<meta charset="utf-8"/>
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<style>body { margin: 0; padding: 0; }</style>
+</head>
+<body>
+	<redoc spec-url="/api-docs/openapi.json"></redoc>
+	<script src="https://cdn.jsdelivr.net/npm/redoc@next/bundles/redoc.standalone.js"></script>
+</body>
+</html>`
+
+// @title MAXITO API
+// @version 1.0
+// @description Бэкенд «Умного города» — обращения жителей МКД к управляющей компании, плановые работы, справочники домов/УК/аварийных служб. Один инстанс = одна УК.
+// @description
+// @description Роли: representative (представитель УК), dispatcher (диспетчер), resident (житель). Роль определяется самим пользователем на бэкенде — в запросах отдельно не передаётся.
+//
+// @contact.name MAXITO
+//
+// @license.name MIT
+//
+// @host localhost:8080
+// @BasePath /api/v1
+// @schemes http https
+//
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
+// @description JWT, полученный через POST /auth/max. Передавать как "Bearer &lt;token&gt;". Для локальной отладки без MAX бэкенд также принимает X-Max-User-Id (+X-Max-User-Phone при первой привязке), если на сервере включён ALLOW_DEV_HEADERS.
+//
+// @securityDefinitions.apikey InternalKey
+// @in header
+// @name X-Internal-Key
+// @description Общий секрет между сервером бота и бэкендом — только для /internal/*.
 func main() {
 	cfg, err := config.Load()
 	if err != nil {
@@ -149,6 +187,13 @@ func main() {
 	// Отдаём загруженные файлы напрямую как статику.
 	r.Static("/uploads", cfg.UploadDir)
 
+	// OpenAPI 3.1 спека (генерируется скриптом backend/scripts/gen-swagger.sh
+	// из swag-аннотаций) + Redoc-страница поверх неё.
+	r.Static("/api-docs", "./docs")
+	r.GET("/docs", func(c *gin.Context) {
+		c.Data(200, "text/html; charset=utf-8", []byte(redocPage))
+	})
+
 	// API v1
 	api := r.Group("/api/v1")
 	{
@@ -166,6 +211,7 @@ func main() {
 		internalAPI.Use(middleware.RequireInternalKey(cfg.InternalAPIKey))
 		{
 			internalAPI.POST("/bind", botHandler.Bind)
+			internalAPI.POST("/issue-token", botHandler.IssueToken)
 		}
 
 		rep := api.Group("/representative")

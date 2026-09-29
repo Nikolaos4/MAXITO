@@ -18,6 +18,19 @@ func NewEmergencyHandler(repSvc *services.RepresentativeService) *EmergencyHandl
 
 // ImportEmergencyServicesCSV — массовая загрузка аварийных служб.
 // Обязательные колонки: name, phone. Общий список на всю систему, не по домам.
+//
+// @ID representativeImportEmergencyServicesCSV
+// @Summary Массово загрузить аварийные службы из CSV
+// @Description Обязательные колонки: name, phone. Общий список на всю систему, не по домам. Строки с уже существующим телефоном пропускаются (skipped), не дублируются.
+// @Tags representative-emergency
+// @Accept mpfd
+// @Produce json
+// @Security BearerAuth
+// @Param file formData file true "CSV-файл"
+// @Success 200 {object} services.ImportReport
+// @Failure 400 {object} apidoc.ErrorResponse
+// @Failure 401 {object} apidoc.ErrorResponse
+// @Router /representative/emergency-services/csv [post]
 func (h *EmergencyHandler) ImportEmergencyServicesCSV(c *gin.Context) {
 	fileHeader, err := c.FormFile("file")
 	if err != nil {

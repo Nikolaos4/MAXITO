@@ -34,6 +34,19 @@ type CreateNotificationRequest struct {
 }
 
 // CreateNotification — создать уведомление для дома/подъезда.
+//
+// @ID dispatcherCreateNotification
+// @Summary Опубликовать плановые работы (уведомление)
+// @Description reason_id обязателен, если тема не "Другое". Причина должна быть годной для уведомления (allows_notification=true у неё) — см. GET .../problem-types/{id}/reasons?for=notification.
+// @Tags dispatcher-notifications
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param body body CreateNotificationRequest true "Дом/подъезд, тема+причина, текст, период действия"
+// @Success 201 {object} models.Notification
+// @Failure 400 {object} apidoc.ErrorResponse
+// @Failure 401 {object} apidoc.ErrorResponse
+// @Router /dispatcher/notifications [post]
 func (h *NotificationHandler) CreateNotification(c *gin.Context) {
 	currentUser := middleware.GetCurrentUser(c)
 	if currentUser == nil {
@@ -80,6 +93,18 @@ func (h *NotificationHandler) CreateNotification(c *gin.Context) {
 // ListNotifications — уведомления по своим домам.
 // Query: house_id (можно повторять — ?house_id=1&house_id=2),
 // status = active | expired | revoked (не указан — все, без фильтра).
+//
+// @ID dispatcherListNotifications
+// @Summary Уведомления (плановые работы) по своим домам
+// @Tags dispatcher-notifications
+// @Produce json
+// @Security BearerAuth
+// @Param house_id query []int false "можно повторять"
+// @Param status query string false "active | expired | revoked, не указан — все"
+// @Success 200 {array} models.Notification
+// @Failure 400 {object} apidoc.ErrorResponse
+// @Failure 401 {object} apidoc.ErrorResponse
+// @Router /dispatcher/notifications [get]
 func (h *NotificationHandler) ListNotifications(c *gin.Context) {
 	currentUser := middleware.GetCurrentUser(c)
 	if currentUser == nil {
@@ -103,6 +128,16 @@ func (h *NotificationHandler) ListNotifications(c *gin.Context) {
 }
 
 // RevokeNotification — досрочно отозвать уведомление.
+//
+// @ID dispatcherRevokeNotification
+// @Summary Досрочно отозвать уведомление
+// @Tags dispatcher-notifications
+// @Security BearerAuth
+// @Param id path int true "ID уведомления"
+// @Success 204 "нет содержимого"
+// @Failure 400 {object} apidoc.ErrorResponse
+// @Failure 401 {object} apidoc.ErrorResponse
+// @Router /dispatcher/notifications/{id}/revoke [post]
 func (h *NotificationHandler) RevokeNotification(c *gin.Context) {
 	currentUser := middleware.GetCurrentUser(c)
 	if currentUser == nil {
