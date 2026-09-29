@@ -58,11 +58,19 @@ function formatStatsList(stats: Awaited<ReturnType<typeof api.dispatcher.appeals
         .join("\n");
 }
 
-function formatHousesList(houses: Awaited<ReturnType<typeof api.dispatcher.houses.list>>): string {
+export function formatHousesList(houses: Awaited<ReturnType<typeof api.dispatcher.houses.list>>): string {
     if (houses.length === 0) return "За вами пока не закреплено ни одного дома.";
 
     return houses
-        .map((h, i) => `Дом ${i + 1}: ${h.address}${h.number ? ", " + h.number : ""}\nПодъездов: ${h.entrances_count}`)
+        .map((h, i) => {
+            const lines = [
+                `Дом ${i + 1}: ${h.address}${h.number ? ", " + h.number : ""}`,
+                `Подъездов: ${h.entrances_count}`,
+                h.floors_count != null && `Этажей: ${h.floors_count}`,
+                h.construction_year != null && `Год постройки: ${h.construction_year}`,
+            ].filter(Boolean);
+            return lines.join("\n");
+        })
         .join("\n\n");
 }
 

@@ -4,10 +4,18 @@ import { sendCsvTemplate } from "@/csv-import";
 import { csvTemplates } from "@/csv-templates";
 import { startDispatcherSelect } from "@/flows/assignment";
 import { startCompanyEdit } from "@/flows/company";
+import { formatHousesList } from "@/flows/dispatcher-menu";
 import { showEmergencyServices, startEmergencyImport } from "@/flows/emergency";
 import { buildHouseSelectKeyboard, houseSelectText, HOUSES_PAGE_SIZE } from "@/flows/house";
 import { startHouseEdit } from "@/flows/house-edit";
-import { DISPATCHER_MENU_TEXT, MENU_TEXT, buildDispatcherMenuKeyboard, cancelKeyboard, mainMenuKeyboard } from "@/menu";
+import {
+    DISPATCHER_MENU_TEXT,
+    MENU_TEXT,
+    backToMenuKeyboard,
+    buildDispatcherMenuKeyboard,
+    cancelKeyboard,
+    mainMenuKeyboard,
+} from "@/menu";
 
 function authFor(ctx: AppContext): Auth {
     return { maxUserId: String(ctx.user!.user_id) };
@@ -36,6 +44,7 @@ export const menuFlow = {
 
         const known = [
             "menu:import_houses",
+            "menu:list_houses",
             "menu:edit_house",
             "menu:add_dispatcher",
             "menu:import_dispatchers",
@@ -72,6 +81,14 @@ export const menuFlow = {
                 },
             });
             await sendCsvTemplate(ctx, csvTemplates.houses);
+            return true;
+        }
+
+        if (payload === "menu:list_houses") {
+            const houses = await api.representative.houses.list(authFor(ctx));
+            await ctx.answerOnCallback({
+                message: { text: formatHousesList(houses), attachments: [backToMenuKeyboard] },
+            });
             return true;
         }
 
