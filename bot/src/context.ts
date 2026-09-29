@@ -2,7 +2,7 @@ import { Context } from "@maxhub/max-bot-api";
 import type { User } from "@maxhub/max-bot-api/types";
 import type { ApiRole } from "@/api";
 
-type FlowName = "authorization" | "house" | "dispatcher" | "assignment" | "company" | "emergency";
+type FlowName = "authorization" | "house" | "house_edit" | "dispatcher" | "assignment" | "company" | "emergency";
 
 type Step =
     | "authorization/phone"
@@ -12,6 +12,11 @@ type Step =
     | "house/import_csv"
     | "house/import_residents_select"
     | "house/import_residents_csv"
+    | "house_edit/select"
+    | "house_edit/address"
+    | "house_edit/number"
+    | "house_edit/floors_count"
+    | "house_edit/construction_year"
     | "dispatcher/full_name"
     | "dispatcher/phone"
     | "dispatcher/import_csv"
