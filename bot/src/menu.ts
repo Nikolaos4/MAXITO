@@ -6,6 +6,7 @@ export const MENU_TEXT = "Главное меню представителя. В
 
 export const mainMenuKeyboard = Keyboard.inlineKeyboard([
     [Keyboard.button.callback("Загрузить дома из CSV", "menu:import_houses")],
+    [Keyboard.button.callback("Список домов", "menu:list_houses")],
     [Keyboard.button.callback("Изменить дом", "menu:edit_house")],
     [Keyboard.button.callback("Добавить диспетчера", "menu:add_dispatcher")],
     [Keyboard.button.callback("Загрузить диспетчеров из CSV", "menu:import_dispatchers")],
