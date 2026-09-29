@@ -23,6 +23,9 @@ import (
 )
 
 // redocPage — статическая HTML-страница с Redoc, читает спеку с /api-docs/openapi.json.
+// Скрипт redoc.standalone.js раздаётся со своего же домена (/api-docs/redoc.standalone.js),
+// а не с внешнего CDN — в сетях жюри/проверяющих внешние CDN может блокировать
+// прокси или браузер (ERR_BLOCKED_BY_ORB на cdn.jsdelivr.net).
 const redocPage = `<!DOCTYPE html>
 <html>
 <head>
@@ -33,7 +36,7 @@ const redocPage = `<!DOCTYPE html>
 </head>
 <body>
 	<redoc spec-url="/api-docs/openapi.json"></redoc>
-	<script src="https://cdn.jsdelivr.net/npm/redoc@next/bundles/redoc.standalone.js"></script>
+	<script src="/api-docs/redoc.standalone.js"></script>
 </body>
 </html>`
 
