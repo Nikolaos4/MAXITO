@@ -9,20 +9,52 @@ env:
   REGISTRY: ghcr.io
 
 jobs:
+  changes:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      matrix: ${{ steps.matrix.outputs.matrix }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Detect changed services
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            bot: 'bot/**'
+            frontend: 'frontend/**'
+            backend: 'backend/**'
+
+      - name: Build matrix
+        id: matrix
+        env:
+          ALL: ${{ github.event_name == 'workflow_dispatch' }}
+          BOT: ${{ steps.filter.outputs.bot }}
+          FRONTEND: ${{ steps.filter.outputs.frontend }}
+          BACKEND: ${{ steps.filter.outputs.backend }}
+        run: |
+          items=()
+          for s in bot frontend backend; do
+            v=${s^^}; v=${!v}
+            if [ "$ALL" = "true" ] || [ "$v" = "true" ]; then
+              items+=("{\"name\":\"$s\",\"context\":\"./$s\"}")
+            fi
+          done
+          echo "matrix=[$(IFS=,; echo "${items[*]}")]" >> "$GITHUB_OUTPUT"
+
   build-and-push:
+    needs: changes
+    if: needs.changes.outputs.matrix != '[]'
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
     strategy:
       matrix:
-        include:
-          - name: bot
-            context: ./bot
-          - name: frontend
-            context: ./frontend
-          - name: backend
-            context: ./backend
+        include: ${{ fromJSON(needs.changes.outputs.matrix) }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
