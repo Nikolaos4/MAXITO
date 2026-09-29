@@ -5,8 +5,11 @@ import type { BackendAppeal, BackendCompany, BackendEmergencyService, BackendHou
 import type { Appeal, Comment, DispatcherMe, HouseInfo, Notification } from "../../types";
 import type { DispatcherApi } from "./types";
 
+// Диспетчер темы/причины использует только для плановых работ (PlannedWork.tsx) —
+// поэтому сразу просим причины, разрешённые для уведомления (не любая причина
+// темы годится для планового анонса, см. loadCategories в backend/categories.ts).
 let categoriesPromise: Promise<ResolvedCategories> | null = null;
-const categories = () => (categoriesPromise ??= loadCategories("/dispatcher"));
+const categories = () => (categoriesPromise ??= loadCategories("/dispatcher", { forNotification: true }));
 
 // Реквизиты УК и аварийные службы одни на всю систему, не на дом — спрашиваем
 // один раз за сессию и подмешиваем в карточку любого из домов диспетчера.

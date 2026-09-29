@@ -17,14 +17,26 @@ export interface ResolvedCategories {
  * список причин на тему приходит отдельным запросом. Собираем всё это в
  * ту же форму Category, которой уже пользуется UI (CreateAppeal/PlannedWork),
  * плюс лукапы id → они нужны только в момент отправки формы.
+ *
+ * forNotification — передать true для формы плановых работ (PlannedWork.tsx):
+ * бэкенд отдаёт причины через .../reasons?for=notification и не любую
+ * причину темы разрешает использовать в уведомлении (см. Reason.AllowsNotification
+ * в models.go — «грязный лифт» не годится для планового уведомления, только
+ * то, что можно заранее анонсировать). Без этого флага жителю/диспетчеру
+ * возвращаются все причины темы, как для обычного обращения.
  */
-export async function loadCategories(prefix: "/resident" | "/dispatcher"): Promise<ResolvedCategories> {
+export async function loadCategories(
+  prefix: "/resident" | "/dispatcher",
+  opts?: { forNotification?: boolean },
+): Promise<ResolvedCategories> {
   const types = await backendRequest<BackendProblemType[]>(`${prefix}/problem-types`);
 
   const withReasons = await Promise.all(
     types.map(async (t) => ({
       type: t,
-      reasons: await backendRequest<BackendReason[]>(`${prefix}/problem-types/${t.id}/reasons`),
+      reasons: await backendRequest<BackendReason[]>(`${prefix}/problem-types/${t.id}/reasons`, {
+        query: opts?.forNotification ? { for: "notification" } : undefined,
+      }),
     })),
   );
 
