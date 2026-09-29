@@ -36,7 +36,7 @@ export function Feed({ me, initialFeed = "house" }: { me: Me; initialFeed?: Feed
 
   return (
     <>
-      <PageHead title={archive ? "Архив обращений" : `Проблемы дома №${me.houseNumber}`}
+      <PageHead title={archive ? "Архив обращений" : "Проблемы дома"}
         onBack={archive ? () => setArchive(false) : undefined} />
 
       <div className="feed-tabs" role="tablist">
