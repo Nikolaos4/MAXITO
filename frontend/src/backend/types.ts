@@ -85,6 +85,13 @@ export interface BackendProblemType {
   reasons?: BackendReason[];
 }
 
+export interface BackendAttachment {
+  id: number;
+  appeal_id: number;
+  url: string;
+  created_at: string;
+}
+
 export interface BackendAppealStatusChange {
   id: number;
   appeal_id: number;
@@ -118,6 +125,8 @@ export interface BackendAppeal {
   likes_count?: number;
   /** Лайкнул ли обращение сам текущий пользователь — считает бэкенд, не клиент (см. AppealListItem/ResidentAppealDetail) */
   liked_by_me?: boolean;
+  /** Только в ответе на GET одного обращения (список их не подгружает) — фото, приложенные жителем при создании */
+  attachments?: BackendAttachment[];
   history?: BackendAppealStatusChange[];
 }
 

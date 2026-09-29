@@ -24,6 +24,8 @@ export interface Comment {
   authorName: string;
   text: string;
   createdAt: string;
+  /** Фото подтверждения, приложенное диспетчером при переходе в статус «Выполнено» (см. AppealStatusChange.photo_url на бэкенде) */
+  photoUrl?: string | null;
 }
 
 export interface Appeal {

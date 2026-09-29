@@ -41,6 +41,13 @@ export function CommentItem({ comment, mine, onEdit, onDelete }: {
       ) : (
         <p>{comment.text}</p>
       )}
+      {comment.photoUrl && (
+        <div className="thumbs">
+          <a className="thumb" href={comment.photoUrl} target="_blank" rel="noreferrer" aria-label="Открыть фото">
+            <img src={comment.photoUrl} alt="" loading="lazy" />
+          </a>
+        </div>
+      )}
       <div className="comment__meta">
         <span><UserIcon width={14} height={14} />{comment.authorName}</span>
         <span>{formatDate(comment.createdAt)}&nbsp;&nbsp;{formatTime(comment.createdAt)}</span>
