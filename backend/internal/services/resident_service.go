@@ -3,9 +3,11 @@ package services
 import (
 	"errors"
 	"fmt"
+	"log"
 	"time"
 
 	"maxito/internal/models"
+	"maxito/internal/notify"
 	"maxito/internal/repository"
 
 	"gorm.io/gorm"
@@ -33,18 +35,6 @@ type DuplicateAppealError struct {
 
 func (e *DuplicateAppealError) Error() string {
 	return fmt.Sprintf("a similar open appeal already exists (id %d) — consider liking it instead of creating a new one", e.ExistingAppealID)
-}
-
-// NotificationBlockError возвращается вместо обычной ошибки, когда по теме
-// обращения уже действует уведомление диспетчера о плановых работах —
-// хендлер разворачивает её в ответ с деталями уведомления, чтобы житель
-// увидел понятное предупреждение вместо голой ошибки валидации.
-type NotificationBlockError struct {
-	Notification *models.Notification
-}
-
-func (e *NotificationBlockError) Error() string {
-	return fmt.Sprintf("appeal is blocked: an active notification (id %d) already covers this problem for this period", e.Notification.ID)
 }
 
 // ResidentAppealDetail — обращение вместе с числом лайков и полной историей
@@ -75,9 +65,11 @@ type ResidentService struct {
 	attachmentRepo   *repository.AppealAttachmentRepository
 	notificationRepo *repository.NotificationRepository
 	notifReadRepo    *repository.NotificationReadRepository
+	dispHouseRepo    *repository.DispatcherHouseRepository
 	houseRepo        *repository.HouseRepository
 	problemTypeRepo  *repository.ProblemTypeRepository
 	reasonRepo       *repository.ReasonRepository
+	notifyClient     *notify.Client
 }
 
 func NewResidentService(
@@ -89,9 +81,11 @@ func NewResidentService(
 	attachmentRepo *repository.AppealAttachmentRepository,
 	notificationRepo *repository.NotificationRepository,
 	notifReadRepo *repository.NotificationReadRepository,
+	dispHouseRepo *repository.DispatcherHouseRepository,
 	houseRepo *repository.HouseRepository,
 	problemTypeRepo *repository.ProblemTypeRepository,
 	reasonRepo *repository.ReasonRepository,
+	notifyClient *notify.Client,
 ) *ResidentService {
 	return &ResidentService{
 		db:               db,
@@ -102,9 +96,11 @@ func NewResidentService(
 		attachmentRepo:   attachmentRepo,
 		notificationRepo: notificationRepo,
 		notifReadRepo:    notifReadRepo,
+		dispHouseRepo:    dispHouseRepo,
 		houseRepo:        houseRepo,
 		problemTypeRepo:  problemTypeRepo,
 		reasonRepo:       reasonRepo,
+		notifyClient:     notifyClient,
 	}
 }
 
@@ -160,12 +156,12 @@ func (s *ResidentService) CreateAppeal(userID uint, in CreateAppealInput) (*mode
 		if at.IsZero() {
 			at = time.Now()
 		}
-		blocking, err := s.notificationRepo.FindActiveBlock(resident.HouseID, reason.ID, in.EntranceNumber, at)
-		if err == nil {
-			return nil, &NotificationBlockError{Notification: blocking}
-		}
-		if !errors.Is(err, gorm.ErrRecordNotFound) {
+		blocked, err := s.notificationRepo.HasActiveBlock(resident.HouseID, reason.ID, in.EntranceNumber, at)
+		if err != nil {
 			return nil, err
+		}
+		if blocked {
+			return nil, errors.New("appeal is blocked: an active notification already covers this problem for this period")
 		}
 	}
 
@@ -207,6 +203,21 @@ func (s *ResidentService) CreateAppeal(userID uint, in CreateAppealInput) (*mode
 	})
 	if txErr != nil {
 		return nil, txErr
+	}
+
+	// Диспетчерам дома — асинхронно, ошибку доставки не пробрасываем: она
+	// не должна аукаться жителю, который только что успешно создал обращение.
+	dispatcherIDs, err := s.dispHouseRepo.ListDispatcherMaxUserIDsByHouse(resident.HouseID)
+	if err != nil {
+		log.Printf("notify: failed to list dispatchers for house %d: %v", resident.HouseID, err)
+	} else {
+		s.notifyClient.AppealCreated(dispatcherIDs, notify.AppealCreatedPayload{
+			AppealID:         appeal.ID,
+			ProblemTypeTitle: problemType.Title,
+			HouseAddress:     house.Address,
+			EntranceNumber:   appeal.EntranceNumber,
+			Description:      appeal.Description,
+		})
 	}
 
 	return appeal, nil

@@ -88,15 +88,6 @@ func (h *AppealHandler) CreateAppeal(c *gin.Context) {
 			})
 			return
 		}
-		var blockErr *services.NotificationBlockError
-		if errors.As(err, &blockErr) {
-			c.JSON(http.StatusConflict, gin.H{
-				"error":                 err.Error(),
-				"code":                  "blocked_by_notification",
-				"blocking_notification": blockErr.Notification,
-			})
-			return
-		}
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}

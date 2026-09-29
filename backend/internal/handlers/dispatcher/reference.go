@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"maxito/internal/models"
 	"maxito/internal/repository"
 
 	"github.com/gin-gonic/gin"
@@ -29,6 +30,9 @@ func (h *ReferenceHandler) ListProblemTypes(c *gin.Context) {
 }
 
 // ListReasons — список причин для конкретной темы.
+// ?for=notification — только причины, годные для формы создания
+// уведомления (грязь/шум/жалобы на текущее состояние сюда не попадают,
+// только то, что можно заранее анонсировать: отключение, неработоспособность).
 func (h *ReferenceHandler) ListReasons(c *gin.Context) {
 	problemTypeID, err := strconv.ParseUint(c.Param("id"), 10, 64)
 	if err != nil {
@@ -36,8 +40,16 @@ func (h *ReferenceHandler) ListReasons(c *gin.Context) {
 		return
 	}
 
-	reasons, err := h.reasonRepo.ListByProblemType(uint(problemTypeID))
-	if err != nil {
+	var (
+		reasons  []models.Reason
+		fetchErr error
+	)
+	if c.Query("for") == "notification" {
+		reasons, fetchErr = h.reasonRepo.ListByProblemTypeForNotification(uint(problemTypeID))
+	} else {
+		reasons, fetchErr = h.reasonRepo.ListByProblemType(uint(problemTypeID))
+	}
+	if fetchErr != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch reasons"})
 		return
 	}

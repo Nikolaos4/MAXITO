@@ -3,16 +3,20 @@ package services
 import (
 	"errors"
 	"fmt"
+	"log"
 	"sort"
 	"time"
 
 	"maxito/internal/models"
+	"maxito/internal/notify"
 	"maxito/internal/repository"
 
 	"gorm.io/gorm"
 )
 
 // allowedTransitions — граф допустимых переходов статуса обращения.
+// need_info убрали из продукта (не успевали реализовать к дедлайну) —
+// статусов теперь четыре, без промежуточного "нужны уточнения".
 // completed и rejected — конечные состояния, переходов из них нет.
 var allowedTransitions = map[models.AppealStatus][]models.AppealStatus{
 	models.StatusAccepted:   {models.StatusInProgress, models.StatusRejected},
@@ -68,9 +72,11 @@ type DispatcherService struct {
 	subscriptionRepo *repository.AppealSubscriptionRepository
 	attachmentRepo   *repository.AppealAttachmentRepository
 	notificationRepo *repository.NotificationRepository
+	residentRepo     *repository.ResidentRepository
 	houseRepo        *repository.HouseRepository
 	problemTypeRepo  *repository.ProblemTypeRepository
 	reasonRepo       *repository.ReasonRepository
+	notifyClient     *notify.Client
 }
 
 func NewDispatcherService(
@@ -81,9 +87,11 @@ func NewDispatcherService(
 	subscriptionRepo *repository.AppealSubscriptionRepository,
 	attachmentRepo *repository.AppealAttachmentRepository,
 	notificationRepo *repository.NotificationRepository,
+	residentRepo *repository.ResidentRepository,
 	houseRepo *repository.HouseRepository,
 	problemTypeRepo *repository.ProblemTypeRepository,
 	reasonRepo *repository.ReasonRepository,
+	notifyClient *notify.Client,
 ) *DispatcherService {
 	return &DispatcherService{
 		db:               db,
@@ -93,9 +101,11 @@ func NewDispatcherService(
 		subscriptionRepo: subscriptionRepo,
 		attachmentRepo:   attachmentRepo,
 		notificationRepo: notificationRepo,
+		residentRepo:     residentRepo,
 		houseRepo:        houseRepo,
 		problemTypeRepo:  problemTypeRepo,
 		reasonRepo:       reasonRepo,
+		notifyClient:     notifyClient,
 	}
 }
 
@@ -309,6 +319,26 @@ func (s *DispatcherService) ChangeStatus(dispatcherID, appealID uint, in ChangeS
 		return nil, txErr
 	}
 
+	// Автору обращения — при любой смене статуса (need_info из продукта
+	// убрали, так что особых исключений для контракта бота больше не нужно).
+	if appeal.Author != nil && appeal.Author.MaxUserID != nil {
+		houseAddress := ""
+		if appeal.House != nil {
+			houseAddress = appeal.House.Address
+		}
+		problemTypeTitle := ""
+		if appeal.ProblemType != nil {
+			problemTypeTitle = appeal.ProblemType.Title
+		}
+		s.notifyClient.AppealStatusChanged([]string{*appeal.Author.MaxUserID}, notify.AppealStatusChangedPayload{
+			AppealID:         appeal.ID,
+			ProblemTypeTitle: problemTypeTitle,
+			HouseAddress:     houseAddress,
+			ToStatus:         string(in.NewStatus),
+			Comment:          in.Comment,
+		})
+	}
+
 	return change, nil
 }
 
@@ -415,6 +445,12 @@ func (s *DispatcherService) CreateNotification(dispatcherID uint, in CreateNotif
 	if err != nil {
 		return nil, err
 	}
+	// Проверяем на сервере, а не только фильтруем список в форме — иначе
+	// прямой запрос в обход UI всё равно мог бы создать абсурдное
+	// уведомление вроде "со 2 по 3 октября сломана детская площадка".
+	if !reason.AllowsNotification {
+		return nil, fmt.Errorf("reason %q cannot be used for notifications", reason.Code)
+	}
 
 	title := in.Title
 	if title == "" {
@@ -436,6 +472,22 @@ func (s *DispatcherService) CreateNotification(dispatcherID uint, in CreateNotif
 	if err := s.notificationRepo.Create(notification); err != nil {
 		return nil, err
 	}
+
+	// Жителям дома/подъезда — асинхронно, ошибка доставки не должна
+	// мешать диспетчеру, который уже успешно создал уведомление.
+	residentIDs, err := s.residentRepo.ListMaxUserIDsByHouse(in.HouseID, in.EntranceNumber)
+	if err != nil {
+		log.Printf("notify: failed to list residents for house %d: %v", in.HouseID, err)
+	} else {
+		s.notifyClient.NotificationCreated(residentIDs, notify.NotificationCreatedPayload{
+			Title:        notification.Title,
+			Body:         notification.Body,
+			HouseAddress: house.Address,
+			StartsAt:     notification.StartsAt,
+			EndsAt:       notification.EndsAt,
+		})
+	}
+
 	return notification, nil
 }
 
