@@ -76,5 +76,9 @@ export async function buildResidentProblemTypeKeyboard(
         problemTypes.map(async (pt) => [await miniAppButton(ctx, pt.title, "resident", "create", pt.code)]),
     );
 
-    return Keyboard.inlineKeyboard([...rows, [Keyboard.button.callback("В меню", "resident_menu:show")]]);
+    return Keyboard.inlineKeyboard([
+        [Keyboard.button.callback("Аварийная ситуация", "resident_menu:emergency")],
+        ...rows,
+        [Keyboard.button.callback("В меню", "resident_menu:show")],
+    ]);
 }

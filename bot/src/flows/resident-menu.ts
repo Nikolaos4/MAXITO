@@ -42,6 +42,26 @@ async function showProblemTypes(ctx: AppContext) {
     }
 }
 
+async function showEmergency(ctx: AppContext) {
+    try {
+        const services = await api.resident.emergencyServices.list(authFor(ctx));
+        await ctx.answerOnCallback({
+            message: {
+                text: `Аварийные службы:
+${formatEmergencyServices(services)}`,
+                attachments: [backToResidentMenuKeyboard],
+            },
+        });
+    } catch {
+        await ctx.answerOnCallback({
+            message: {
+                text: "Не удалось загрузить телефоны, попробуйте позже.",
+                attachments: [backToResidentMenuKeyboard],
+            },
+        });
+    }
+}
+
 async function showInfo(ctx: AppContext) {
     if (!ctx.user) return;
 
@@ -68,7 +88,7 @@ export const residentMenuFlow = {
         if (!ctx.user || !ctx.callback) return false;
 
         const payload = ctx.callback.payload;
-        const known = ["resident_menu:report", "resident_menu:info", "resident_menu:show"];
+        const known = ["resident_menu:report", "resident_menu:info", "resident_menu:show", "resident_menu:emergency"];
         if (!payload || !known.includes(payload)) return false;
 
         const session = getSession(ctx.user.user_id);
@@ -81,6 +101,11 @@ export const residentMenuFlow = {
             await ctx.answerOnCallback({
                 message: { text: RESIDENT_MENU_TEXT, attachments: [await residentMenuKeyboard(ctx)] },
             });
+            return true;
+        }
+
+        if (payload === "resident_menu:emergency") {
+            await showEmergency(ctx);
             return true;
         }
 
