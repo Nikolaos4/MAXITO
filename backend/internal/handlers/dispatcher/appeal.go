@@ -29,10 +29,34 @@ func parseStatusList(raw []string) []models.AppealStatus {
 	return statuses
 }
 
+// appealListResponse — страница списка обращений.
+type appealListResponse struct {
+	Total    int64                     `json:"total"`
+	Page     int                       `json:"page"`
+	PageSize int                       `json:"page_size"`
+	Items    []services.AppealListItem `json:"items"`
+}
+
 // ListAppeals — список обращений по своим домам с фильтрами и пагинацией.
 // Query-параметры: house_id, status, entrance_number, problem_type_id
 // (каждый можно повторять — ?status=accepted&status=in_progress),
 // page, page_size. Сортировка — по числу лайков, затем по дате создания.
+//
+// @ID dispatcherListAppeals
+// @Summary Список обращений по своим домам
+// @Tags dispatcher-appeals
+// @Produce json
+// @Security BearerAuth
+// @Param house_id query []int false "ID домов, можно повторять" collectionFormat(multi)
+// @Param status query []string false "accepted|in_progress|completed|rejected, можно повторять" collectionFormat(multi)
+// @Param entrance_number query []int false "можно повторять"
+// @Param problem_type_id query []int false "можно повторять"
+// @Param page query int false "по умолчанию 1"
+// @Param page_size query int false "по умолчанию 20, максимум 100"
+// @Success 200 {object} appealListResponse
+// @Failure 400 {object} apidoc.ErrorResponse
+// @Failure 401 {object} apidoc.ErrorResponse
+// @Router /dispatcher/appeals [get]
 func (h *AppealHandler) ListAppeals(c *gin.Context) {
 	currentUser := middleware.GetCurrentUser(c)
 	if currentUser == nil {
@@ -70,6 +94,17 @@ func (h *AppealHandler) ListAppeals(c *gin.Context) {
 }
 
 // TopAppeals — N обращений с наибольшим числом лайков по своим домам.
+//
+// @ID dispatcherTopAppeals
+// @Summary Топ обращений по лайкам
+// @Tags dispatcher-appeals
+// @Produce json
+// @Security BearerAuth
+// @Param limit query int false "по умолчанию 5, максимум 100"
+// @Success 200 {array} services.AppealListItem
+// @Failure 400 {object} apidoc.ErrorResponse
+// @Failure 401 {object} apidoc.ErrorResponse
+// @Router /dispatcher/appeals/top [get]
 func (h *AppealHandler) TopAppeals(c *gin.Context) {
 	currentUser := middleware.GetCurrentUser(c)
 	if currentUser == nil {
@@ -93,6 +128,16 @@ func (h *AppealHandler) TopAppeals(c *gin.Context) {
 // UnprocessedStats — статистика по необработанным обращениям (accepted,
 // in_progress) по каждому дому диспетчера, отсортировано по
 // убыванию общего числа.
+//
+// @ID dispatcherUnprocessedStats
+// @Summary Статистика необработанных обращений по домам
+// @Tags dispatcher-appeals
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {array} services.HouseAppealStats
+// @Failure 400 {object} apidoc.ErrorResponse
+// @Failure 401 {object} apidoc.ErrorResponse
+// @Router /dispatcher/appeals/stats [get]
 func (h *AppealHandler) UnprocessedStats(c *gin.Context) {
 	currentUser := middleware.GetCurrentUser(c)
 	if currentUser == nil {
@@ -110,6 +155,18 @@ func (h *AppealHandler) UnprocessedStats(c *gin.Context) {
 }
 
 // GetAppeal — карточка обращения с числом лайков и историей смены статусов.
+//
+// @ID dispatcherGetAppeal
+// @Summary Карточка обращения
+// @Tags dispatcher-appeals
+// @Produce json
+// @Security BearerAuth
+// @Param id path int true "ID обращения"
+// @Success 200 {object} services.AppealDetail
+// @Failure 400 {object} apidoc.ErrorResponse
+// @Failure 401 {object} apidoc.ErrorResponse
+// @Failure 404 {object} apidoc.ErrorResponse "чужой дом или обращение не найдено"
+// @Router /dispatcher/appeals/{id} [get]
 func (h *AppealHandler) GetAppeal(c *gin.Context) {
 	currentUser := middleware.GetCurrentUser(c)
 	if currentUser == nil {
@@ -139,6 +196,20 @@ type ChangeStatusRequest struct {
 
 // ChangeStatus — сменить статус обращения. Комментарий обязателен всегда;
 // photo_url принимается только при переходе в статус "completed".
+//
+// @ID dispatcherChangeStatus
+// @Summary Сменить статус обращения
+// @Description Разрешённые переходы: accepted->in_progress|rejected, in_progress->completed|rejected. completed/rejected — конечные. photo_url принимается только при переходе в completed, иначе 400.
+// @Tags dispatcher-appeals
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param id path int true "ID обращения"
+// @Param body body ChangeStatusRequest true "Новый статус, комментарий (обязателен), фото — только для completed"
+// @Success 200 {object} models.AppealStatusChange
+// @Failure 400 {object} apidoc.ErrorResponse "недопустимый переход | нет комментария | photo_url не при completed"
+// @Failure 401 {object} apidoc.ErrorResponse
+// @Router /dispatcher/appeals/{id}/status [post]
 func (h *AppealHandler) ChangeStatus(c *gin.Context) {
 	currentUser := middleware.GetCurrentUser(c)
 	if currentUser == nil {

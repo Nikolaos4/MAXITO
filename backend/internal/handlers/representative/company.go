@@ -3,10 +3,14 @@ package representative
 import (
 	"net/http"
 
+	"maxito/internal/models"
 	"maxito/internal/services"
 
 	"github.com/gin-gonic/gin"
 )
+
+// Нужен только затем, чтобы swag мог резолвить models.Company в @Success.
+var _ = models.Company{}
 
 type CompanyHandler struct {
 	repSvc *services.RepresentativeService
@@ -27,6 +31,18 @@ type UpdateCompanyRequest struct {
 
 // UpdateCompany — задать/поправить реквизиты УК. Запись всегда одна на весь
 // инстанс, отдельного house_id нет.
+//
+// @ID representativeUpdateCompany
+// @Summary Задать/поправить реквизиты УК
+// @Tags representative-company
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param body body UpdateCompanyRequest true "Реквизиты; full_name обязателен, остальное — нет"
+// @Success 200 {object} models.Company
+// @Failure 400 {object} apidoc.ErrorResponse
+// @Failure 401 {object} apidoc.ErrorResponse
+// @Router /representative/company [put]
 func (h *CompanyHandler) UpdateCompany(c *gin.Context) {
 	var req UpdateCompanyRequest
 	if err := c.ShouldBindJSON(&req); err != nil {

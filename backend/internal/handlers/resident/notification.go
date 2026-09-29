@@ -19,6 +19,16 @@ func NewNotificationHandler(svc *services.ResidentService) *NotificationHandler 
 }
 
 // ListNotifications — актуальные уведомления жителя: общедомовые + подъездные для его подъезда.
+//
+// @ID residentListNotifications
+// @Summary Актуальные уведомления (плановые работы)
+// @Tags resident-notifications
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {array} services.NotificationListItem
+// @Failure 400 {object} apidoc.ErrorResponse
+// @Failure 401 {object} apidoc.ErrorResponse
+// @Router /resident/notifications [get]
 func (h *NotificationHandler) ListNotifications(c *gin.Context) {
 	currentUser := middleware.GetCurrentUser(c)
 	if currentUser == nil {
@@ -35,6 +45,19 @@ func (h *NotificationHandler) ListNotifications(c *gin.Context) {
 }
 
 // GetNotification — подробности одного уведомления.
+//
+// @ID residentGetNotification
+// @Summary Подробности уведомления
+// @Description Открытие карточки автоматически отмечает уведомление прочитанным.
+// @Tags resident-notifications
+// @Produce json
+// @Security BearerAuth
+// @Param id path int true "ID уведомления"
+// @Success 200 {object} services.NotificationListItem
+// @Failure 400 {object} apidoc.ErrorResponse
+// @Failure 401 {object} apidoc.ErrorResponse
+// @Failure 404 {object} apidoc.ErrorResponse
+// @Router /resident/notifications/{id} [get]
 func (h *NotificationHandler) GetNotification(c *gin.Context) {
 	currentUser := middleware.GetCurrentUser(c)
 	if currentUser == nil {

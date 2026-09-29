@@ -44,7 +44,28 @@ type CreateAppealRequest struct {
 	PhotoURLs          []string `json:"photo_urls"`    // ссылки, полученные заранее через POST /upload
 }
 
+// duplicateAppealErrorResponse — 409 при создании обращения: в доме/подъезде
+// уже есть не закрытое обращение по той же причине.
+type duplicateAppealErrorResponse struct {
+	Error            string `json:"error"`
+	ExistingAppealID uint   `json:"existing_appeal_id"`
+}
+
 // CreateAppeal — создание обращения жителем.
+//
+// @ID residentCreateAppeal
+// @Summary Создать обращение
+// @Description reason_id обязателен, если тема не "Другое". photo_urls — ссылки, заранее полученные через POST /upload.
+// @Tags resident-appeals
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param body body CreateAppealRequest true "Тема+причина, описание, место/время обнаружения, фото"
+// @Success 201 {object} models.Appeal
+// @Failure 400 {object} apidoc.ErrorResponse
+// @Failure 401 {object} apidoc.ErrorResponse
+// @Failure 409 {object} duplicateAppealErrorResponse "уже есть открытое обращение по этой же причине"
+// @Router /resident/appeals [post]
 func (h *AppealHandler) CreateAppeal(c *gin.Context) {
 	currentUser := middleware.GetCurrentUser(c)
 	if currentUser == nil {
@@ -95,8 +116,32 @@ func (h *AppealHandler) CreateAppeal(c *gin.Context) {
 	c.JSON(http.StatusCreated, appeal)
 }
 
+// residentAppealListResponse — страница списка обращений.
+type residentAppealListResponse struct {
+	Total    int64                     `json:"total"`
+	Page     int                       `json:"page"`
+	PageSize int                       `json:"page_size"`
+	Items    []services.AppealListItem `json:"items"`
+}
+
 // ListAppeals — обращения по дому жителя. Query: mine=true (только свои),
 // status/problem_type_id/entrance_number (повторяемы), page/page_size.
+//
+// @ID residentListAppeals
+// @Summary Обращения по своему дому
+// @Tags resident-appeals
+// @Produce json
+// @Security BearerAuth
+// @Param mine query bool false "только свои обращения"
+// @Param status query []string false "accepted|in_progress|completed|rejected, можно повторять"
+// @Param problem_type_id query []int false "можно повторять"
+// @Param entrance_number query []int false "можно повторять"
+// @Param page query int false "по умолчанию 1"
+// @Param page_size query int false "по умолчанию 20, максимум 100"
+// @Success 200 {object} residentAppealListResponse
+// @Failure 400 {object} apidoc.ErrorResponse
+// @Failure 401 {object} apidoc.ErrorResponse
+// @Router /resident/appeals [get]
 func (h *AppealHandler) ListAppeals(c *gin.Context) {
 	currentUser := middleware.GetCurrentUser(c)
 	if currentUser == nil {
@@ -135,6 +180,18 @@ func (h *AppealHandler) ListAppeals(c *gin.Context) {
 }
 
 // GetAppeal — карточка обращения с числом лайков и полной историей статусов.
+//
+// @ID residentGetAppeal
+// @Summary Карточка обращения
+// @Tags resident-appeals
+// @Produce json
+// @Security BearerAuth
+// @Param id path int true "ID обращения"
+// @Success 200 {object} services.ResidentAppealDetail
+// @Failure 400 {object} apidoc.ErrorResponse
+// @Failure 401 {object} apidoc.ErrorResponse
+// @Failure 404 {object} apidoc.ErrorResponse "чужой дом или обращение не найдено"
+// @Router /resident/appeals/{id} [get]
 func (h *AppealHandler) GetAppeal(c *gin.Context) {
 	currentUser := middleware.GetCurrentUser(c)
 	if currentUser == nil {
@@ -157,6 +214,17 @@ func (h *AppealHandler) GetAppeal(c *gin.Context) {
 }
 
 // Like — поставить лайк чужому обращению.
+//
+// @ID residentLike
+// @Summary Лайкнуть обращение
+// @Description Нельзя лайкнуть своё же обращение.
+// @Tags resident-appeals
+// @Security BearerAuth
+// @Param id path int true "ID обращения"
+// @Success 204 "нет содержимого"
+// @Failure 400 {object} apidoc.ErrorResponse
+// @Failure 401 {object} apidoc.ErrorResponse
+// @Router /resident/appeals/{id}/like [post]
 func (h *AppealHandler) Like(c *gin.Context) {
 	currentUser := middleware.GetCurrentUser(c)
 	if currentUser == nil {
@@ -178,6 +246,17 @@ func (h *AppealHandler) Like(c *gin.Context) {
 }
 
 // Unlike — снять лайк.
+//
+// @ID residentUnlike
+// @Summary Снять лайк
+// @Tags resident-appeals
+// @Security BearerAuth
+// @Param id path int true "ID обращения"
+// @Success 204 "нет содержимого"
+// @Failure 400 {object} apidoc.ErrorResponse
+// @Failure 401 {object} apidoc.ErrorResponse
+// @Failure 404 {object} apidoc.ErrorResponse "лайк не найден"
+// @Router /resident/appeals/{id}/like [delete]
 func (h *AppealHandler) Unlike(c *gin.Context) {
 	currentUser := middleware.GetCurrentUser(c)
 	if currentUser == nil {

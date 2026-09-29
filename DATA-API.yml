@@ -1,0 +1,262 @@
+schemaVersion: "1.0"
+
+solution:
+  name: "Умный город — обращения жителей МКД в MAX (MAXITO)"
+  teamId: "maxito"
+
+api:
+  baseUrl: "https://maxito.nekotyan2d.ru"
+  openapi: "https://maxito.nekotyan2d.ru/api-docs/openapi.json"
+  defaultHeaders:
+    Accept: "application/json"
+
+checks:
+  - id: "auth-max-rejects-bad-init-data"
+    name: "Вход по initData MAX отклоняет неподписанные данные"
+    description: "Вход в мини-приложение возможен только с initData, подписанным MAX"
+    method: "POST"
+    path: "/api/v1/auth/max"
+    role: "public"
+    request:
+      headers:
+        Content-Type: "application/json"
+      body:
+        init_data: "user=%7B%22id%22%3A1%7D&auth_date=1&hash=invalid"
+    expected:
+      statusCodes: [401, 503]
+      contentType: "application/json"
+      requiredFields: ["error", "code"]
+    timeoutMs: 5000
+    repeatable: true
+
+  - id: "resident-me"
+    name: "Профиль жителя"
+    method: "GET"
+    path: "/api/v1/me"
+    role: "resident"
+    request:
+      headers:
+        Authorization: "Bearer ${residentAccessToken}"
+    expected:
+      statusCodes: [200]
+      contentType: "application/json"
+      requiredFields: ["id", "role", "resident"]
+    timeoutMs: 5000
+    repeatable: true
+
+  - id: "resident-house"
+    name: "Дом жителя"
+    method: "GET"
+    path: "/api/v1/resident/house"
+    role: "resident"
+    request:
+      headers:
+        Authorization: "Bearer ${residentAccessToken}"
+    expected:
+      statusCodes: [200]
+      contentType: "application/json"
+      requiredFields: ["id", "address", "entrances_count"]
+    timeoutMs: 5000
+    repeatable: true
+
+  - id: "resident-problem-types"
+    name: "Справочник тем обращений"
+    description: "Тема «Другое» (code=other) идёт последней: на неё не действует проверка дублей"
+    method: "GET"
+    path: "/api/v1/resident/problem-types"
+    role: "resident"
+    request:
+      headers:
+        Authorization: "Bearer ${residentAccessToken}"
+    expected:
+      statusCodes: [200]
+      contentType: "application/json"
+      bodySchema:
+        type: "array"
+        minItems: 1
+        items:
+          type: "object"
+          required: ["id", "code", "title"]
+    timeoutMs: 5000
+    repeatable: true
+    extract:
+      otherProblemTypeId: "$[-1].id"
+
+  - id: "resident-create-appeal"
+    name: "Житель создаёт обращение"
+    method: "POST"
+    path: "/api/v1/resident/appeals"
+    role: "resident"
+    dependsOn: ["resident-problem-types"]
+    request:
+      headers:
+        Content-Type: "application/json"
+        Authorization: "Bearer ${residentAccessToken}"
+      body:
+        problem_type_id: "${otherProblemTypeId}"
+        description: "Тестовое обращение автоматизированной проверки API"
+        importance: "normal"
+    expected:
+      statusCodes: [201]
+      contentType: "application/json"
+      requiredFields: ["id", "status", "house_id", "description"]
+      bodySchema:
+        type: "object"
+        required: ["id", "status"]
+        properties:
+          id:
+            type: "integer"
+          status:
+            const: "accepted"
+    timeoutMs: 5000
+    repeatable: false
+    extract:
+      appealId: "$.id"
+
+  - id: "resident-list-appeals"
+    name: "Житель видит свои обращения"
+    method: "GET"
+    path: "/api/v1/resident/appeals"
+    role: "resident"
+    dependsOn: ["resident-create-appeal"]
+    request:
+      headers:
+        Authorization: "Bearer ${residentAccessToken}"
+      query:
+        mine: "true"
+    expected:
+      statusCodes: [200]
+      contentType: "application/json"
+      requiredFields: ["total", "page", "page_size", "items"]
+    timeoutMs: 5000
+    repeatable: true
+
+  - id: "resident-get-appeal"
+    name: "Карточка обращения у жителя"
+    method: "GET"
+    path: "/api/v1/resident/appeals/{appealId}"
+    role: "resident"
+    dependsOn: ["resident-create-appeal"]
+    request:
+      headers:
+        Authorization: "Bearer ${residentAccessToken}"
+      path:
+        appealId: "${appealId}"
+    expected:
+      statusCodes: [200]
+      contentType: "application/json"
+      requiredFields: ["id", "status", "likes_count", "history"]
+    timeoutMs: 5000
+    repeatable: true
+
+  - id: "dispatcher-list-appeals"
+    name: "Лента обращений диспетчера"
+    method: "GET"
+    path: "/api/v1/dispatcher/appeals"
+    role: "dispatcher"
+    dependsOn: ["resident-create-appeal"]
+    request:
+      headers:
+        Authorization: "Bearer ${dispatcherAccessToken}"
+    expected:
+      statusCodes: [200]
+      contentType: "application/json"
+      requiredFields: ["total", "page", "page_size", "items"]
+    timeoutMs: 5000
+    repeatable: true
+
+  - id: "dispatcher-get-appeal"
+    name: "Карточка обращения у диспетчера"
+    method: "GET"
+    path: "/api/v1/dispatcher/appeals/{appealId}"
+    role: "dispatcher"
+    dependsOn: ["resident-create-appeal"]
+    request:
+      headers:
+        Authorization: "Bearer ${dispatcherAccessToken}"
+      path:
+        appealId: "${appealId}"
+    expected:
+      statusCodes: [200]
+      contentType: "application/json"
+      requiredFields: ["id", "status", "history"]
+    timeoutMs: 5000
+    repeatable: true
+
+  - id: "dispatcher-take-in-progress"
+    name: "Диспетчер берёт обращение в работу"
+    method: "POST"
+    path: "/api/v1/dispatcher/appeals/{appealId}/status"
+    role: "dispatcher"
+    dependsOn: ["dispatcher-get-appeal"]
+    request:
+      path:
+        appealId: "${appealId}"
+      headers:
+        Content-Type: "application/json"
+        Authorization: "Bearer ${dispatcherAccessToken}"
+      body:
+        status: "in_progress"
+        comment: "Взято в работу автоматизированной проверкой"
+    expected:
+      statusCodes: [200]
+      contentType: "application/json"
+      requiredFields: ["appeal_id", "from_status", "to_status"]
+    timeoutMs: 5000
+    repeatable: false
+
+  - id: "resident-sees-new-status"
+    name: "Житель видит смену статуса"
+    method: "GET"
+    path: "/api/v1/resident/appeals/{appealId}"
+    role: "resident"
+    dependsOn: ["dispatcher-take-in-progress"]
+    request:
+      headers:
+        Authorization: "Bearer ${residentAccessToken}"
+      path:
+        appealId: "${appealId}"
+    expected:
+      statusCodes: [200]
+      contentType: "application/json"
+      requiredFields: ["id", "status", "history"]
+      bodySchema:
+        type: "object"
+        properties:
+          status:
+            const: "in_progress"
+    timeoutMs: 5000
+    repeatable: true
+
+  - id: "dispatcher-forbidden-for-resident"
+    name: "Житель не имеет доступа к API диспетчера"
+    method: "GET"
+    path: "/api/v1/dispatcher/appeals"
+    role: "resident"
+    request:
+      headers:
+        Authorization: "Bearer ${residentAccessToken}"
+    expected:
+      statusCodes: [403]
+      contentType: "application/json"
+      requiredFields: ["error"]
+    timeoutMs: 5000
+    repeatable: true
+
+cleanup:
+  - id: "close-test-appeal"
+    method: "POST"
+    path: "/api/v1/dispatcher/appeals/{appealId}/status"
+    role: "dispatcher"
+    request:
+      path:
+        appealId: "${appealId}"
+      headers:
+        Content-Type: "application/json"
+        Authorization: "Bearer ${dispatcherAccessToken}"
+      body:
+        status: "rejected"
+        comment: "Тестовое обращение автоматизированной проверки закрыто"
+    expected:
+      statusCodes: [200, 400]
+    timeoutMs: 5000

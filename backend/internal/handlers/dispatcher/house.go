@@ -5,10 +5,14 @@ import (
 	"strconv"
 
 	"maxito/internal/middleware"
+	"maxito/internal/models"
 	"maxito/internal/services"
 
 	"github.com/gin-gonic/gin"
 )
+
+// Нужен только затем, чтобы swag мог резолвить models.House в @Success.
+var _ = models.House{}
 
 type HouseHandler struct {
 	svc *services.DispatcherService
@@ -19,6 +23,16 @@ func NewHouseHandler(svc *services.DispatcherService) *HouseHandler {
 }
 
 // ListHouses — дома, закреплённые за диспетчером (простой список без статистики).
+//
+// @ID dispatcherListHouses
+// @Summary Дома диспетчера
+// @Tags dispatcher-houses
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {array} models.House
+// @Failure 401 {object} apidoc.ErrorResponse
+// @Failure 500 {object} apidoc.ErrorResponse
+// @Router /dispatcher/houses [get]
 func (h *HouseHandler) ListHouses(c *gin.Context) {
 	currentUser := middleware.GetCurrentUser(c)
 	if currentUser == nil {
@@ -35,6 +49,18 @@ func (h *HouseHandler) ListHouses(c *gin.Context) {
 }
 
 // GetHouse — карточка дома (только своего).
+//
+// @ID dispatcherGetHouse
+// @Summary Карточка одного дома
+// @Tags dispatcher-houses
+// @Produce json
+// @Security BearerAuth
+// @Param house_id path int true "ID дома"
+// @Success 200 {object} models.House
+// @Failure 400 {object} apidoc.ErrorResponse
+// @Failure 401 {object} apidoc.ErrorResponse
+// @Failure 404 {object} apidoc.ErrorResponse "не найден или чужой дом"
+// @Router /dispatcher/houses/{house_id} [get]
 func (h *HouseHandler) GetHouse(c *gin.Context) {
 	currentUser := middleware.GetCurrentUser(c)
 	if currentUser == nil {
@@ -58,6 +84,17 @@ func (h *HouseHandler) GetHouse(c *gin.Context) {
 
 // ListEntrances — номера подъездов дома (1..entrances_count), для формы
 // создания уведомления.
+//
+// @ID dispatcherListEntrances
+// @Summary Номера подъездов дома
+// @Tags dispatcher-houses
+// @Produce json
+// @Security BearerAuth
+// @Param house_id path int true "ID дома"
+// @Success 200 {array} int
+// @Failure 400 {object} apidoc.ErrorResponse
+// @Failure 401 {object} apidoc.ErrorResponse
+// @Router /dispatcher/houses/{house_id}/entrances [get]
 func (h *HouseHandler) ListEntrances(c *gin.Context) {
 	currentUser := middleware.GetCurrentUser(c)
 	if currentUser == nil {

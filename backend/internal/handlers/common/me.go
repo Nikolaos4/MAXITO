@@ -45,6 +45,15 @@ type MeResponse struct {
 // эндпоинт, доступный сразу после авторизации по X-Max-User-Id без
 // привязки к конкретной роли — по нему клиент (бот) решает, какое меню
 // показать: Представителя, Диспетчера или Жителя.
+//
+// @ID commonMe
+// @Summary Текущий пользователь
+// @Tags me
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} MeResponse
+// @Failure 401 {object} apidoc.ErrorResponse
+// @Router /me [get]
 func (h *MeHandler) Me(c *gin.Context) {
 	currentUser := middleware.GetCurrentUser(c)
 	if currentUser == nil {
