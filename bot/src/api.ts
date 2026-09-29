@@ -240,6 +240,12 @@ export const api = {
                 houseId: number,
                 body: { address?: string; number?: string; floors_count?: number; construction_year?: number },
             ) => request<ApiHouse>(`/representative/houses/${houseId}`, auth, { method: "PUT", body }),
+
+            setChatLink: (auth: Auth, houseId: number, chatInviteLink: string) =>
+                request<void>(`/representative/houses/${houseId}/chat-link`, auth, {
+                    method: "PUT",
+                    body: { chat_invite_link: chatInviteLink },
+                }),
         },
 
         company: {

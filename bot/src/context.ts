@@ -14,6 +14,7 @@ type Step =
     | "house_edit/number"
     | "house_edit/floors_count"
     | "house_edit/construction_year"
+    | "house_edit/chat_link"
     | "dispatcher/full_name"
     | "dispatcher/phone"
     | "dispatcher/import_csv"
