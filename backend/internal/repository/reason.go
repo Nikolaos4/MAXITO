@@ -20,6 +20,16 @@ func (r *ReasonRepository) ListByProblemType(problemTypeID uint) ([]models.Reaso
 	return reasons, err
 }
 
+// ListByProblemTypeForNotification — только причины, годные для формы
+// создания уведомления диспетчером (GET .../reasons?for=notification).
+func (r *ReasonRepository) ListByProblemTypeForNotification(problemTypeID uint) ([]models.Reason, error) {
+	var reasons []models.Reason
+	err := r.db.
+		Where("problem_type_id = ? AND allows_notification = ?", problemTypeID, true).
+		Order("id ASC").Find(&reasons).Error
+	return reasons, err
+}
+
 func (r *ReasonRepository) GetByID(id uint) (*models.Reason, error) {
 	var reason models.Reason
 	err := r.db.First(&reason, id).Error

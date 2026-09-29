@@ -445,6 +445,12 @@ func (s *DispatcherService) CreateNotification(dispatcherID uint, in CreateNotif
 	if err != nil {
 		return nil, err
 	}
+	// Проверяем на сервере, а не только фильтруем список в форме — иначе
+	// прямой запрос в обход UI всё равно мог бы создать абсурдное
+	// уведомление вроде "со 2 по 3 октября сломана детская площадка".
+	if !reason.AllowsNotification {
+		return nil, fmt.Errorf("reason %q cannot be used for notifications", reason.Code)
+	}
 
 	title := in.Title
 	if title == "" {

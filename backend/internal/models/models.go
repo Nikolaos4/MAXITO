@@ -152,12 +152,19 @@ type ProblemType struct {
 // используется, когда тема сама по себе "Другое", и никогда не участвует в
 // блокировке обращений уведомлениями.
 type Reason struct {
-	ID            uint      `gorm:"primaryKey" json:"id"`
-	ProblemTypeID uint      `gorm:"not null;index:,unique,composite:type_code" json:"problem_type_id"`
-	Code          string    `gorm:"size:50;not null;index:,unique,composite:type_code" json:"code"`
-	Title         string    `gorm:"size:255;not null" json:"title"`
-	IsOther       bool      `gorm:"default:false" json:"is_other"`
-	CreatedAt     time.Time `json:"created_at"`
+	ID            uint   `gorm:"primaryKey" json:"id"`
+	ProblemTypeID uint   `gorm:"not null;index:,unique,composite:type_code" json:"problem_type_id"`
+	Code          string `gorm:"size:50;not null;index:,unique,composite:type_code" json:"code"`
+	Title         string `gorm:"size:255;not null" json:"title"`
+	IsOther       bool   `gorm:"default:false" json:"is_other"`
+	// AllowsNotification — можно ли использовать эту причину при создании
+	// уведомления диспетчером (не при создании обращения жителем — там
+	// ограничений нет). Отсекает абсурдные для планового уведомления
+	// причины вроде "грязный лифт" — уведомление должно быть про то, что
+	// можно заранее анонсировать (отключение, неработоспособность), а не
+	// про жалобу на текущее состояние.
+	AllowsNotification bool      `gorm:"default:false" json:"allows_notification"`
+	CreatedAt          time.Time `json:"created_at"`
 
 	ProblemType ProblemType `gorm:"foreignKey:ProblemTypeID" json:"-"`
 }
