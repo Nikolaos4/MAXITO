@@ -71,6 +71,7 @@ func (r *AppealRepository) GetByID(id uint) (*models.Appeal, error) {
 		Preload("Author").
 		Preload("ProblemType").
 		Preload("Reason").
+		Preload("Attachments").
 		First(&appeal, id).Error
 	if err != nil {
 		return nil, err
@@ -157,6 +158,7 @@ func (r *AppealRepository) List(filter AppealFilter) ([]AppealWithLikes, int64, 
 		Preload("Author").
 		Preload("ProblemType").
 		Preload("Reason").
+		Preload("Attachments").
 		Where("id IN ?", ids).
 		Find(&appeals).Error
 	if err != nil {
