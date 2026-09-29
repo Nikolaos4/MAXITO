@@ -1,0 +1,55 @@
+services:
+  frontend:
+    build: ./frontend
+    ports:
+      - "8081:80"
+    depends_on:
+      - backend
+
+  backend:
+    build: ./backend
+    environment:
+      APP_PORT: 8080
+      GIN_MODE: release
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: postgres
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      DB_NAME: umniy_gorod
+      DB_SSLMODE: disable
+      JWT_SECRET: ${JWT_SECRET:-local-dev-jwt-secret-change-me-0123456789}
+      MAX_INITDATA_SECRET: ${MAX_INITDATA_SECRET:?см. .env.example}
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY:-local-dev-internal-key}
+
+      NOTIFY_URL: http://bot:3001/notify
+    volumes:
+      - uploads_data:/app/uploads
+    depends_on:
+      - postgres
+    restart: on-failure
+    networks:
+      default:
+        aliases: [maxito-backend]
+
+  bot:
+    build: ./bot
+    environment:
+      BOT_TOKEN: ${BOT_TOKEN:?см. .env.example}
+      API_BASE_URL: http://maxito-backend:8080
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY:-local-dev-internal-key}
+    depends_on:
+      - backend
+    restart: on-failure
+
+  postgres:
+    image: postgres:18
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: umniy_gorod
+    volumes:
+      - postgres_data:/var/lib/postgresql
+
+volumes:
+  postgres_data:
+  uploads_data:
