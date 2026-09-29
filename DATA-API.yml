@@ -94,8 +94,9 @@ checks:
         Authorization: "Bearer ${residentAccessToken}"
       body:
         problem_type_id: "${otherProblemTypeId}"
+        entrance_number: null
+        discovered_at: "2026-09-30T00:00:00Z"
         description: "Тестовое обращение автоматизированной проверки API"
-        importance: "normal"
     expected:
       statusCodes: [201]
       contentType: "application/json"
