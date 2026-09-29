@@ -46,14 +46,3 @@ func (r *HouseRepository) ExistsByAddressNumber(address, number string) (bool, e
 func (r *HouseRepository) Update(house *models.House) error {
 	return r.db.Save(house).Error
 }
-
-func (r *HouseRepository) UpdateChatInviteLink(houseID uint, link string) error {
-	res := r.db.Model(&models.House{}).Where("id = ?", houseID).Update("chat_invite_link", link)
-	if res.Error != nil {
-		return res.Error
-	}
-	if res.RowsAffected == 0 {
-		return gorm.ErrRecordNotFound
-	}
-	return nil
-}

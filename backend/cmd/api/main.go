@@ -178,7 +178,6 @@ func main() {
 			rep.POST("/houses/csv", houseHandler.ImportHousesCSV)
 			rep.GET("/houses/unassigned", assignmentHandler.ListUnassignedHouses)
 			rep.PUT("/houses/:house_id", houseHandler.UpdateHouse)
-			rep.PUT("/houses/:house_id/chat-link", houseHandler.SetChatLink)
 
 			// Компания и аварийные службы
 			rep.GET("/company", commonReferenceHandler.GetCompany)
