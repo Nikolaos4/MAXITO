@@ -2,8 +2,10 @@ import type { AppContext } from "@/context";
 import type { Bot } from "@maxhub/max-bot-api";
 import { assignmentFlow } from "./assignment";
 import { authorizationFlow } from "./authorization";
+import { companyFlow } from "./company";
 import { dispatcherFlow } from "./dispatcher";
 import { dispatcherMenuFlow } from "./dispatcher-menu";
+import { emergencyFlow } from "./emergency";
 import { houseFlow } from "./house";
 import { menuFlow } from "./menu";
 import { residentMenuFlow } from "./resident-menu";
@@ -20,6 +22,8 @@ const flows: FlowRouter[] = [
     houseFlow,
     dispatcherFlow,
     assignmentFlow,
+    companyFlow,
+    emergencyFlow,
     dispatcherMenuFlow,
     residentMenuFlow,
 ];

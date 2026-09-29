@@ -21,6 +21,8 @@ type ApiHouse = {
     address: string;
     number: string;
     entrances_count: number;
+    floors_count?: number | null;
+    construction_year?: number | null;
     chat_invite_link?: string | null;
     created_at: string;
     updated_at: string;
@@ -35,6 +37,23 @@ type ApiResident = {
     created_at: string;
     updated_at: string;
     user?: ApiUser;
+};
+
+type ApiCompany = {
+    full_name?: string;
+    short_name?: string;
+    dispatcher_phone?: string;
+    contact_phone?: string;
+    email?: string;
+    website?: string;
+    updated_at?: string;
+};
+
+type ApiEmergencyService = {
+    id: number;
+    name: string;
+    phone: string;
+    created_at: string;
 };
 
 type ApiDispatcherHouse = {
@@ -206,8 +225,16 @@ export const api = {
 
     representative: {
         houses: {
-            create: (auth: Auth, body: { address: string; number?: string; entrances_count: number }) =>
-                request<ApiHouse>("/representative/houses", auth, { method: "POST", body }),
+            create: (
+                auth: Auth,
+                body: {
+                    address: string;
+                    number?: string;
+                    entrances_count: number;
+                    floors_count?: number;
+                    construction_year?: number;
+                },
+            ) => request<ApiHouse>("/representative/houses", auth, { method: "POST", body }),
 
             list: (auth: Auth) => request<ApiHouse[]>("/representative/houses", auth),
 
@@ -215,6 +242,38 @@ export const api = {
 
             importCsv: (auth: Auth, file: { data: Buffer; filename: string }) =>
                 request<ImportReport>("/representative/houses/csv", auth, {
+                    method: "POST",
+                    body: csvFormData(file),
+                }),
+
+            update: (
+                auth: Auth,
+                houseId: number,
+                body: { address?: string; number?: string; floors_count?: number; construction_year?: number },
+            ) => request<ApiHouse>(`/representative/houses/${houseId}`, auth, { method: "PUT", body }),
+        },
+
+        company: {
+            get: (auth: Auth) => request<ApiCompany>("/representative/company", auth),
+
+            update: (
+                auth: Auth,
+                body: {
+                    full_name: string;
+                    short_name?: string;
+                    dispatcher_phone?: string;
+                    contact_phone?: string;
+                    email?: string;
+                    website?: string;
+                },
+            ) => request<ApiCompany>("/representative/company", auth, { method: "PUT", body }),
+        },
+
+        emergencyServices: {
+            list: (auth: Auth) => request<ApiEmergencyService[]>("/representative/emergency-services", auth),
+
+            importCsv: (auth: Auth, file: { data: Buffer; filename: string }) =>
+                request<ImportReport>("/representative/emergency-services/csv", auth, {
                     method: "POST",
                     body: csvFormData(file),
                 }),
@@ -266,6 +325,16 @@ export const api = {
     dispatcher: {
         houses: {
             list: (auth: Auth) => request<ApiHouse[]>("/dispatcher/houses", auth),
+
+            get: (auth: Auth, houseId: number) => request<ApiHouse>(`/dispatcher/houses/${houseId}`, auth),
+        },
+
+        company: {
+            get: (auth: Auth) => request<ApiCompany>("/dispatcher/company", auth),
+        },
+
+        emergencyServices: {
+            list: (auth: Auth) => request<ApiEmergencyService[]>("/dispatcher/emergency-services", auth),
         },
 
         reference: {
@@ -318,6 +387,14 @@ export const api = {
     },
 
     resident: {
+        company: {
+            get: (auth: Auth) => request<ApiCompany>("/resident/company", auth),
+        },
+
+        emergencyServices: {
+            list: (auth: Auth) => request<ApiEmergencyService[]>("/resident/emergency-services", auth),
+        },
+
         reference: {
             problemTypes: (auth: Auth) => request<ApiProblemType[]>("/resident/problem-types", auth),
 

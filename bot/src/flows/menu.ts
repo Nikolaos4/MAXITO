@@ -3,6 +3,8 @@ import { clearFlow, getSession, setData, setFlow, setStep, type AppContext } fro
 import { sendCsvTemplate } from "@/csv-import";
 import { csvTemplates } from "@/csv-templates";
 import { startDispatcherSelect } from "@/flows/assignment";
+import { startCompanyEdit } from "@/flows/company";
+import { showEmergencyServices, startEmergencyImport } from "@/flows/emergency";
 import { buildHouseSelectKeyboard, houseSelectText, HOUSES_PAGE_SIZE } from "@/flows/house";
 import {
     DISPATCHER_MENU_TEXT,
@@ -44,6 +46,9 @@ export const menuFlow = {
             "menu:import_dispatchers",
             "menu:assign_houses",
             "menu:import_residents",
+            "menu:edit_company",
+            "menu:show_emergency",
+            "menu:import_emergency",
             "menu:show",
         ];
         if (!payload || !known.includes(payload)) return false;
@@ -67,7 +72,7 @@ export const menuFlow = {
             setStep(ctx.user.user_id, "house/import_csv");
             await ctx.answerOnCallback({
                 message: {
-                    text: 'Пришлите CSV-файл с домами. Обязательные колонки — "address", "entrances_count", необязательная — "number".',
+                    text: 'Пришлите CSV-файл с домами. Обязательные колонки — "address", "entrances_count", необязательные — "number", "floors_count", "construction_year".',
                     attachments: [cancelKeyboard],
                 },
             });
@@ -99,6 +104,21 @@ export const menuFlow = {
 
         if (payload === "menu:assign_houses") {
             await startDispatcherSelect(ctx);
+            return true;
+        }
+
+        if (payload === "menu:edit_company") {
+            await startCompanyEdit(ctx);
+            return true;
+        }
+
+        if (payload === "menu:show_emergency") {
+            await showEmergencyServices(ctx);
+            return true;
+        }
+
+        if (payload === "menu:import_emergency") {
+            await startEmergencyImport(ctx);
             return true;
         }
 

@@ -1,8 +1,8 @@
 package repository
 
 import (
-	"maxito/internal/models"
 	"gorm.io/gorm"
+	"maxito/internal/models"
 )
 
 type HouseRepository struct {
@@ -41,6 +41,10 @@ func (r *HouseRepository) ExistsByAddressNumber(address, number string) (bool, e
 		Where("address = ? AND number = ?", address, number).
 		Count(&count).Error
 	return count > 0, err
+}
+
+func (r *HouseRepository) Update(house *models.House) error {
+	return r.db.Save(house).Error
 }
 
 func (r *HouseRepository) UpdateChatInviteLink(houseID uint, link string) error {

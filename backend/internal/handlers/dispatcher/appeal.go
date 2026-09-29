@@ -133,8 +133,8 @@ func (h *AppealHandler) GetAppeal(c *gin.Context) {
 
 type ChangeStatusRequest struct {
 	Status   models.AppealStatus `json:"status" binding:"required"`
-	Comment  string               `json:"comment" binding:"required"`
-	PhotoURL string               `json:"photo_url"`
+	Comment  string              `json:"comment" binding:"required"`
+	PhotoURL string              `json:"photo_url"`
 }
 
 // ChangeStatus — сменить статус обращения. Комментарий обязателен всегда;

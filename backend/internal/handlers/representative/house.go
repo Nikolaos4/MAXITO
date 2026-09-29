@@ -21,9 +21,11 @@ func NewHouseHandler(houseRepo *repository.HouseRepository, repSvc *services.Rep
 }
 
 type CreateHouseRequest struct {
-	Address        string `json:"address" binding:"required"`
-	Number         string `json:"number"`
-	EntrancesCount int    `json:"entrances_count" binding:"required,min=1"`
+	Address          string `json:"address" binding:"required"`
+	Number           string `json:"number"`
+	EntrancesCount   int    `json:"entrances_count" binding:"required,min=1"`
+	FloorsCount      *int   `json:"floors_count"`      // необязательно
+	ConstructionYear *int   `json:"construction_year"` // необязательно
 }
 
 // CreateHouse — создать дом (единичное добавление).
@@ -45,9 +47,11 @@ func (h *HouseHandler) CreateHouse(c *gin.Context) {
 	}
 
 	house := models.House{
-		Address:        req.Address,
-		Number:         req.Number,
-		EntrancesCount: req.EntrancesCount,
+		Address:          req.Address,
+		Number:           req.Number,
+		EntrancesCount:   req.EntrancesCount,
+		FloorsCount:      req.FloorsCount,
+		ConstructionYear: req.ConstructionYear,
 	}
 
 	if err := h.houseRepo.Create(&house); err != nil {
@@ -67,6 +71,42 @@ func (h *HouseHandler) ListHouses(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, houses)
+}
+
+type UpdateHouseRequest struct {
+	Address          *string `json:"address"`
+	Number           *string `json:"number"`
+	FloorsCount      *int    `json:"floors_count"`
+	ConstructionYear *int    `json:"construction_year"`
+}
+
+// UpdateHouse — частичное обновление дома. Любое поле можно не передавать —
+// тогда оно останется как было. Для дозаполнения floors_count/construction_year
+// после того, как дом уже создан (они необязательны при создании).
+func (h *HouseHandler) UpdateHouse(c *gin.Context) {
+	houseID, err := strconv.ParseUint(c.Param("house_id"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid house_id"})
+		return
+	}
+
+	var req UpdateHouseRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	house, err := h.repSvc.UpdateHouseDetails(uint(houseID), services.UpdateHouseInput{
+		Address:          req.Address,
+		Number:           req.Number,
+		FloorsCount:      req.FloorsCount,
+		ConstructionYear: req.ConstructionYear,
+	})
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, house)
 }
 
 type SetChatLinkRequest struct {

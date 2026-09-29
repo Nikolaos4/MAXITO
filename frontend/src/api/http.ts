@@ -1,9 +1,10 @@
 import { loadCategories, type ResolvedCategories } from "../backend/categories";
+import { adaptHouseInfo } from "../backend/houseInfo";
 import { isMarked, mark } from "../backend/localFlags";
 import { backendRequest, BackendError } from "../backend/request";
-import type { BackendAppeal, BackendMe, BackendNotification } from "../backend/types";
+import type { BackendAppeal, BackendCompany, BackendEmergencyService, BackendHouse, BackendMe, BackendNotification } from "../backend/types";
 import { getMaxUser } from "../max";
-import type { Appeal, Comment, HouseInfo, Me, Notification } from "../types";
+import type { Appeal, Comment, Me, Notification } from "../types";
 import type { Api } from "./types";
 
 const userId = () => getMaxUser()?.id ?? "me";
@@ -87,12 +88,13 @@ export const httpApi: Api = {
   getMe: async () => (await meFromBackend()).me,
 
   getHouseInfo: async () => {
-    const [{ me }, link] = await Promise.all([
-      meFromBackend(),
+    const [house, link, company, emergencyServices] = await Promise.all([
+      backendRequest<BackendHouse>("/resident/house"),
       backendRequest<{ chat_invite_link: string | null }>("/resident/house/chat-link"),
+      backendRequest<BackendCompany>("/resident/company"),
+      backendRequest<BackendEmergencyService[]>("/resident/emergency-services"),
     ]);
-    const info: HouseInfo = { number: me.houseNumber, entrances: me.entrances, chatInviteLink: link.chat_invite_link };
-    return info;
+    return adaptHouseInfo(house, company, emergencyServices, link.chat_invite_link);
   },
 
   getCategories: async () => (await categories()).categories,

@@ -45,11 +45,13 @@ func (rep *ImportReport) add(row int, status, message string, id *uint) {
 }
 
 type RepresentativeService struct {
-	db            *gorm.DB
-	userRepo      *repository.UserRepository
-	houseRepo     *repository.HouseRepository
-	residentRepo  *repository.ResidentRepository
-	dispHouseRepo *repository.DispatcherHouseRepository
+	db                   *gorm.DB
+	userRepo             *repository.UserRepository
+	houseRepo            *repository.HouseRepository
+	residentRepo         *repository.ResidentRepository
+	dispHouseRepo        *repository.DispatcherHouseRepository
+	companyRepo          *repository.CompanyRepository
+	emergencyServiceRepo *repository.EmergencyServiceRepository
 }
 
 func NewRepresentativeService(
@@ -58,14 +60,147 @@ func NewRepresentativeService(
 	houseRepo *repository.HouseRepository,
 	residentRepo *repository.ResidentRepository,
 	dispHouseRepo *repository.DispatcherHouseRepository,
+	companyRepo *repository.CompanyRepository,
+	emergencyServiceRepo *repository.EmergencyServiceRepository,
 ) *RepresentativeService {
 	return &RepresentativeService{
-		db:            db,
-		userRepo:      userRepo,
-		houseRepo:     houseRepo,
-		residentRepo:  residentRepo,
-		dispHouseRepo: dispHouseRepo,
+		db:                   db,
+		userRepo:             userRepo,
+		houseRepo:            houseRepo,
+		residentRepo:         residentRepo,
+		dispHouseRepo:        dispHouseRepo,
+		companyRepo:          companyRepo,
+		emergencyServiceRepo: emergencyServiceRepo,
 	}
+}
+
+// ---------- Компания (одна запись на весь инстанс) ----------
+
+// GetCompany возвращает реквизиты УК. Если Представитель ещё ни разу их не
+// заполнял — пустую структуру, а не ошибку (это ожидаемое состояние "пока не заполнено").
+func (s *RepresentativeService) GetCompany() (*models.Company, error) {
+	company, err := s.companyRepo.Get()
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return &models.Company{}, nil
+		}
+		return nil, err
+	}
+	return company, nil
+}
+
+// CompanyInput — вход для обновления реквизитов УК. Все поля можно
+// оставлять пустыми (кроме full_name — без него карточка компании бессмысленна).
+type CompanyInput struct {
+	FullName        string
+	ShortName       string
+	DispatcherPhone string
+	ContactPhone    string
+	Email           string
+	Website         string
+}
+
+func (s *RepresentativeService) UpdateCompany(in CompanyInput) (*models.Company, error) {
+	if in.FullName == "" {
+		return nil, errors.New("full_name is required")
+	}
+	company := &models.Company{
+		FullName:        in.FullName,
+		ShortName:       in.ShortName,
+		DispatcherPhone: in.DispatcherPhone,
+		ContactPhone:    in.ContactPhone,
+		Email:           in.Email,
+		Website:         in.Website,
+	}
+	if err := s.companyRepo.Upsert(company); err != nil {
+		return nil, err
+	}
+	return company, nil
+}
+
+// ---------- Аварийные службы (общий список на всю систему) ----------
+
+// ImportEmergencyServicesCSV построчно добавляет аварийные службы.
+// Обязательные колонки: name, phone. Дубли по телефону пропускаются —
+// повторная загрузка того же файла безопасна.
+func (s *RepresentativeService) ImportEmergencyServicesCSV(file multipart.File) (*ImportReport, error) {
+	parsed, err := util.ParseCSV(file, []string{"name", "phone"})
+	if err != nil {
+		return nil, err
+	}
+
+	report := &ImportReport{TotalRows: len(parsed.Records)}
+	for i, record := range parsed.Records {
+		rowNum := i + 2
+		name := parsed.Get(record, "name")
+		phone := parsed.Get(record, "phone")
+
+		if name == "" || phone == "" {
+			report.add(rowNum, "error", "name and phone are required", nil)
+			continue
+		}
+
+		exists, err := s.emergencyServiceRepo.ExistsByPhone(phone)
+		if err != nil {
+			report.add(rowNum, "error", err.Error(), nil)
+			continue
+		}
+		if exists {
+			report.add(rowNum, "skipped", "phone already exists", nil)
+			continue
+		}
+
+		service := &models.EmergencyService{Name: name, Phone: phone}
+		if err := s.emergencyServiceRepo.Create(service); err != nil {
+			report.add(rowNum, "error", err.Error(), nil)
+			continue
+		}
+		report.add(rowNum, "created", "", &service.ID)
+	}
+	return report, nil
+}
+
+func (s *RepresentativeService) ListEmergencyServices() ([]models.EmergencyService, error) {
+	return s.emergencyServiceRepo.List()
+}
+
+// ---------- Дом: дозаполнение необязательных полей ----------
+
+// UpdateHouseInput — частичное обновление: любое поле можно не передавать
+// (nil), тогда значение в базе не меняется.
+type UpdateHouseInput struct {
+	Address          *string
+	Number           *string
+	FloorsCount      *int
+	ConstructionYear *int
+}
+
+func (s *RepresentativeService) UpdateHouseDetails(houseID uint, in UpdateHouseInput) (*models.House, error) {
+	house, err := s.houseRepo.GetByID(houseID)
+	if err != nil {
+		return nil, fmt.Errorf("house %d not found", houseID)
+	}
+
+	if in.Address != nil {
+		if *in.Address == "" {
+			return nil, errors.New("address cannot be empty")
+		}
+		house.Address = *in.Address
+	}
+	if in.Number != nil {
+		house.Number = *in.Number
+	}
+	if in.FloorsCount != nil {
+		house.FloorsCount = in.FloorsCount
+	}
+	if in.ConstructionYear != nil {
+		house.ConstructionYear = in.ConstructionYear
+	}
+
+	if err := s.houseRepo.Update(house); err != nil {
+		return nil, err
+	}
+	return house, nil
 }
 
 // ==================== Диспетчеры ====================
@@ -155,6 +290,26 @@ func (s *RepresentativeService) ImportHousesCSV(file multipart.File) (*ImportRep
 			continue
 		}
 
+		// floors_count и construction_year — необязательные колонки.
+		var floorsCount *int
+		if raw := parsed.Get(record, "floors_count"); raw != "" {
+			n, err := strconv.Atoi(raw)
+			if err != nil || n < 1 {
+				report.add(rowNum, "error", fmt.Sprintf("invalid floors_count %q", raw), nil)
+				continue
+			}
+			floorsCount = &n
+		}
+		var constructionYear *int
+		if raw := parsed.Get(record, "construction_year"); raw != "" {
+			n, err := strconv.Atoi(raw)
+			if err != nil || n < 1000 || n > 3000 {
+				report.add(rowNum, "error", fmt.Sprintf("invalid construction_year %q", raw), nil)
+				continue
+			}
+			constructionYear = &n
+		}
+
 		var existing models.House
 		err = s.db.Where("address = ? AND number = ?", address, number).First(&existing).Error
 		if err == nil {
@@ -166,7 +321,10 @@ func (s *RepresentativeService) ImportHousesCSV(file multipart.File) (*ImportRep
 			continue
 		}
 
-		house := &models.House{Address: address, Number: number, EntrancesCount: entrancesCount}
+		house := &models.House{
+			Address: address, Number: number, EntrancesCount: entrancesCount,
+			FloorsCount: floorsCount, ConstructionYear: constructionYear,
+		}
 		if err := s.houseRepo.Create(house); err != nil {
 			report.add(rowNum, "error", err.Error(), nil)
 			continue
