@@ -65,6 +65,13 @@ export function AppealModal({ appeal, meId, readOnly, onClose, onLike }: Props) 
             {appeal.comments.map((c) => (
               <div className="comment" key={c.id}>
                 <p>{c.text}</p>
+                {c.photoUrl && (
+                  <div className="thumbs">
+                    <a className="thumb" href={c.photoUrl} target="_blank" rel="noreferrer" aria-label="Открыть фото">
+                      <img src={c.photoUrl} alt="" loading="lazy" />
+                    </a>
+                  </div>
+                )}
                 <div className="comment__meta">
                   <span><UserIcon width={14} height={14} />{c.authorName}</span>
                   <span>{formatDate(c.createdAt)}&nbsp;&nbsp;{formatTime(c.createdAt)}</span>

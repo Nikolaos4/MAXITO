@@ -7,14 +7,15 @@ import { AlertIcon, UserIcon } from "../components/Icons";
 import { PageHead } from "../components/PageHead";
 import { TimeField } from "../components/TimeField";
 import { Select } from "../components/Select";
-import { checkFiles, MEDIA_HINT } from "../media";
+import { checkFiles, checkPhotos, MAX_PHOTOS, MEDIA_HINT, PHOTO_HINT } from "../media";
 import { formatShortDate, plural } from "../format";
 import type { Appeal, Category, Me, Notification } from "../types";
 
 const SHOWN_DUPLICATES = 2;
-// Фото/видео сервер пока не принимает вообще — эту часть формы показываем
-// только в демо-режиме, чтобы не обещать то, чего нет.
-const SUPPORTS_ATTACHMENTS = import.meta.env.VITE_USE_MOCK !== "false";
+// Реальный бэкенд принимает только фото (POST /upload — jpg/jpeg/png/webp/gif),
+// видео не хранит вообще — в мок-режиме демо позволяет больше, поэтому
+// правила проверки и подсказка разные (см. addFiles/MEDIA_HINT/PHOTO_HINT).
+const IS_MOCK = import.meta.env.VITE_USE_MOCK !== "false";
 
 /** Карточка «по вашей проблеме уже есть обращение»: список кратких описаний + переход к списку. */
 function DuplicateNotice({ category, appeals, onView }: { category: Category; appeals: Appeal[]; onView: () => void }) {
@@ -122,7 +123,9 @@ function AppealForm({ category, me, onBack, onDone, onViewExisting }: {
 
   async function addFiles(list: FileList | null) {
     if (!list) return;
-    const { accepted, warnings } = await checkFiles(files, Array.from(list));
+    const { accepted, warnings } = IS_MOCK
+      ? await checkFiles(files, Array.from(list))
+      : checkPhotos(files, Array.from(list), MAX_PHOTOS);
     setFiles((prev) => [...prev, ...accepted]);
     setWarnings(warnings);
   }
@@ -206,23 +209,20 @@ function AppealForm({ category, me, onBack, onDone, onViewExisting }: {
           maxLength={1000} onChange={(e) => setComment(e.target.value)} />
         {show("comment") && <p className="form__error">Опишите проблему</p>}
 
-        {SUPPORTS_ATTACHMENTS && (
-          <>
-            <p className="form__label">Фото или видео подтверждение</p>
-            <p className="form__hint">{MEDIA_HINT}</p>
-            <div className="attach">
-              {files.map((f, i) => (
-                <Chip key={f.name + i} onRemove={() => { setWarnings([]); setFiles(files.filter((_, j) => j !== i)); }}>{f.name}</Chip>
-              ))}
-              <label className="chip chip--add" aria-label="Добавить файл">
-                +
-                <input type="file" accept="image/*,video/*" multiple onChange={(e) => { void addFiles(e.target.files); e.target.value = ""; }} />
-              </label>
-            </div>
-            {warnings.length > 0 && (
-              <div className="form__warning" role="alert">{warnings.map((w) => <p key={w}>{w}</p>)}</div>
-            )}
-          </>
+        <p className="form__label">{IS_MOCK ? "Фото или видео подтверждение" : "Фото подтверждение"}</p>
+        <p className="form__hint">{IS_MOCK ? MEDIA_HINT : PHOTO_HINT}</p>
+        <div className="attach">
+          {files.map((f, i) => (
+            <Chip key={f.name + i} onRemove={() => { setWarnings([]); setFiles(files.filter((_, j) => j !== i)); }}>{f.name}</Chip>
+          ))}
+          <label className="chip chip--add" aria-label="Добавить файл">
+            +
+            <input type="file" accept={IS_MOCK ? "image/*,video/*" : "image/jpeg,image/png,image/webp,image/gif"} multiple
+              onChange={(e) => { void addFiles(e.target.files); e.target.value = ""; }} />
+          </label>
+        </div>
+        {warnings.length > 0 && (
+          <div className="form__warning" role="alert">{warnings.map((w) => <p key={w}>{w}</p>)}</div>
         )}
 
         {error && <p className="form__error">{error}</p>}

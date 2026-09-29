@@ -2,12 +2,8 @@ import { useState } from "react";
 import { Chip } from "../../components/Chip";
 import { STATUS_LABEL } from "../../data/categories";
 import { STATUS_TRANSITIONS } from "../../data/status";
-import { checkFiles } from "../../media";
+import { checkPhotos } from "../../media";
 import type { AppealStatus, ChangeStatusInput } from "../../types";
-
-// Бэкенд принимает фото к завершению только готовой ссылкой (photo_url), а
-// эндпоинта загрузки файла нигде нет — приложить реальный файл не получится.
-const SUPPORTS_PHOTO = import.meta.env.VITE_USE_MOCK !== "false";
 
 /** Смена статуса: только разрешённые графом переходы, обязательный комментарий, фото — только при завершении. */
 export function StatusChangeForm({ current, onSubmit }: {
@@ -26,9 +22,11 @@ export function StatusChangeForm({ current, onSubmit }: {
 
   const invalid = !status || !comment.trim();
 
+  // Бэкенд принимает фото завершения ровно одной ссылкой (photo_url), не
+  // массивом — поэтому maxCount=1, второй выбранный файл checkPhotos отклонит.
   async function addFiles(list: FileList | null) {
     if (!list) return;
-    const { accepted, warnings } = await checkFiles(files, Array.from(list));
+    const { accepted, warnings } = checkPhotos(files, Array.from(list), 1);
     setFiles((prev) => [...prev, ...accepted]);
     setWarnings(warnings);
   }
@@ -66,17 +64,19 @@ export function StatusChangeForm({ current, onSubmit }: {
         maxLength={1000} onChange={(e) => setComment(e.target.value)} />
       {tried && !comment.trim() && <p className="form__error">Оставьте комментарий к изменению статуса</p>}
 
-      {SUPPORTS_PHOTO && status === "completed" && (
+      {status === "completed" && (
         <>
-          <p className="form__hint">Можно приложить фото выполненных работ (необязательно)</p>
+          <p className="form__hint">Можно приложить фото выполненных работ (необязательно, только одно)</p>
           <div className="attach">
             {files.map((f, i) => (
               <Chip key={f.name + i} onRemove={() => { setWarnings([]); setFiles(files.filter((_, j) => j !== i)); }}>{f.name}</Chip>
             ))}
-            <label className="chip chip--add" aria-label="Добавить фото">
-              +
-              <input type="file" accept="image/*" multiple onChange={(e) => { void addFiles(e.target.files); e.target.value = ""; }} />
-            </label>
+            {files.length === 0 && (
+              <label className="chip chip--add" aria-label="Добавить фото">
+                +
+                <input type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={(e) => { void addFiles(e.target.files); e.target.value = ""; }} />
+              </label>
+            )}
           </div>
           {warnings.length > 0 && <div className="form__warning" role="alert">{warnings.map((w) => <p key={w}>{w}</p>)}</div>}
         </>

@@ -1,9 +1,13 @@
 import { loadCategories, type ResolvedCategories } from "../../backend/categories";
 import { adaptHouseInfo } from "../../backend/houseInfo";
-import { backendRequest } from "../../backend/request";
-import type { BackendAppeal, BackendCompany, BackendEmergencyService, BackendHouse, BackendMe, BackendNotification } from "../../backend/types";
-import type { Appeal, Comment, DispatcherMe, HouseInfo, Notification } from "../../types";
+import { backendRequest, uploadFile } from "../../backend/request";
+import type { BackendAppeal, BackendAttachment, BackendCompany, BackendEmergencyService, BackendHouse, BackendMe, BackendNotification } from "../../backend/types";
+import type { Appeal, Attachment, Comment, DispatcherMe, HouseInfo, Notification } from "../../types";
 import type { DispatcherApi } from "./types";
+
+function adaptAttachment(a: BackendAttachment): Attachment {
+  return { name: a.url.split("/").pop() || "Фото", kind: "image", url: a.url };
+}
 
 // Диспетчер темы/причины использует только для плановых работ (PlannedWork.tsx) —
 // поэтому сразу просим причины, разрешённые для уведомления (не любая причина
@@ -29,7 +33,10 @@ const houses = () => (housesPromise ??= loadHouses());
 
 function adaptComment(h: NonNullable<BackendAppeal["history"]>[number]): Comment | null {
   if (!h.comment) return null;
-  return { id: h.id, authorId: String(h.changed_by), authorName: h.changed_by_user?.full_name ?? "", text: h.comment, createdAt: h.created_at };
+  return {
+    id: h.id, authorId: String(h.changed_by), authorName: h.changed_by_user?.full_name ?? "",
+    text: h.comment, createdAt: h.created_at, photoUrl: h.photo_url,
+  };
 }
 
 function adaptAppeal(a: BackendAppeal): Appeal {
@@ -48,7 +55,8 @@ function adaptAppeal(a: BackendAppeal): Appeal {
     likes: a.likes_count ?? 0,
     // Диспетчер лайки не ставит — поле нигде не используется на этой стороне.
     likedByMe: false,
-    attachments: [],
+    // Только в ответе на GET одного обращения (см. api/http.ts у жителя).
+    attachments: (a.attachments ?? []).map(adaptAttachment),
     comments: (a.history ?? []).map(adaptComment).filter((c): c is Comment => c !== null),
   };
 }
@@ -129,10 +137,15 @@ export const httpApi: DispatcherApi = {
   markNotificationsRead: () => Promise.resolve(),
 
   changeStatus: async (id, { files, ...fields }) => {
-    void files; // фото при завершении бэкенд принимает только как готовый URL, не как файл — грузить некуда
+    // Бэкенд принимает фото подтверждения только при переходе в "completed" —
+    // на любом другом статусе непустой photo_url 400-нется (см. ChangeStatus
+    // в dispatcher_service.go), поэтому грузим файл и шлём поле только тогда.
+    // И это ровно одна ссылка (photo_url), не массив, в отличие от обращения
+    // жителя (photo_urls) — на форме тут в принципе не выбрать больше 1 файла.
+    const photoUrl = fields.status === "completed" && files[0] ? await uploadFile(files[0]) : undefined;
     const updated = await backendRequest<BackendAppeal>(`/dispatcher/appeals/${id}/status`, {
       method: "POST",
-      body: JSON.stringify({ status: fields.status, comment: fields.comment }),
+      body: JSON.stringify({ status: fields.status, comment: fields.comment, photo_url: photoUrl }),
     });
     const detail = await backendRequest<BackendAppeal>(`/dispatcher/appeals/${id}`);
     return adaptAppeal({ ...detail, ...updated });

@@ -1,11 +1,15 @@
 import { loadCategories, type ResolvedCategories } from "../backend/categories";
 import { adaptHouseInfo } from "../backend/houseInfo";
 import { isMarked, mark } from "../backend/localFlags";
-import { backendRequest, BackendError } from "../backend/request";
-import type { BackendAppeal, BackendCompany, BackendEmergencyService, BackendHouse, BackendMe, BackendNotification } from "../backend/types";
+import { backendRequest, BackendError, uploadFile } from "../backend/request";
+import type { BackendAppeal, BackendAttachment, BackendCompany, BackendEmergencyService, BackendHouse, BackendMe, BackendNotification } from "../backend/types";
 import { getMaxUser } from "../max";
-import type { Appeal, Comment, Me, Notification } from "../types";
+import type { Appeal, Attachment, Comment, Me, Notification } from "../types";
 import type { Api } from "./types";
+
+function adaptAttachment(a: BackendAttachment): Attachment {
+  return { name: a.url.split("/").pop() || "Фото", kind: "image", url: a.url };
+}
 
 const userId = () => getMaxUser()?.id ?? "me";
 const seenNotifKey = (uid: string) => `maxito:seen-notif:${uid}`;
@@ -17,7 +21,10 @@ const categories = () => (categoriesPromise ??= loadCategories("/resident"));
 
 function adaptComment(h: NonNullable<BackendAppeal["history"]>[number]): Comment | null {
   if (!h.comment) return null;
-  return { id: h.id, authorId: String(h.changed_by), authorName: h.changed_by_user?.full_name ?? "", text: h.comment, createdAt: h.created_at };
+  return {
+    id: h.id, authorId: String(h.changed_by), authorName: h.changed_by_user?.full_name ?? "",
+    text: h.comment, createdAt: h.created_at, photoUrl: h.photo_url,
+  };
 }
 
 function adaptAppeal(a: BackendAppeal): Appeal {
@@ -39,9 +46,9 @@ function adaptAppeal(a: BackendAppeal): Appeal {
     // флаг в браузере, из-за чего сердечко могло быть закрашено не для того,
     // кто реально лайкнул (или наоборот) на любом другом устройстве/вкладке.
     likedByMe: a.liked_by_me ?? false,
-    // Бэкенд не хранит фото/видео жителя и свободные комментарии диспетчера
-    // отдельно от истории смены статуса — жителю их и не показывали.
-    attachments: [],
+    // attachments приходят только в ответе на GET одного обращения — список
+    // (/resident/appeals) их не подгружает, там будет пустой массив, это ок.
+    attachments: (a.attachments ?? []).map(adaptAttachment),
     comments: (a.history ?? []).map(adaptComment).filter((c): c is Comment => c !== null),
   };
 }
@@ -114,6 +121,10 @@ export const httpApi: Api = {
     const isFreeText = cats.categories.find((c) => c.code === input.categoryCode)?.freeText;
     const description = isFreeText ? [input.reason, input.comment].filter(Boolean).join("\n\n") : input.comment;
 
+    // Файлы грузятся заранее через POST /upload, обращение создаётся уже с
+    // готовыми ссылками (photo_urls) — сам /resident/appeals файлы не принимает.
+    const photoUrls = await Promise.all(input.files.map(uploadFile));
+
     const created = await backendRequest<BackendAppeal>("/resident/appeals", {
       method: "POST",
       body: JSON.stringify({
@@ -122,9 +133,10 @@ export const httpApi: Api = {
         entrance_number: input.entrance === 0 ? null : input.entrance,
         description,
         discovered_at: input.from || undefined,
+        photo_urls: photoUrls.length ? photoUrls : undefined,
       }),
     });
-    // Ответ на создание не приходит с подгруженными house/author/problem_type/reason —
+    // Ответ на создание не приходит с подгруженными house/author/problem_type/reason/attachments —
     // достраиваем карточку из того, что и так знаем на клиенте.
     const m = await httpApi.getMe();
     return adaptAppeal({
@@ -138,6 +150,7 @@ export const httpApi: Api = {
         is_critical: false,
       },
       reason: { id: 0, problem_type_id: 0, code: "", title: isFreeText ? input.reason : input.reason, is_other: !!isFreeText },
+      attachments: photoUrls.map((url, i) => ({ id: -i - 1, appeal_id: created.id, url, created_at: new Date().toISOString() })),
     });
   },
 

@@ -4,10 +4,22 @@ export const MAX_VIDEO_SECONDS = 60;
 const MAX_PHOTO_MB = 10;
 const MAX_VIDEO_MB = 100;
 
+// То же самое, что проверяет бэкенд в UploadHandler.Upload — по расширению
+// имени файла, не по содержимому (см. POST /upload). Реальный бэкенд видео
+// не принимает вообще — там всё, что не входит в этот список, 400-нется.
+export const ALLOWED_PHOTO_EXTENSIONS = [".jpg", ".jpeg", ".png", ".webp", ".gif"];
+
 export const MEDIA_HINT = `До ${MAX_PHOTOS} фото и ${MAX_VIDEOS} видео (не длиннее 1 минуты)`;
+export const PHOTO_HINT = `Фото — jpg, png, webp или gif, до ${MAX_PHOTO_MB} МБ`;
 
 export const fileKind = (f: File): "image" | "video" | null =>
   f.type.startsWith("image/") ? "image" : f.type.startsWith("video/") ? "video" : null;
+
+function hasAllowedPhotoExtension(name: string): boolean {
+  const dot = name.lastIndexOf(".");
+  if (dot === -1) return false;
+  return ALLOWED_PHOTO_EXTENSIONS.includes(name.slice(dot).toLowerCase());
+}
 
 function videoDuration(file: File): Promise<number> {
   return new Promise((resolve, reject) => {
@@ -50,6 +62,37 @@ export async function checkFiles(existing: File[], incoming: File[]) {
       accepted.push(f);
       videos++;
     }
+  }
+  return { accepted, warnings: [...warnings] };
+}
+
+/**
+ * Строгая проверка под реальный бэкенд (POST /upload) — только фото по
+ * белому списку расширений, до maxCount штук, до 10 МБ каждое. Видео тут
+ * нет вообще — бэкенд его не принимает. Используется и у жителя
+ * (несколько фото к обращению), и у диспетчера (maxCount=1 — фото
+ * подтверждения при завершении, бэкенд там ждёт одну ссылку, не массив).
+ */
+export function checkPhotos(existing: File[], incoming: File[], maxCount: number) {
+  const accepted: File[] = [];
+  const warnings = new Set<string>();
+  let count = existing.length;
+
+  for (const f of incoming) {
+    if (count >= maxCount) {
+      warnings.add(maxCount === 1 ? "Можно прикрепить только одно фото" : `Можно прикрепить не более ${maxCount} фото`);
+      continue;
+    }
+    if (!hasAllowedPhotoExtension(f.name)) {
+      warnings.add(`${f.name}: поддерживаются только jpg, jpeg, png, webp, gif`);
+      continue;
+    }
+    if (f.size > MAX_PHOTO_MB * 1024 * 1024) {
+      warnings.add(`${f.name}: фото больше ${MAX_PHOTO_MB} МБ`);
+      continue;
+    }
+    accepted.push(f);
+    count++;
   }
   return { accepted, warnings: [...warnings] };
 }

@@ -131,7 +131,17 @@ func SeedReferenceData(db *gorm.DB) error {
 			var reason models.Reason
 			err := db.Where("problem_type_id = ? AND code = ?", problemType.ID, r.Code).First(&reason).Error
 			if err == nil {
-				continue // уже есть
+				// Причина уже была заведена раньше (до появления AllowsNotification —
+				// колонка добавилась с default:false) — сам SeedReferenceData её не
+				// трогал, так что на уже заполненных базах она навсегда остаётся
+				// false, даже если тут в справочнике стоит true, и
+				// GET .../reasons?for=notification отдаёт пустой список. Досинхронизируем.
+				if reason.AllowsNotification != r.AllowsNotification {
+					if err := db.Model(&reason).Update("allows_notification", r.AllowsNotification).Error; err != nil {
+						return fmt.Errorf("failed to sync reason %q: %w", r.Code, err)
+					}
+				}
+				continue
 			}
 			if err != gorm.ErrRecordNotFound {
 				return fmt.Errorf("failed to query reason %q: %w", r.Code, err)
