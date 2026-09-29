@@ -7,6 +7,7 @@ import { dispatcherFlow } from "./dispatcher";
 import { dispatcherMenuFlow } from "./dispatcher-menu";
 import { emergencyFlow } from "./emergency";
 import { houseFlow } from "./house";
+import { houseEditFlow } from "./house-edit";
 import { menuFlow } from "./menu";
 import { residentMenuFlow } from "./resident-menu";
 
@@ -20,6 +21,7 @@ const flows: FlowRouter[] = [
     authorizationFlow,
     menuFlow,
     houseFlow,
+    houseEditFlow,
     dispatcherFlow,
     assignmentFlow,
     companyFlow,

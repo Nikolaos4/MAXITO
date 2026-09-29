@@ -6,13 +6,8 @@ import { startDispatcherSelect } from "@/flows/assignment";
 import { startCompanyEdit } from "@/flows/company";
 import { showEmergencyServices, startEmergencyImport } from "@/flows/emergency";
 import { buildHouseSelectKeyboard, houseSelectText, HOUSES_PAGE_SIZE } from "@/flows/house";
-import {
-    DISPATCHER_MENU_TEXT,
-    MENU_TEXT,
-    buildDispatcherMenuKeyboard,
-    cancelKeyboard,
-    mainMenuKeyboard,
-} from "@/menu";
+import { startHouseEdit } from "@/flows/house-edit";
+import { DISPATCHER_MENU_TEXT, MENU_TEXT, buildDispatcherMenuKeyboard, cancelKeyboard, mainMenuKeyboard } from "@/menu";
 
 function authFor(ctx: AppContext): Auth {
     return { maxUserId: String(ctx.user!.user_id) };
@@ -42,6 +37,7 @@ export const menuFlow = {
         const known = [
             "menu:add_house",
             "menu:import_houses",
+            "menu:edit_house",
             "menu:add_dispatcher",
             "menu:import_dispatchers",
             "menu:assign_houses",
@@ -77,6 +73,11 @@ export const menuFlow = {
                 },
             });
             await sendCsvTemplate(ctx, csvTemplates.houses);
+            return true;
+        }
+
+        if (payload === "menu:edit_house") {
+            await startHouseEdit(ctx);
             return true;
         }
 

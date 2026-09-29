@@ -7,6 +7,7 @@ export const MENU_TEXT = "Главное меню представителя. В
 export const mainMenuKeyboard = Keyboard.inlineKeyboard([
     [Keyboard.button.callback("Добавить дом", "menu:add_house")],
     [Keyboard.button.callback("Загрузить дома из CSV", "menu:import_houses")],
+    [Keyboard.button.callback("Изменить дом", "menu:edit_house")],
     [Keyboard.button.callback("Добавить диспетчера", "menu:add_dispatcher")],
     [Keyboard.button.callback("Загрузить диспетчеров из CSV", "menu:import_dispatchers")],
     [Keyboard.button.callback("Назначить дома диспетчерам", "menu:assign_houses")],
@@ -67,7 +68,10 @@ export const backToResidentMenuKeyboard = Keyboard.inlineKeyboard([
 
 export const RESIDENT_PROBLEM_TYPE_TEXT = "Выберите тип проблемы:";
 
-export async function buildResidentProblemTypeKeyboard(ctx: AppContext, problemTypes: { code: string; title: string }[]) {
+export async function buildResidentProblemTypeKeyboard(
+    ctx: AppContext,
+    problemTypes: { code: string; title: string }[],
+) {
     const rows = await Promise.all(
         problemTypes.map(async (pt) => [await miniAppButton(ctx, pt.title, "resident", "create", pt.code)]),
     );
