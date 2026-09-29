@@ -35,7 +35,6 @@ export const menuFlow = {
         }
 
         const known = [
-            "menu:add_house",
             "menu:import_houses",
             "menu:edit_house",
             "menu:add_dispatcher",
@@ -144,13 +143,7 @@ export const menuFlow = {
             return true;
         }
 
-        setFlow(ctx.user.user_id, "house");
-        setStep(ctx.user.user_id, "house/address");
-
-        await ctx.answerOnCallback({
-            message: { text: "Введите адрес дома, например: ул. Ленина, 25.", attachments: [cancelKeyboard] },
-        });
-        return true;
+        return false;
     },
 
     // Сообщение вне активного шага какого-либо флоу — показываем меню, а не молчим.
