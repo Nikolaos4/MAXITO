@@ -214,7 +214,6 @@ func main() {
 		internalAPI.Use(middleware.RequireInternalKey(cfg.InternalAPIKey))
 		{
 			internalAPI.POST("/bind", botHandler.Bind)
-			internalAPI.POST("/issue-token", botHandler.IssueToken)
 		}
 
 		rep := api.Group("/representative")

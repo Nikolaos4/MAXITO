@@ -901,70 +901,6 @@
                 }
             }
         },
-        "/internal/issue-token": {
-            "post": {
-                "security": [
-                    {
-                        "InternalKey": []
-                    }
-                ],
-                "description": "Только для сервера бота/администратора, требует X-Internal-Key вместо обычного JWT. Не для обычных пользователей.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "internal"
-                ],
-                "summary": "Выпустить JWT по телефону, минуя вход через MAX",
-                "operationId": "botIssueToken",
-                "parameters": [
-                    {
-                        "description": "Телефон пользователя",
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/internal_handlers_bot.issueTokenRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/internal_handlers_bot.issueTokenResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/apidoc.ErrorResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "неверный или отсутствующий X-Internal-Key",
-                        "schema": {
-                            "$ref": "#/definitions/apidoc.ErrorResponse"
-                        }
-                    },
-                    "403": {
-                        "description": "code: inactive",
-                        "schema": {
-                            "$ref": "#/definitions/apidoc.ErrorResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "code: phone_not_registered",
-                        "schema": {
-                            "$ref": "#/definitions/apidoc.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
         "/me": {
             "get": {
                 "security": [
@@ -2624,32 +2560,6 @@
                 },
                 "id": {
                     "type": "integer"
-                },
-                "role": {
-                    "type": "string",
-                    "example": "resident"
-                }
-            }
-        },
-        "internal_handlers_bot.issueTokenRequest": {
-            "type": "object",
-            "required": [
-                "phone"
-            ],
-            "properties": {
-                "phone": {
-                    "type": "string"
-                }
-            }
-        },
-        "internal_handlers_bot.issueTokenResponse": {
-            "type": "object",
-            "properties": {
-                "access_token": {
-                    "type": "string"
-                },
-                "expires_at": {
-                    "type": "string"
                 },
                 "role": {
                     "type": "string",

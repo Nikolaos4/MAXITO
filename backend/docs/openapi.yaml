@@ -679,54 +679,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/apidoc.ErrorResponse"
-  /internal/issue-token:
-    post:
-      security:
-        - InternalKey: []
-      description: Только для сервера бота/администратора, требует X-Internal-Key
-        вместо обычного JWT. Не для обычных пользователей.
-      tags:
-        - internal
-      summary: Выпустить JWT по телефону, минуя вход через MAX
-      operationId: botIssueToken
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/internal_handlers_bot.issueTokenRequest"
-        description: Телефон пользователя
-        required: true
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/internal_handlers_bot.issueTokenResponse"
-        "400":
-          description: Bad Request
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/apidoc.ErrorResponse"
-        "401":
-          description: неверный или отсутствующий X-Internal-Key
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/apidoc.ErrorResponse"
-        "403":
-          description: "code: inactive"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/apidoc.ErrorResponse"
-        "404":
-          description: "code: phone_not_registered"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/apidoc.ErrorResponse"
   /me:
     get:
       security:
@@ -1984,23 +1936,6 @@ components:
           type: string
         id:
           type: integer
-        role:
-          type: string
-          example: resident
-    internal_handlers_bot.issueTokenRequest:
-      type: object
-      required:
-        - phone
-      properties:
-        phone:
-          type: string
-    internal_handlers_bot.issueTokenResponse:
-      type: object
-      properties:
-        access_token:
-          type: string
-        expires_at:
-          type: string
         role:
           type: string
           example: resident

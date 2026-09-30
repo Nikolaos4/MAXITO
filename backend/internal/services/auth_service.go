@@ -92,35 +92,6 @@ func (s *AuthService) LoginByInitData(rawInitData string) (*LoginResult, error) 
 	return &LoginResult{Token: token, ExpiresAt: expiresAt, User: user}, nil
 }
 
-// IssueTokenForPhone выпускает JWT напрямую по телефону, минуя подписанный
-// initData MAX. Используется только для служебной выдачи тестовых токенов
-// (например, жюри для автоматизированной проверки) через /internal/issue-token
-// — обычный вход всегда идёт через LoginByInitData.
-func (s *AuthService) IssueTokenForPhone(rawPhone string) (*LoginResult, error) {
-	phone, err := util.NormalizePhone(rawPhone)
-	if err != nil {
-		return nil, fmt.Errorf("%w: %v", ErrInvalidBindInput, err)
-	}
-
-	user, err := s.userRepo.GetByPhone(phone)
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, ErrPhoneNotRegistered
-		}
-		return nil, err
-	}
-	if !user.IsActive {
-		return nil, ErrUserInactive
-	}
-
-	now := time.Now()
-	token, expiresAt, err := s.tokens.Issue(user, now)
-	if err != nil {
-		return nil, fmt.Errorf("failed to issue token: %w", err)
-	}
-	return &LoginResult{Token: token, ExpiresAt: expiresAt, User: user}, nil
-}
-
 // BindMaxUser привязывает аккаунт MAX к пользователю, которого заранее
 // загрузил Представитель. Вызывается ботом (через /internal/bind), когда
 // человек поделился контактом. Повторный вызов с теми же данными безвреден.
