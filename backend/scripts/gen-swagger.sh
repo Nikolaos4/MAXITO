@@ -16,4 +16,6 @@ swag init -g cmd/api/main.go -d ./ --parseDependency --parseInternal -o ./docs
 npx --yes swagger2openapi docs/swagger.json --targetVersion 3.1.0 -y -o docs/openapi.yaml
 npx --yes swagger2openapi docs/swagger.json --targetVersion 3.1.0 -y -o docs/openapi.json
 
+cp docs/openapi.yaml ../openapi.yaml  # копия для корня репозитория
+
 echo "Done: docs/swagger.{json,yaml} (2.0), docs/openapi.{json,yaml} (3.1)"
