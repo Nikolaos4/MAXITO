@@ -901,6 +901,189 @@
                 }
             }
         },
+        "/internal/demo-register": {
+            "post": {
+                "security": [
+                    {
+                        "InternalKey": []
+                    }
+                ],
+                "description": "Только для сервера бота, требует X-Internal-Key. Не для обычных пользователей — обход проверки телефона в БД.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "internal"
+                ],
+                "summary": "Регистрация демо-аккаунта по кодовому слову",
+                "operationId": "botDemoRegister",
+                "parameters": [
+                    {
+                        "description": "Кодовое слово, роль, ФИО, телефон, max_user_id",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_handlers_bot.demoRegisterRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handlers_bot.demoUserResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "code: wrong_code_word",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "code: phone_taken",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    },
+                    "503": {
+                        "description": "code: demo_disabled",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/internal/demo-switch-role": {
+            "post": {
+                "security": [
+                    {
+                        "InternalKey": []
+                    }
+                ],
+                "description": "Только для сервера бота, требует X-Internal-Key. Доступно только аккаунтам, созданным через кодовое слово.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "internal"
+                ],
+                "summary": "Сменить роль демо-аккаунта",
+                "operationId": "botDemoSwitchRole",
+                "parameters": [
+                    {
+                        "description": "max_user_id, новая роль",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_handlers_bot.demoSwitchRoleRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handlers_bot.demoUserResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "code: not_demo_account",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    },
+                    "503": {
+                        "description": "code: demo_disabled",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/internal/demo-verify-code": {
+            "post": {
+                "security": [
+                    {
+                        "InternalKey": []
+                    }
+                ],
+                "description": "Только для сервера бота, требует X-Internal-Key. Ничего не создаёт — просто проверка.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "internal"
+                ],
+                "summary": "Проверить кодовое слово демо-входа",
+                "operationId": "botDemoVerifyCode",
+                "parameters": [
+                    {
+                        "description": "Кодовое слово",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_handlers_bot.demoVerifyRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "слово верное"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "code: wrong_code_word",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    },
+                    "503": {
+                        "description": "code: demo_disabled",
+                        "schema": {
+                            "$ref": "#/definitions/apidoc.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/me": {
             "get": {
                 "security": [
@@ -2567,6 +2750,74 @@
                 }
             }
         },
+        "internal_handlers_bot.demoRegisterRequest": {
+            "type": "object",
+            "required": [
+                "code_word",
+                "full_name",
+                "max_user_id",
+                "phone",
+                "role"
+            ],
+            "properties": {
+                "code_word": {
+                    "type": "string"
+                },
+                "full_name": {
+                    "type": "string"
+                },
+                "max_user_id": {
+                    "type": "string"
+                },
+                "phone": {
+                    "type": "string"
+                },
+                "role": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_handlers_bot.demoSwitchRoleRequest": {
+            "type": "object",
+            "required": [
+                "max_user_id",
+                "role"
+            ],
+            "properties": {
+                "max_user_id": {
+                    "type": "string"
+                },
+                "role": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_handlers_bot.demoUserResponse": {
+            "type": "object",
+            "properties": {
+                "full_name": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "role": {
+                    "type": "string",
+                    "example": "resident"
+                }
+            }
+        },
+        "internal_handlers_bot.demoVerifyRequest": {
+            "type": "object",
+            "required": [
+                "code_word"
+            ],
+            "properties": {
+                "code_word": {
+                    "type": "string"
+                }
+            }
+        },
         "internal_handlers_common.DispatcherInfo": {
             "type": "object",
             "properties": {
@@ -2588,6 +2839,10 @@
                     "type": "integer"
                 },
                 "is_active": {
+                    "type": "boolean"
+                },
+                "is_demo": {
+                    "description": "IsDemo — аккаунт создан через вход по кодовому слову (для жюри), не\nчерез обычную регистрацию. Фронт/бот по нему решает, показывать ли\nкнопку \"Сменить роль\".",
                     "type": "boolean"
                 },
                 "phone": {
@@ -3429,6 +3684,10 @@
                     "type": "integer"
                 },
                 "is_active": {
+                    "type": "boolean"
+                },
+                "is_demo": {
+                    "description": "IsDemo — аккаунт, созданный через вход по кодовому слову (для жюри),\nа не обычной регистрацией через Представителя. Даёт доступ к кнопке\n\"Сменить роль\" в боте; на обычных пользователей не влияет.",
                     "type": "boolean"
                 },
                 "max_user_id": {

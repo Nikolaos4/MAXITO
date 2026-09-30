@@ -42,6 +42,11 @@ type Config struct {
 	// AllowDevHeaders включает старую авторизацию по заголовкам
 	// X-Max-User-Id / X-Max-User-Phone. Только для локальной отладки в Postman.
 	AllowDevHeaders bool
+
+	// DemoCodeWord — кодовое слово для входа жюри в обход обычной регистрации
+	// (см. /internal/demo-register). Пустая строка полностью отключает демо-режим —
+	// выключить после проверки: просто убрать переменную из .env и передеплоить.
+	DemoCodeWord string
 }
 
 func Load() (*Config, error) {
@@ -79,6 +84,7 @@ func Load() (*Config, error) {
 		InternalAPIKey:       getEnv("INTERNAL_API_KEY", ""),
 		AllowDevHeaders:      allowDev,
 		NotifyURL:            getEnv("NOTIFY_URL", "http://bot:3001/notify"),
+		DemoCodeWord:         getEnv("DEMO_CODE_WORD", ""),
 	}
 
 	if err := cfg.validate(); err != nil {

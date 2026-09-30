@@ -100,6 +100,16 @@ func main() {
 	}
 	log.Println("Reference data (problem types, reasons) seeded successfully")
 
+	var demoHouseID uint
+	if cfg.DemoCodeWord != "" {
+		id, err := database.SeedDemoFixtures(db)
+		if err != nil {
+			log.Fatalf("failed to seed demo fixtures: %v", err)
+		}
+		demoHouseID = id
+		log.Println("Demo mode ENABLED — code word set, demo fixtures seeded")
+	}
+
 	// Repositories
 	userRepo := repository.NewUserRepository(db)
 	houseRepo := repository.NewHouseRepository(db)
@@ -179,6 +189,9 @@ func main() {
 	meHandler := common.NewMeHandler(residentRepo, dispHouseRepo)
 	uploadHandler := common.NewUploadHandler(cfg.UploadDir)
 
+	demoSvc := services.NewDemoService(userRepo, residentRepo, dispHouseRepo, cfg.DemoCodeWord, demoHouseID)
+	demoHandler := bot.NewDemoHandler(demoSvc)
+
 	gin.SetMode(cfg.GinMode)
 	r := gin.Default()
 
@@ -214,6 +227,11 @@ func main() {
 		internalAPI.Use(middleware.RequireInternalKey(cfg.InternalAPIKey))
 		{
 			internalAPI.POST("/bind", botHandler.Bind)
+
+			// Демо-вход по кодовому слову (для жюри) — см. DEMO_CODE_WORD.
+			internalAPI.POST("/demo-verify-code", demoHandler.VerifyCode)
+			internalAPI.POST("/demo-register", demoHandler.Register)
+			internalAPI.POST("/demo-switch-role", demoHandler.SwitchRole)
 		}
 
 		rep := api.Group("/representative")

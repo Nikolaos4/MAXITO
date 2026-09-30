@@ -1,7 +1,7 @@
 import type { AppContext } from "@/context";
 import { getSession } from "@/context";
 import { residentMenuKeyboard } from "@/flows/resident-menu";
-import { DISPATCHER_MENU_TEXT, MENU_TEXT, RESIDENT_MENU_TEXT, buildDispatcherMenuKeyboard, mainMenuKeyboard } from "@/menu";
+import { DISPATCHER_MENU_TEXT, MENU_TEXT, RESIDENT_MENU_TEXT, buildDispatcherMenuKeyboard, buildMainMenuKeyboard } from "@/menu";
 
 export async function menuCommand(ctx: AppContext) {
     if (!ctx.user) return;
@@ -9,7 +9,7 @@ export async function menuCommand(ctx: AppContext) {
     const session = getSession(ctx.user.user_id);
 
     if (session.role === "representative") {
-        return ctx.reply(MENU_TEXT, { attachments: [mainMenuKeyboard] });
+        return ctx.reply(MENU_TEXT, { attachments: [await buildMainMenuKeyboard(ctx)] });
     }
     if (session.role === "dispatcher") {
         return ctx.reply(DISPATCHER_MENU_TEXT, { attachments: [await buildDispatcherMenuKeyboard(ctx)] });

@@ -1,21 +1,32 @@
 import { Keyboard } from "@maxhub/max-bot-api";
-import type { AppContext } from "@/context";
+import { getSession, type AppContext } from "@/context";
 import { miniAppButton } from "@/miniapp";
 
 export const MENU_TEXT = "Главное меню представителя. Выберите действие:";
 
-export const mainMenuKeyboard = Keyboard.inlineKeyboard([
-    [Keyboard.button.callback("Загрузить дома из CSV", "menu:import_houses")],
-    [Keyboard.button.callback("Список домов", "menu:list_houses")],
-    [Keyboard.button.callback("Изменить дом", "menu:edit_house")],
-    [Keyboard.button.callback("Добавить диспетчера", "menu:add_dispatcher")],
-    [Keyboard.button.callback("Загрузить диспетчеров из CSV", "menu:import_dispatchers")],
-    [Keyboard.button.callback("Назначить дома диспетчерам", "menu:assign_houses")],
-    [Keyboard.button.callback("Загрузить жителей из CSV", "menu:import_residents")],
-    [Keyboard.button.callback("Реквизиты УК", "menu:edit_company")],
-    [Keyboard.button.callback("Аварийные службы: список", "menu:show_emergency")],
-    [Keyboard.button.callback("Загрузить аварийные службы из CSV", "menu:import_emergency")],
-]);
+// Кнопка "Сменить роль" — только для демо-аккаунтов (вход по кодовому слову,
+// см. flows/demo.ts). У обычных пользователей роль фиксирована, им эта
+// возможность не показывается.
+function demoSwitchRoleRow(ctx: AppContext) {
+    const isDemo = ctx.user ? getSession(ctx.user.user_id).isDemo : false;
+    return isDemo ? [[Keyboard.button.callback("Сменить роль", "demo:switch_role")]] : [];
+}
+
+export async function buildMainMenuKeyboard(ctx: AppContext) {
+    return Keyboard.inlineKeyboard([
+        [Keyboard.button.callback("Загрузить дома из CSV", "menu:import_houses")],
+        [Keyboard.button.callback("Список домов", "menu:list_houses")],
+        [Keyboard.button.callback("Изменить дом", "menu:edit_house")],
+        [Keyboard.button.callback("Добавить диспетчера", "menu:add_dispatcher")],
+        [Keyboard.button.callback("Загрузить диспетчеров из CSV", "menu:import_dispatchers")],
+        [Keyboard.button.callback("Назначить дома диспетчерам", "menu:assign_houses")],
+        [Keyboard.button.callback("Загрузить жителей из CSV", "menu:import_residents")],
+        [Keyboard.button.callback("Реквизиты УК", "menu:edit_company")],
+        [Keyboard.button.callback("Аварийные службы: список", "menu:show_emergency")],
+        [Keyboard.button.callback("Загрузить аварийные службы из CSV", "menu:import_emergency")],
+        ...demoSwitchRoleRow(ctx),
+    ]);
+}
 
 export const backToMenuKeyboard = Keyboard.inlineKeyboard([[Keyboard.button.callback("В главное меню", "menu:show")]]);
 
@@ -36,6 +47,7 @@ export async function buildDispatcherMenuKeyboard(ctx: AppContext) {
         [Keyboard.button.callback("Мои дома", "dispatcher_menu:houses")],
         [notificationsBtn],
         [Keyboard.button.callback("Информация и контакты", "dispatcher_menu:info")],
+        ...demoSwitchRoleRow(ctx),
     ]);
 }
 
@@ -59,6 +71,7 @@ export async function buildResidentMenuKeyboard(ctx: AppContext, chatInviteLink?
         ...(chatInviteLink ? [[Keyboard.button.link("Перейти в чат дома", chatInviteLink)]] : []),
         [notificationsBtn],
         [Keyboard.button.callback("Информация и контакты", "resident_menu:info")],
+        ...demoSwitchRoleRow(ctx),
     ]);
 }
 
@@ -82,3 +95,17 @@ export async function buildResidentProblemTypeKeyboard(
         [Keyboard.button.callback("В меню", "resident_menu:show")],
     ]);
 }
+
+// ==================== Демо-режим (вход по кодовому слову) ====================
+
+export const DEMO_START_TEXT = "Ввод кодового слова для демо-доступа. Введите кодовое слово:";
+
+export const demoRolePickKeyboard = (payloadPrefix: "demo_register_role" | "demo_switch") =>
+    Keyboard.inlineKeyboard([
+        [Keyboard.button.callback("Житель", `${payloadPrefix}:resident`)],
+        [Keyboard.button.callback("Диспетчер", `${payloadPrefix}:dispatcher`)],
+        [Keyboard.button.callback("Представитель", `${payloadPrefix}:representative`)],
+        [Keyboard.button.callback("Отмена", "flow:cancel")],
+    ]);
+
+export const DEMO_ROLE_PICK_TEXT = "Выберите роль:";

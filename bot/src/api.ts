@@ -103,6 +103,36 @@ function bind(maxUserId: string, phone: string) {
     });
 }
 
+// Демо-вход по кодовому слову (для жюри, в обход обычной регистрации) — см. DEMO_CODE_WORD на бэке.
+function demoVerifyCode(codeWord: string) {
+    return ofetch<void>("/internal/demo-verify-code", {
+        baseURL,
+        method: "POST",
+        headers: internalHeaders,
+        body: { code_word: codeWord },
+    });
+}
+
+type ApiDemoUser = { id: number; full_name: string; role: ApiRole };
+
+function demoRegister(codeWord: string, role: ApiRole, fullName: string, phone: string, maxUserId: string) {
+    return ofetch<ApiDemoUser>("/internal/demo-register", {
+        baseURL,
+        method: "POST",
+        headers: internalHeaders,
+        body: { code_word: codeWord, role, full_name: fullName, phone, max_user_id: maxUserId },
+    });
+}
+
+function demoSwitchRole(maxUserId: string, role: ApiRole) {
+    return ofetch<ApiDemoUser>("/internal/demo-switch-role", {
+        baseURL,
+        method: "POST",
+        headers: internalHeaders,
+        body: { max_user_id: maxUserId, role },
+    });
+}
+
 function csvFormData(file: { data: Buffer; filename: string }) {
     const form = new FormData();
     form.append("file", new Blob([new Uint8Array(file.data)]), file.filename);
@@ -115,6 +145,7 @@ export type ApiMe = {
     full_name: string;
     role: ApiRole;
     is_active: boolean;
+    is_demo: boolean;
     resident?: { house_id: number; apartment: string; entrance_number?: number | null };
     dispatcher?: { houses_count: number };
 };
@@ -220,6 +251,9 @@ type ApiNotification = {
 
 export const api = {
     bind,
+    demoVerifyCode,
+    demoRegister,
+    demoSwitchRole,
 
     me: (auth: Auth) => request<ApiMe>("/me", auth),
 

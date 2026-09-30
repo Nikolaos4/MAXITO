@@ -57,6 +57,11 @@ func (r *UserRepository) SetMaxUserID(id uint, maxUserID string) error {
 	return r.db.Model(&models.User{}).Where("id = ?", id).Update("max_user_id", maxUserID).Error
 }
 
+// Update сохраняет изменённые поля пользователя (полная запись через Save).
+func (r *UserRepository) Update(user *models.User) error {
+	return r.db.Save(user).Error
+}
+
 func (r *UserRepository) Deactivate(id uint) error {
 	return r.db.Model(&models.User{}).Where("id = ?", id).Update("is_active", false).Error
 }

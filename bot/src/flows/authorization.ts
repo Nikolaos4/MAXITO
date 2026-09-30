@@ -1,9 +1,8 @@
 import { Keyboard } from "@maxhub/max-bot-api";
 import { FetchError } from "ofetch";
 import { api, type Auth } from "@/api";
-import { clearFlow, getSession, setFlow, setRole, setStep, type AppContext } from "@/context";
-import { residentMenuKeyboard } from "@/flows/resident-menu";
-import { DISPATCHER_MENU_TEXT, MENU_TEXT, RESIDENT_MENU_TEXT, buildDispatcherMenuKeyboard, mainMenuKeyboard } from "@/menu";
+import { clearFlow, getSession, setFlow, setIsDemo, setRole, setStep, type AppContext } from "@/context";
+import { sendRoleMenu } from "@/flows/role-menu";
 
 export async function askForPhone(ctx: AppContext) {
     if (!ctx.user) return;
@@ -12,7 +11,12 @@ export async function askForPhone(ctx: AppContext) {
     setStep(ctx.user.user_id, "authorization/phone");
 
     await ctx.reply("Чтобы начать работу, поделитесь номером телефона — по нему мы найдём вашу учётную запись.", {
-        attachments: [Keyboard.inlineKeyboard([[Keyboard.button.requestContact("Отправить номер телефона")]])],
+        attachments: [
+            Keyboard.inlineKeyboard([
+                [Keyboard.button.requestContact("Отправить номер телефона")],
+                [Keyboard.button.callback("Ввести кодовое слово", "demo:start")],
+            ]),
+        ],
     });
 }
 
@@ -22,6 +26,7 @@ export async function tryRestoreRole(ctx: AppContext): Promise<boolean> {
     try {
         const me = await api.me({ maxUserId: String(ctx.user.user_id) });
         setRole(ctx.user.user_id, me.role);
+        setIsDemo(ctx.user.user_id, me.is_demo);
         return true;
     } catch {
         return false;
@@ -37,18 +42,12 @@ async function tryBind(ctx: AppContext, phone: string) {
         await api.bind(auth.maxUserId, phone);
         const me = await api.me(auth);
         setRole(ctx.user.user_id, me.role);
+        setIsDemo(ctx.user.user_id, me.is_demo);
         clearFlow(ctx.user.user_id);
 
-        if (me.role === "representative") {
-            await ctx.reply("Готово! Вы авторизованы как представитель управляющей компании.");
-            await ctx.reply(MENU_TEXT, { attachments: [mainMenuKeyboard] });
-        } else if (me.role === "dispatcher") {
-            await ctx.reply("Готово! Вы авторизованы как диспетчер.");
-            await ctx.reply(DISPATCHER_MENU_TEXT, { attachments: [await buildDispatcherMenuKeyboard(ctx)] });
-        } else {
-            await ctx.reply("Готово! Вы авторизованы как житель.");
-            await ctx.reply(RESIDENT_MENU_TEXT, { attachments: [await residentMenuKeyboard(ctx)] });
-        }
+        const roleLabel = me.role === "representative" ? "представитель управляющей компании" : me.role === "dispatcher" ? "диспетчер" : "житель";
+        await ctx.reply(`Готово! Вы авторизованы как ${roleLabel}.`);
+        await sendRoleMenu(ctx, me.role);
     } catch (err) {
         const status = err instanceof FetchError ? err.statusCode : undefined;
 

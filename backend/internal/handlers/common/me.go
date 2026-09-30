@@ -35,6 +35,10 @@ type MeResponse struct {
 	FullName string      `json:"full_name"`
 	Role     models.Role `json:"role"`
 	IsActive bool        `json:"is_active"`
+	// IsDemo — аккаунт создан через вход по кодовому слову (для жюри), не
+	// через обычную регистрацию. Фронт/бот по нему решает, показывать ли
+	// кнопку "Сменить роль".
+	IsDemo bool `json:"is_demo"`
 
 	// Заполняется только для соответствующей роли, у остальных отсутствует в JSON.
 	Resident   *ResidentInfo   `json:"resident,omitempty"`
@@ -67,6 +71,7 @@ func (h *MeHandler) Me(c *gin.Context) {
 		FullName: currentUser.FullName,
 		Role:     currentUser.Role,
 		IsActive: currentUser.IsActive,
+		IsDemo:   currentUser.IsDemo,
 	}
 
 	switch currentUser.Role {

@@ -679,6 +679,140 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/apidoc.ErrorResponse"
+  /internal/demo-register:
+    post:
+      security:
+        - InternalKey: []
+      description: Только для сервера бота, требует X-Internal-Key. Не для обычных
+        пользователей — обход проверки телефона в БД.
+      tags:
+        - internal
+      summary: Регистрация демо-аккаунта по кодовому слову
+      operationId: botDemoRegister
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/internal_handlers_bot.demoRegisterRequest"
+        description: Кодовое слово, роль, ФИО, телефон, max_user_id
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/internal_handlers_bot.demoUserResponse"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/apidoc.ErrorResponse"
+        "401":
+          description: "code: wrong_code_word"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/apidoc.ErrorResponse"
+        "409":
+          description: "code: phone_taken"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/apidoc.ErrorResponse"
+        "503":
+          description: "code: demo_disabled"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/apidoc.ErrorResponse"
+  /internal/demo-switch-role:
+    post:
+      security:
+        - InternalKey: []
+      description: Только для сервера бота, требует X-Internal-Key. Доступно только
+        аккаунтам, созданным через кодовое слово.
+      tags:
+        - internal
+      summary: Сменить роль демо-аккаунта
+      operationId: botDemoSwitchRole
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/internal_handlers_bot.demoSwitchRoleRequest"
+        description: max_user_id, новая роль
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/internal_handlers_bot.demoUserResponse"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/apidoc.ErrorResponse"
+        "403":
+          description: "code: not_demo_account"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/apidoc.ErrorResponse"
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/apidoc.ErrorResponse"
+        "503":
+          description: "code: demo_disabled"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/apidoc.ErrorResponse"
+  /internal/demo-verify-code:
+    post:
+      security:
+        - InternalKey: []
+      description: Только для сервера бота, требует X-Internal-Key. Ничего не создаёт
+        — просто проверка.
+      tags:
+        - internal
+      summary: Проверить кодовое слово демо-входа
+      operationId: botDemoVerifyCode
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/internal_handlers_bot.demoVerifyRequest"
+        description: Кодовое слово
+        required: true
+      responses:
+        "204":
+          description: слово верное
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/apidoc.ErrorResponse"
+        "401":
+          description: "code: wrong_code_word"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/apidoc.ErrorResponse"
+        "503":
+          description: "code: demo_disabled"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/apidoc.ErrorResponse"
   /me:
     get:
       security:
@@ -1939,6 +2073,52 @@ components:
         role:
           type: string
           example: resident
+    internal_handlers_bot.demoRegisterRequest:
+      type: object
+      required:
+        - code_word
+        - full_name
+        - max_user_id
+        - phone
+        - role
+      properties:
+        code_word:
+          type: string
+        full_name:
+          type: string
+        max_user_id:
+          type: string
+        phone:
+          type: string
+        role:
+          type: string
+    internal_handlers_bot.demoSwitchRoleRequest:
+      type: object
+      required:
+        - max_user_id
+        - role
+      properties:
+        max_user_id:
+          type: string
+        role:
+          type: string
+    internal_handlers_bot.demoUserResponse:
+      type: object
+      properties:
+        full_name:
+          type: string
+        id:
+          type: integer
+        role:
+          type: string
+          example: resident
+    internal_handlers_bot.demoVerifyRequest:
+      type: object
+      required:
+        - code_word
+      properties:
+        code_word:
+          type: string
     internal_handlers_common.DispatcherInfo:
       type: object
       properties:
@@ -1954,6 +2134,12 @@ components:
         id:
           type: integer
         is_active:
+          type: boolean
+        is_demo:
+          description: |-
+            IsDemo — аккаунт создан через вход по кодовому слову (для жюри), не
+            через обычную регистрацию. Фронт/бот по нему решает, показывать ли
+            кнопку "Сменить роль".
           type: boolean
         phone:
           type: string
@@ -2528,6 +2714,12 @@ components:
         id:
           type: integer
         is_active:
+          type: boolean
+        is_demo:
+          description: |-
+            IsDemo — аккаунт, созданный через вход по кодовому слову (для жюри),
+            а не обычной регистрацией через Представителя. Даёт доступ к кнопке
+            "Сменить роль" в боте; на обычных пользователей не влияет.
           type: boolean
         max_user_id:
           type: string

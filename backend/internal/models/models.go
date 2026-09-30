@@ -47,12 +47,16 @@ const ProblemTypeCodeOther = "other"
 
 // User
 type User struct {
-	ID        uint           `gorm:"primaryKey" json:"id"`
-	Phone     string         `gorm:"uniqueIndex;size:20;not null" json:"phone"`
-	FullName  string         `gorm:"size:255;not null" json:"full_name"`
-	Role      Role           `gorm:"size:20;not null;index" json:"role"`
-	MaxUserID *string        `gorm:"size:100;uniqueIndex" json:"max_user_id,omitempty"`
-	IsActive  bool           `gorm:"default:true" json:"is_active"`
+	ID        uint    `gorm:"primaryKey" json:"id"`
+	Phone     string  `gorm:"uniqueIndex;size:20;not null" json:"phone"`
+	FullName  string  `gorm:"size:255;not null" json:"full_name"`
+	Role      Role    `gorm:"size:20;not null;index" json:"role"`
+	MaxUserID *string `gorm:"size:100;uniqueIndex" json:"max_user_id,omitempty"`
+	IsActive  bool    `gorm:"default:true" json:"is_active"`
+	// IsDemo — аккаунт, созданный через вход по кодовому слову (для жюри),
+	// а не обычной регистрацией через Представителя. Даёт доступ к кнопке
+	// "Сменить роль" в боте; на обычных пользователей не влияет.
+	IsDemo    bool           `gorm:"default:false" json:"is_demo"`
 	CreatedAt time.Time      `json:"created_at"`
 	UpdatedAt time.Time      `json:"updated_at"`
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`

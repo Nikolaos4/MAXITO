@@ -13,8 +13,8 @@ import {
     MENU_TEXT,
     backToMenuKeyboard,
     buildDispatcherMenuKeyboard,
+    buildMainMenuKeyboard,
     cancelKeyboard,
-    mainMenuKeyboard,
 } from "@/menu";
 
 function authFor(ctx: AppContext): Auth {
@@ -31,7 +31,7 @@ export const menuFlow = {
             clearFlow(ctx.user.user_id);
             const session = getSession(ctx.user.user_id);
             if (session.role === "representative") {
-                await ctx.answerOnCallback({ message: { text: MENU_TEXT, attachments: [mainMenuKeyboard] } });
+                await ctx.answerOnCallback({ message: { text: MENU_TEXT, attachments: [await buildMainMenuKeyboard(ctx)] } });
             } else if (session.role === "dispatcher") {
                 await ctx.answerOnCallback({
                     message: { text: DISPATCHER_MENU_TEXT, attachments: [await buildDispatcherMenuKeyboard(ctx)] },
@@ -67,7 +67,7 @@ export const menuFlow = {
 
         if (payload === "menu:show") {
             clearFlow(ctx.user.user_id);
-            await ctx.answerOnCallback({ message: { text: MENU_TEXT, attachments: [mainMenuKeyboard] } });
+            await ctx.answerOnCallback({ message: { text: MENU_TEXT, attachments: [await buildMainMenuKeyboard(ctx)] } });
             return true;
         }
 
@@ -170,7 +170,7 @@ export const menuFlow = {
         const session = getSession(ctx.user.user_id);
         if (session.flow || session.role !== "representative") return false;
 
-        await ctx.reply(MENU_TEXT, { attachments: [mainMenuKeyboard] });
+        await ctx.reply(MENU_TEXT, { attachments: [await buildMainMenuKeyboard(ctx)] });
         return true;
     },
 };

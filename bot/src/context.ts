@@ -2,10 +2,14 @@ import { Context } from "@maxhub/max-bot-api";
 import type { User } from "@maxhub/max-bot-api/types";
 import type { ApiRole } from "@/api";
 
-type FlowName = "authorization" | "house" | "house_edit" | "dispatcher" | "assignment" | "company" | "emergency";
+type FlowName = "authorization" | "demo" | "house" | "house_edit" | "dispatcher" | "assignment" | "company" | "emergency";
 
 type Step =
     | "authorization/phone"
+    | "demo/code_word"
+    | "demo/awaiting_role"
+    | "demo/full_name"
+    | "demo/phone"
     | "house/import_csv"
     | "house/import_residents_select"
     | "house/import_residents_csv"
@@ -50,12 +54,15 @@ interface Session {
     data: Record<string, unknown>;
     role: Role | undefined | null;
     token: string;
+    // isDemo — аккаунт создан через вход по кодовому слову (см. flows/demo.ts).
+    // Определяет, показывать ли кнопку "Сменить роль" в меню.
+    isDemo: boolean;
 }
 
 const sessions = new Map<number, Session>();
 
 export function getSession(userId: number): Session {
-    return sessions.get(userId) ?? { flow: null, step: null, data: {}, role: undefined, token: "" };
+    return sessions.get(userId) ?? { flow: null, step: null, data: {}, role: undefined, token: "", isDemo: false };
 }
 
 export function setSession(userId: number, s: Session) {
@@ -75,6 +82,11 @@ export function setFlow(userId: number, flow: FlowName) {
 export function setRole(userId: number, role: Role) {
     const s = getSession(userId);
     sessions.set(userId, { ...s, role });
+}
+
+export function setIsDemo(userId: number, isDemo: boolean) {
+    const s = getSession(userId);
+    sessions.set(userId, { ...s, isDemo });
 }
 
 export function setToken(userId: number, token: string) {
